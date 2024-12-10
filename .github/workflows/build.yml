@@ -21,7 +21,7 @@ jobs:
           node-version: '16'  # Install node.js to build
 
       - name: Install dependencies
-        run: npm run dev      # Comando definito nel package.json
+        run: npm install      # Comando definito nel package.json
 
       #Futuro comando per i test
       
