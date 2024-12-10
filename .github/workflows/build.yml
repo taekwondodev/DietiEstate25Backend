@@ -10,9 +10,21 @@ jobs:
     name: SonarQube
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # Install node.js to build
+
+      - name: Install dependencies
+        run: npm run dev      # Comando definito nel package.json
+
+      #Futuro comando per i test
+      
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v4
         env:
