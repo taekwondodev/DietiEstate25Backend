@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: DietiEstate API
+  description: API per la gestione di un'applicazione immobiliare.
+  version: 1.0.0
+servers:
+  - url: https://api.realestate.com/v1
+    description: Server di produzione
+  - url: https://staging-api.realestate.com/v1
+    description: Server di staging
+paths:
+  /auth/login:
+    post:
+      summary: Effettua il login
+      description: Effettua il login utilizzando credenziali proprie o tramite AWS Cognito.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: mySecurePassword123
+      responses:
+        '200':
+          description: Login effettuato con successo
+        '401':
+          description: Credenziali non valide
+
+  /auth/register:
+    post:
+      summary: Registra un nuovo utente
+      description: Registra un nuovo utente con email e password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: mySecurePassword123
+      responses:
+        '201':
+          description: Utente registrato con successo
+        '400':
+          description: Richiesta non valida
+
+  /immobili/search:
+    get:
+      summary: Cerca immobili
+      description: Cerca immobili in base a distanza e altri filtri.
+      parameters:
+        - name: indirizzo
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Indirizzo di riferimento per la ricerca.
+        - name: distanza
+          in: query
+          schema:
+            type: number
+            format: float
+          description: Raggio di ricerca in chilometri.
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+          description: Filtra per tipologia di immobile.
+        - name: prezzoMin
+          in: query
+          schema:
+            type: number
+          description: Prezzo minimo.
+        - name: prezzoMax
+          in: query
+          schema:
+            type: number
+          description: Prezzo massimo.
+        - name: nStanze
+          in: query
+          schema:
+            type: integer
+          description: Numero minimo di stanze.
+        - name: classeEnergetica
+          in: query
+          schema:
+            type: string
+            enum: [A4, A3, A2, A1, B, C, D, E, F, G]
+      responses:
+        '200':
+          description: Lista di immobili trovati
+        '404':
+          description: Nessun immobile trovato
+
+  /immobili:
+    post:
+      summary: Crea un nuovo immobile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Immobile'
+      responses:
+        '201':
+          description: Immobile creato con successo
+
+  /offerte:
+    post:
+      summary: Invia una nuova offerta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Offerta'
+      responses:
+        '201':
+          description: Offerta inviata con successo
+
+  /visite:
+    post:
+      summary: Invia una nuova richiesta di visita
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Visita'
+      responses:
+        '201':
+          description: Richiesta di visita inviata con successo
+
+  /visite/{id}/notifica:
+    post:
+      summary: Invia una notifica all'agente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID della visita.
+      responses:
+        '200':
+          description: Notifica inviata con successo
+
+  /prenotazioni:
+    get:
+      summary: Ottieni prenotazioni del cliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del cliente
+      responses:
+        '200':
+          description: Lista di prenotazioni associate al cliente
+
+  /offerte/{id}:
+    patch:
+      summary: Conferma o rifiuta un'offerta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID dell'offerta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stato:
+                  type: string
+                  enum: ["Accettata", "Rifiutata"]
+      responses:
+        '200':
+          description: Stato dell'offerta aggiornato
+
+  /visite/{id}:
+    patch:
+      summary: Conferma o rifiuta una visita
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID della visita.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stato:
+                  type: string
+                  enum: ["Confermata", "Rifiutata"]
+      responses:
+        '200':
+          description: Stato della visita aggiornato
+
+components:
+  schemas:
+    Immobile:
+      type: object
+      properties:
+        prezzo:
+          type: number
+        nStanze:
+          type: string
+        tipologia:
+          type: string
+        indirizzo:
+          $ref: '#/components/schemas/Indirizzo'
+        classeEnergetica:
+          type: string
+          enum: [A4, A3, A2, A1, B, C, D, E, F, G]
+        idAgente:
+          type: integer
+
+    Offerta:
+      type: object
+      properties:
+        importo:
+          type: number
+        idCliente:
+          type: integer
+        idImmobile:
+          type: integer
+
+    Visita:
+      type: object
+      properties:
+        dataRichiesta:
+          type: string
+          format: date
+        orario:
+          type: string
+          format: time
+        idCliente:
+          type: integer
+        idImmobile:
+          type: integer
+
+    Indirizzo:
+      type: object
+      properties:
+        via:
+          type: string
+        comune:
+          type: string
+        cap:
+          type: string
