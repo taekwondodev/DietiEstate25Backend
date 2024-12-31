@@ -1,4 +1,4 @@
-package com.dietiestate25backend.Model;
+package com.dietiestate25backend.model;
 
 public class AgenteImmobiliare extends Utente {
     /// riferimento all'agenzia di appartenenza

@@ -1,4 +1,4 @@
-package com.dietiestate25backend.Model;
+package com.dietiestate25backend.model;
 
 public enum TipoClasseEnergetica {
     A_PLUS_PLUS("A++"),

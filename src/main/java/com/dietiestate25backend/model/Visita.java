@@ -1,4 +1,4 @@
-package com.dietiestate25backend.Model;
+package com.dietiestate25backend.model;
 
 import java.sql.Date;
 import java.sql.Time;
