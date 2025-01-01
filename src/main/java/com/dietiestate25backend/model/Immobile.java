@@ -8,4 +8,12 @@ public class Immobile {
     private TipoClasseEnergetica classeEnergetica;
 
     /// riferimento all'agente immobiliare responsabile
+
+    public Immobile(double prezzo, String nStanze, String tipologia, Indirizzo indirizzo, TipoClasseEnergetica classeEnergetica) {
+        this.prezzo = prezzo;
+        this.nStanze = nStanze;
+        this.tipologia = tipologia;
+        this.indirizzo = indirizzo;
+        this.classeEnergetica = classeEnergetica;
+    }
 }
