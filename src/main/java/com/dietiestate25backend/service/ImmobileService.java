@@ -44,4 +44,8 @@ public class ImmobileService {
 
         return immobileDao.cercaImmobiliConFiltri(filters);
     }
+
+    public boolean creaImmobile(Immobile immobile) {
+        return immobileDao.creaImmobile(immobile);
+    }
 }

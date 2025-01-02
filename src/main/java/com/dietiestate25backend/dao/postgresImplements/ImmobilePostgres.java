@@ -30,29 +30,46 @@ public class ImmobilePostgres implements ImmobileDao {
            String tipologia = rs.getString("tipologia");
            Indirizzo indirizzo = new Indirizzo(rs.getString("via"), rs.getString("civico"), rs.getString("cap"));
            TipoClasseEnergetica classeEnergetica = TipoClasseEnergetica.fromString(rs.getString("classeEnergetica"));
+           int idResponsabile = rs.getInt("idAgente");
 
-           return new Immobile(prezzo, nStanze, tipologia, indirizzo, classeEnergetica);
+           return new Immobile(prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idResponsabile);
        });
     }
 
-    private String buildSql(Map<String, Object> filters){
-        StringBuilder sql = new StringBuilder("SELECT * FROM immobile WHERE 1=1");
-        sql.append(" AND cap = ?");
+    @Override
+    public boolean creaImmobile(Immobile immobile) {
+        double prezzo = immobile.getPrezzo();
+        String nStanze = immobile.getnStanze();
+        String tipologia = immobile.getTipologia();
+        Indirizzo indirizzo = immobile.getIndirizzo();
+        String classeEnergetica = immobile.getClasseEnergetica().getClasse();
+        int idAgente = immobile.getIdResponsabile();
+
+        return jdbcTemplate.update(
+                "INSERT INTO immobile(prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente
+        ) > 0;
+    }
+
+    private String buildSql(Map<String, Object> filters) {
+        StringBuilder sql = new StringBuilder("SELECT i.*, a.email, a.password FROM immobile i");
+        sql.append(" JOIN AgenteImmobiliare a ON i.idAgente = a.id WHERE 1=1");
+        sql.append(" AND i.cap = ?");
 
         if (filters.containsKey("prezzoMin") && filters.containsKey("prezzoMax")) {
-            sql.append(" AND prezzo BETWEEN ? AND ?");
+            sql.append(" AND i.prezzo BETWEEN ? AND ?");
         }
 
         if (filters.containsKey("nStanze")) {
-            sql.append(" AND nStanze = ?");
+            sql.append(" AND i.nStanze = ?");
         }
 
         if (filters.containsKey("tipologia")) {
-            sql.append(" AND tipologia = ?");
+            sql.append(" AND i.tipologia = ?");
         }
 
         if (filters.containsKey("classeEnergetica")) {
-            sql.append(" AND classeEnergetica = ?");
+            sql.append(" AND i.classeEnergetica = ?");
         }
 
         return sql.toString();
