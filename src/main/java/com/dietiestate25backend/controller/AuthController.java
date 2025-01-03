@@ -19,11 +19,13 @@ public class AuthController {
     /// chiamate http
     @PostMapping("/login")
     public boolean login(@RequestBody Utente utente) {
-        return authService.login(utente);
+        // return authService.login(utente);
+        return false;
     }
 
     @PostMapping("/registrazione")
     public boolean registrazione(@RequestBody Utente utente) {
-        return authService.registrazione(utente);
+        // return authService.registrazione(utente);
+        return false;
     }
 }
