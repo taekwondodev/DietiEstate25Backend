@@ -1,12 +1,15 @@
 package com.dietiestate25backend.service;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dietiestate25backend.dto.AggiornaPasswordRequest;
 import com.dietiestate25backend.dto.LoginResponse;
 import com.dietiestate25backend.dto.RegistrazioneRequest;
 import com.dietiestate25backend.dto.RegistrazioneResponse;
+import com.dietiestate25backend.error.exception.*;
+import com.dietiestate25backend.error.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -31,13 +34,16 @@ public class AuthService {
     @Value("${aws.cognito.userPoolId}")
     private String userPoolId;
 
-    @Autowired
-    private CognitoIdentityProviderClient cognitoClient;    /// costruttore definito in AWS Config
+    private final CognitoIdentityProviderClient cognitoClient;    /// costruttore definito in AWS Config
+
+    public AuthService(CognitoIdentityProviderClient cognitoClient) {
+        this.cognitoClient = cognitoClient;
+    }
 
     public RegistrazioneResponse registrazione(final RegistrazioneRequest registrazioneRequest) {
         if (!registrazioneRequest.isValid()) {
             logger.error("Email o password non possono essere nulli");
-            throw new IllegalArgumentException("Email o password non possono essere nulli");
+            throw new BadRequestException("Email o password non possono essere nulli");
         }
 
         try {
@@ -54,7 +60,13 @@ public class AuthService {
             return new RegistrazioneResponse(signUpResponse.userSub());
         } catch (CognitoIdentityProviderException e) {
             logger.error(e.awsErrorDetails().errorMessage());
-            throw new RuntimeException(e.awsErrorDetails().errorMessage(), e);
+
+            if (e.awsErrorDetails().errorCode().equals("UsernameExistsException")) {
+                throw new ConflictException("Utente già registrato");
+            }
+            else {
+                throw new InternalServerErrorException("Errore durante la registrazione", e);
+            }
         }
     }
 
@@ -78,11 +90,21 @@ public class AuthService {
 
         } catch (CognitoIdentityProviderException e) {
             logger.error(e.awsErrorDetails().errorMessage());
-            throw new RuntimeException(e.awsErrorDetails().errorMessage(), e);
+
+            String errorCode = e.awsErrorDetails().errorCode();
+            if (errorCode.equals("NotAuthorizedException")) {
+                throw new UnauthorizedException("Credenziali non valide");
+            }
+            else if (errorCode.equals("UserNotFoundException")) {
+                throw new NotFoundException("username non trovato");
+            }
+            else {
+                throw new InternalServerErrorException("Errore durante il login", e);
+            }
         }
     }
 
-    public ResponseEntity<Void> aggiornaPassword(final AggiornaPasswordRequest request){
+    public ResponseEntity<Void> aggiornaPassword(final AggiornaPasswordRequest request) {
         ChangePasswordRequest changePasswordRequest = ChangePasswordRequest.builder()
                 .accessToken(request.getAccessToken())
                 .previousPassword(request.getOldPassword())
@@ -91,10 +113,17 @@ public class AuthService {
 
         DecodedJWT jwt = JWT.decode(request.getAccessToken());
 
-        ChangePasswordResponse changePasswordResponse = cognitoClient.changePassword(changePasswordRequest);
-        logger.info("Password aggiornata con successo: {}", jwt.getClaim("username").asString());
+        //questo è il response
+        cognitoClient.changePassword(changePasswordRequest);
 
-        return ResponseEntity.ok().build();
+        if (jwt.getClaim("username").isNull()) {
+            logger.error("Username non trovato nel token");
+            throw new NotFoundException("Username non trovato nel token");
+        }
+        else {
+            logger.info("Password aggiornata con successo: {}", jwt.getClaim("username").asString());
+            return ResponseEntity.ok().build();
+        }
     }
 
     private static String generateSecretHash(final String clientId, String clientSecret, String username) {

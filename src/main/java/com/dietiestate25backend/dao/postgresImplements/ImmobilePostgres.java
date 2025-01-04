@@ -45,10 +45,15 @@ public class ImmobilePostgres implements ImmobileDao {
         String classeEnergetica = immobile.getClasseEnergetica().getClasse();
         int idAgente = immobile.getIdResponsabile();
 
+        /*
         return jdbcTemplate.update(
                 "INSERT INTO immobile(prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente
         ) > 0;
+
+         */
+
+        return false;
     }
 
     private String buildSql(Map<String, Object> filters) {
