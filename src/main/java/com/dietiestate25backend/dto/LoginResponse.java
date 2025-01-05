@@ -12,4 +12,16 @@ public class LoginResponse {
         this.idToken = idToken;
         this.refreshToken = refreshToken;
     }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public String getIdToken() {
+        return idToken;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
 }
