@@ -57,6 +57,8 @@ public class AuthService {
             SignUpResponse signUpResponse = cognitoClient.signUp(signUpRequest);
             logger.info("Utente registrato con successo {}", signUpResponse.codeDeliveryDetails());
 
+            addUserToGroup(registrazioneRequest);
+
             return new RegistrazioneResponse(signUpResponse.userSub());
         } catch (CognitoIdentityProviderException e) {
             logger.error(e.awsErrorDetails().errorMessage());
@@ -137,5 +139,16 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Error while calculating SECRET_HASH", e);
         }
+    }
+
+    private void addUserToGroup(RegistrazioneRequest request) {
+        AdminAddUserToGroupRequest adminAddUserToGroupRequest = AdminAddUserToGroupRequest.builder()
+                .userPoolId(userPoolId)
+                .username(request.getEmail())
+                .groupName(request.getGroup())
+                .build();
+
+        cognitoClient.adminAddUserToGroup(adminAddUserToGroupRequest);
+        logger.info("Utente {} aggiunto al gruppo {}", request.getEmail(), request.getGroup());
     }
 }
