@@ -25,7 +25,7 @@ public class ImmobileController {
             @RequestParam (required = false) Double prezzoMax, @RequestParam (required = false) String nStanze,
             @RequestParam (required = false) String tipologia, @RequestParam (required = false) TipoClasseEnergetica classeEnergetica
     ) {
-        /// if token valido ok, altrimenti exception
+        immobileService.validateToken(token);
         return immobileService.cercaImmobili(indirizzo, prezzoMin, prezzoMax, nStanze, tipologia, classeEnergetica);
     }
 

@@ -1,7 +1,7 @@
 package com.dietiestate25backend.service;
 
-import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dto.AggiornaPasswordRequest;
 import com.dietiestate25backend.dto.LoginResponse;
 import com.dietiestate25backend.dto.RegistrazioneRequest;
@@ -113,7 +113,7 @@ public class AuthService {
                 .proposedPassword(request.getNewPassword())
                 .build();
 
-        DecodedJWT jwt = JWT.decode(request.getAccessToken());
+        DecodedJWT jwt = TokenUtils.validateToken(request.getAccessToken());
 
         //questo è il response
         cognitoClient.changePassword(changePasswordRequest);
@@ -137,7 +137,7 @@ public class AuthService {
             byte[] rawHmac = mac.doFinal((username + clientId).getBytes());
             return Base64.getEncoder().encodeToString(rawHmac);
         } catch (Exception e) {
-            throw new RuntimeException("Error while calculating SECRET_HASH", e);
+            throw new InternalServerErrorException("Errore calcolando il SECRET_HASH", e);
         }
     }
 
