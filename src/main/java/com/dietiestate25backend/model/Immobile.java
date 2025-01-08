@@ -1,27 +1,47 @@
 package com.dietiestate25backend.model;
 
-public class Immobile {
-    private double prezzo;
-    private String nStanze;
-    private String tipologia;
-    private Indirizzo indirizzo;
-    private TipoClasseEnergetica classeEnergetica;
-    private int idResponsabile;
+import java.util.UUID;
 
-    public Immobile(double prezzo, String nStanze, String tipologia, Indirizzo indirizzo, TipoClasseEnergetica classeEnergetica, int idResponsabile) {
+public class Immobile {
+    private final String descrizione;
+    private final double prezzo;
+    private final int nBagni;
+    private final int nStanze;
+    private final String tipologia;
+    private final Indirizzo indirizzo;
+    private final TipoClasseEnergetica classeEnergetica;
+    private final int piano;
+    private final boolean hasAscensore;
+    private final boolean hasBalcone;
+    private UUID idResponsabile;
+
+    public Immobile(String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
+        this.descrizione = descrizione;
         this.prezzo = prezzo;
+        this.nBagni = nBagni;
         this.nStanze = nStanze;
         this.tipologia = tipologia;
         this.indirizzo = indirizzo;
         this.classeEnergetica = classeEnergetica;
+        this.piano = piano;
+        this.hasAscensore = hasAscensore;
+        this.hasBalcone = hasBalcone;
         this.idResponsabile = idResponsabile;
+    }
+
+    public String getDescrizione() {
+        return descrizione;
     }
 
     public double getPrezzo() {
         return prezzo;
     }
 
-    public String getnStanze() {
+    public int getnBagni() {
+        return nBagni;
+    }
+
+    public int getnStanze() {
         return nStanze;
     }
 
@@ -37,11 +57,19 @@ public class Immobile {
         return classeEnergetica;
     }
 
-    public int getIdResponsabile() {
-        return idResponsabile;
+    public int getPiano() {
+        return piano;
     }
 
-    public void setIdResponsabile(int idResponsabile) {
-        this.idResponsabile = idResponsabile;
+    public boolean isHasAscensore() {
+        return hasAscensore;
+    }
+
+    public boolean isHasBalcone() {
+        return hasBalcone;
+    }
+
+    public UUID getIdResponsabile() {
+        return idResponsabile;
     }
 }

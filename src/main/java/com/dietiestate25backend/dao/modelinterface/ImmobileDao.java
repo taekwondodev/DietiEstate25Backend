@@ -1,8 +1,6 @@
-package com.dietiestate25backend.dao.modelInterface;
+package com.dietiestate25backend.dao.modelinterface;
 
 import com.dietiestate25backend.model.Immobile;
-import com.dietiestate25backend.model.Indirizzo;
-import com.dietiestate25backend.model.TipoClasseEnergetica;
 
 import java.util.List;
 import java.util.Map;

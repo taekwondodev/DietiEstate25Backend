@@ -2,7 +2,7 @@ package com.dietiestate25backend.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dietiestate25backend.config.TokenUtils;
-import com.dietiestate25backend.dao.modelInterface.ImmobileDao;
+import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Indirizzo;
 import com.dietiestate25backend.model.TipoClasseEnergetica;
