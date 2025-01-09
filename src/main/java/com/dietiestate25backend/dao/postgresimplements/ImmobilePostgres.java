@@ -80,24 +80,23 @@ public class ImmobilePostgres implements ImmobileDao {
     }
 
     private String buildSql(Map<String, Object> filters) {
-        StringBuilder sql = new StringBuilder("SELECT i.*, a.email, a.password FROM immobile i");
-        sql.append(" JOIN AgenteImmobiliare a ON i.idAgente = a.id WHERE 1=1");
-        sql.append(" AND i.cap = ?");
+        StringBuilder sql = new StringBuilder("SELECT * FROM immobile WHERE 1=1");
+        sql.append(" AND cap = ?");
 
         if (filters.containsKey(PREZZO_MIN) && filters.containsKey(PREZZO_MAX)) {
-            sql.append(" AND i.prezzo BETWEEN ? AND ?");
+            sql.append(" AND prezzo BETWEEN ? AND ?");
         }
 
         if (filters.containsKey(N_STANZE)) {
-            sql.append(" AND i.nStanze = ?");
+            sql.append(" AND nStanze = ?");
         }
 
         if (filters.containsKey(TIPOLOGIA)) {
-            sql.append(" AND i.tipologia = ?");
+            sql.append(" AND tipologia = ?");
         }
 
         if (filters.containsKey(CLASSE_ENERGETICA)) {
-            sql.append(" AND i.classeEnergetica = ?");
+            sql.append(" AND classeEnergetica = ?");
         }
 
         return sql.toString();
