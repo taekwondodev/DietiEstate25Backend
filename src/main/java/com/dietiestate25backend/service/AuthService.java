@@ -2,6 +2,8 @@ package com.dietiestate25backend.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dietiestate25backend.config.TokenUtils;
+import com.dietiestate25backend.dao.modelinterface.UtenteDao;
+import com.dietiestate25backend.dao.postgresimplements.ClientePostgres;
 import com.dietiestate25backend.dto.AggiornaPasswordRequest;
 import com.dietiestate25backend.dto.LoginResponse;
 import com.dietiestate25backend.dto.RegistrazioneRequest;
@@ -20,9 +22,12 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AuthService {
+    private final UtenteDao clienteDao;
+
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Value("${aws.cognito.clientId}")
@@ -36,8 +41,9 @@ public class AuthService {
 
     private final CognitoIdentityProviderClient cognitoClient;    /// costruttore definito in AWS Config
 
-    public AuthService(CognitoIdentityProviderClient cognitoClient) {
+    public AuthService(CognitoIdentityProviderClient cognitoClient, ClientePostgres clienteDao) {
         this.cognitoClient = cognitoClient;
+        this.clienteDao = clienteDao;
     }
 
     public RegistrazioneResponse registrazione(final RegistrazioneRequest registrazioneRequest) {
@@ -58,6 +64,7 @@ public class AuthService {
             logger.info("Utente registrato con successo {}", signUpResponse.codeDeliveryDetails());
 
             addUserToGroup(registrazioneRequest);
+            saveClienteToDatabase(signUpResponse.userSub());
 
             return new RegistrazioneResponse(signUpResponse.userSub());
         } catch (CognitoIdentityProviderException e) {
@@ -150,5 +157,9 @@ public class AuthService {
 
         cognitoClient.adminAddUserToGroup(adminAddUserToGroupRequest);
         logger.info("Utente {} aggiunto al gruppo {}", request.getEmail(), request.getGroup());
+    }
+
+    private void saveClienteToDatabase(String uid) {
+        clienteDao.save(uid);
     }
 }
