@@ -22,7 +22,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -47,11 +46,6 @@ public class AuthService {
     }
 
     public RegistrazioneResponse registrazione(final RegistrazioneRequest registrazioneRequest) {
-        if (!registrazioneRequest.isValid()) {
-            logger.error("Email o password non possono essere nulli");
-            throw new BadRequestException("Email o password non possono essere nulli");
-        }
-
         try {
             SignUpRequest signUpRequest = SignUpRequest.builder()
                     .secretHash(generateSecretHash(clientId, clientSecret, registrazioneRequest.getEmail()))
@@ -130,7 +124,8 @@ public class AuthService {
             throw new NotFoundException("Username non trovato nel token");
         }
         else {
-            logger.info("Password aggiornata con successo: {}", jwt.getClaim("username").asString());
+            String username = jwt.getClaim("username").asString();
+            logger.info("Password aggiornata con successo: {}", username);
             return ResponseEntity.ok().build();
         }
     }
@@ -156,7 +151,7 @@ public class AuthService {
                 .build();
 
         cognitoClient.adminAddUserToGroup(adminAddUserToGroupRequest);
-        logger.info("Utente {} aggiunto al gruppo {}", request.getEmail(), request.getGroup());
+        logger.info("Utente aggiunto al gruppo");
     }
 
     private void saveClienteToDatabase(String uid) {
