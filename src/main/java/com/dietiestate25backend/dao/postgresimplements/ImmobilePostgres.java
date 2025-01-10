@@ -1,6 +1,7 @@
 package com.dietiestate25backend.dao.postgresimplements;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
+import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Indirizzo;
 import com.dietiestate25backend.model.TipoClasseEnergetica;
@@ -77,6 +78,38 @@ public class ImmobilePostgres implements ImmobileDao {
                 immobile.isHasBalcone(),
                 immobile.getIdResponsabile()
         ) > 0;
+    }
+
+    @Override
+    public int getIdImmobile(Immobile immobile) {
+        if (!immobile.isValid()){
+            throw new IllegalArgumentException("Immobile non valido");
+        }
+        else {
+            String sql = "SELECT id FROM immobile WHERE descrizione = ? AND prezzo = ? AND nBagni = ? AND nStanze = ? AND tipologia = ? AND via = ? AND comune = ? AND cap = ? AND classeEnergetica = ? AND piano = ? AND hasAscensore = ? AND hasBalcone = ? AND idAgente = ?";
+            Integer id = jdbcTemplate.queryForObject(sql, Integer.class,
+                    immobile.getDescrizione(),
+                    immobile.getPrezzo(),
+                    immobile.getnBagni(),
+                    immobile.getnStanze(),
+                    immobile.getTipologia(),
+                    immobile.getIndirizzo().getVia(),
+                    immobile.getIndirizzo().getComune(),
+                    immobile.getIndirizzo().getCap(),
+                    immobile.getClasseEnergetica().getClasse(),
+                    immobile.getPiano(),
+                    immobile.isHasAscensore(),
+                    immobile.isHasBalcone(),
+                    immobile.getIdResponsabile()
+            );
+
+            if (id == null){
+                throw new NotFoundException("Immobile non trovato");
+            }
+            else {
+                return id;
+            }
+        }
     }
 
     private String buildSql(Map<String, Object> filters) {

@@ -76,4 +76,13 @@ public class Immobile {
     public void setIdResponsabile(UUID idResponsabile) {
         this.idResponsabile = idResponsabile;
     }
+
+    public boolean isValid() {
+        return (
+                descrizione == null || prezzo == 0 || nBagni == 0 || nStanze == 0 || tipologia == null ||
+                indirizzo == null || indirizzo.getVia() == null || indirizzo.getComune() == null || indirizzo.getCap() == null ||
+                classeEnergetica == null || classeEnergetica.getClasse() == null || piano == 0 ||
+                idResponsabile == null
+        );
+    }
 }

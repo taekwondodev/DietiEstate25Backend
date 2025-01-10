@@ -1,8 +1,11 @@
 package com.dietiestate25backend.controller;
 
-import com.dietiestate25backend.model.Offerta;
+import com.dietiestate25backend.dto.OffertaRequest;
 import com.dietiestate25backend.service.OffertaService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/offerta")
@@ -14,12 +17,11 @@ public class OffertaController {
     }
 
     @PostMapping("/aggiungi")
-    public boolean aggiungiOfferta(@RequestHeader("Authorization") String token, @RequestBody Offerta offerta) {
-        /// if token valido ok, altrimenti exception
-        /// recuperare idCliente dal token
-        /// recuperare idImmobile
+    public ResponseEntity<Void> aggiungiOfferta(@RequestHeader("Authorization") String token, @RequestBody OffertaRequest request) {
+        String uid = offertaService.getUidFromToken(token);
+        request.setIdCliente(UUID.fromString(uid));
 
-        //return offertaService.aggiungiOfferta(offerta);
-        return false;
+        offertaService.aggiungiOfferta(request);
+        return ResponseEntity.status(201).build();
     }
 }

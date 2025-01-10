@@ -11,7 +11,7 @@ public enum StatoOfferta {
         this.stato = stato;
     }
 
-    public String getStato() {
+    public String getStatoString() {
         return stato;
     }
 }
