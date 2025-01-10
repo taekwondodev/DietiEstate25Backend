@@ -1,6 +1,5 @@
 package com.dietiestate25backend.controller;
 
-import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Indirizzo;
 import com.dietiestate25backend.model.TipoClasseEnergetica;
@@ -36,7 +35,7 @@ public class ImmobileController {
 
     @PostMapping("/crea")
     public ResponseEntity<Void> creaImmobile(@RequestHeader("Authorization") String token, @RequestBody Immobile immobile) {
-        String uid = TokenUtils.getUidFromToken(token);
+        String uid = immobileService.getUidFromToken(token);
         immobile.setIdResponsabile(UUID.fromString(uid));
         immobileService.creaImmobile(immobile);
 

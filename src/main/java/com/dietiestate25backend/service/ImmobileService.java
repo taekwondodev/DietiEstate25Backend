@@ -1,6 +1,5 @@
 package com.dietiestate25backend.service;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.model.Immobile;
@@ -51,7 +50,11 @@ public class ImmobileService {
         return immobileDao.creaImmobile(immobile);
     }
 
-    public DecodedJWT validateToken(String token) {
-        return TokenUtils.validateToken(token);
+    public void validateToken(String token) {
+        TokenUtils.validateToken(token);
+    }
+
+    public String getUidFromToken(String token) {
+        return TokenUtils.getUidFromToken(token);
     }
 }
