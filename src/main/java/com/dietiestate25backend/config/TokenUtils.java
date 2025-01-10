@@ -22,4 +22,9 @@ public class TokenUtils {
             return jwt;
         }
     }
+
+    public static String getUidFromToken(String idToken) {
+        DecodedJWT jwt = validateToken(idToken);
+        return jwt.getSubject();
+    }
 }

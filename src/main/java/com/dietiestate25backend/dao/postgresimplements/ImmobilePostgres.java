@@ -61,22 +61,22 @@ public class ImmobilePostgres implements ImmobileDao {
 
     @Override
     public boolean creaImmobile(Immobile immobile) {
-        /*
-        double prezzo = immobile.getPrezzo();
-        String nStanze = immobile.getnStanze();
-        String tipologia = immobile.getTipologia();
-        Indirizzo indirizzo = immobile.getIndirizzo();
-        String classeEnergetica = immobile.getClasseEnergetica().getClasse();
-        int idAgente = immobile.getIdResponsabile();
-
-        return jdbcTemplate.update(
-                "INSERT INTO immobile(prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                prezzo, nStanze, tipologia, indirizzo, classeEnergetica, idAgente
+        String sql = "INSERT INTO immobile (descrizione, prezzo, nBagni, nStanze, tipologia, via, comune, cap, classeEnergetica, piano, hasAscensore, hasBalcone, idAgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return jdbcTemplate.update(sql,
+                immobile.getDescrizione(),
+                immobile.getPrezzo(),
+                immobile.getnBagni(),
+                immobile.getnStanze(),
+                immobile.getTipologia(),
+                immobile.getIndirizzo().getVia(),
+                immobile.getIndirizzo().getComune(),
+                immobile.getIndirizzo().getCap(),
+                immobile.getClasseEnergetica().getClasse(),
+                immobile.getPiano(),
+                immobile.isHasAscensore(),
+                immobile.isHasBalcone(),
+                immobile.getIdResponsabile()
         ) > 0;
-
-         */
-
-        return false;
     }
 
     private String buildSql(Map<String, Object> filters) {

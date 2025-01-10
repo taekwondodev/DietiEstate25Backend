@@ -72,4 +72,8 @@ public class Immobile {
     public UUID getIdResponsabile() {
         return idResponsabile;
     }
+
+    public void setIdResponsabile(UUID idResponsabile) {
+        this.idResponsabile = idResponsabile;
+    }
 }

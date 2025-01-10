@@ -29,7 +29,6 @@ public class AuthController {
     @PostMapping("/registrazione")
     public ResponseEntity<RegistrazioneResponse> registrazione(@RequestBody RegistrazioneRequest request) {
         final RegistrazioneResponse response = authService.registrazione(request);
-        //posso salvarmi lo uid
         return ResponseEntity.status(201).body(response);
     }
 
