@@ -3,6 +3,7 @@ package com.dietiestate25backend.service;
 import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dao.postgresimplements.ImmobilePostgres;
+import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Indirizzo;
 import com.dietiestate25backend.model.TipoClasseEnergetica;
@@ -47,8 +48,10 @@ public class ImmobileService {
         return immobileDao.cercaImmobiliConFiltri(filters);
     }
 
-    public boolean creaImmobile(Immobile immobile) {
-        return immobileDao.creaImmobile(immobile);
+    public void creaImmobile(Immobile immobile) {
+        if (!immobileDao.creaImmobile(immobile)) {
+            throw new BadRequestException("Errore durante la creazione dell'immobile");
+        }
     }
 
     public void validateToken(String token) {

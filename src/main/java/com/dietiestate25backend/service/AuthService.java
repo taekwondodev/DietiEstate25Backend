@@ -155,6 +155,8 @@ public class AuthService {
     }
 
     private void saveClienteToDatabase(String uid) {
-        clienteDao.save(uid);
+        if (!clienteDao.save(uid)) {
+            throw new DatabaseErrorException("Errore durante il salvataggio dell'utente nel database");
+        }
     }
 }

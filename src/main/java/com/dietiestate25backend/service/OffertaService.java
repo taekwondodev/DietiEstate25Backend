@@ -7,6 +7,7 @@ import com.dietiestate25backend.dao.postgresimplements.ImmobilePostgres;
 import com.dietiestate25backend.dao.postgresimplements.OffertaPostgres;
 import com.dietiestate25backend.dto.OffertaRequest;
 import com.dietiestate25backend.error.exception.BadRequestException;
+import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Offerta;
@@ -29,7 +30,7 @@ public class OffertaService {
         Offerta offerta = new Offerta(request.getImporto(), request.getStato(), request.getIdCliente(), idImmobile);
 
         if (!offertaDao.salvaOfferta(offerta)){
-            throw new BadRequestException("Offerta non valida");
+            throw new DatabaseErrorException("Offerta non salvata nel database");
         }
     }
 
@@ -40,7 +41,7 @@ public class OffertaService {
         Offerta offerta = new Offerta(request.getImporto(), request.getStato(), request.getIdCliente(), idImmobile);
 
         if (!offertaDao.aggiornaStatoOfferta(offerta)) {
-            throw new NotFoundException("Offerta non trovata");
+            throw new DatabaseErrorException("Offerta non trovata nel database");
         }
     }
 
