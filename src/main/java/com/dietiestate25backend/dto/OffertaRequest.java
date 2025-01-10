@@ -2,13 +2,22 @@ package com.dietiestate25backend.dto;
 
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoOfferta;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
 public class OffertaRequest {
+    @Min(0)
     private double importo;
+
+    @NotNull
     private StatoOfferta stato;
+
+    @NotNull
     private UUID idCliente;
+
+    @NotNull
     private Immobile immobile;
 
     public double getImporto() {

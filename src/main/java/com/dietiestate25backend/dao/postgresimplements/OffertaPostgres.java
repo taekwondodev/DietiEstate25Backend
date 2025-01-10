@@ -20,4 +20,12 @@ public class OffertaPostgres implements OffertaDao {
                 offerta.getImporto(), offerta.getStato().getStatoString(), offerta.getIdCliente().toString(), offerta.getIdImmobile()
         ) == 1;
     }
+
+    @Override
+    public boolean aggiornaStatoOfferta(Offerta offerta) {
+        String sql = "UPDATE offerta SET stato = ? WHERE idCliente = ? AND idImmobile = ?";
+        return jdbcTemplate.update(sql,
+                offerta.getStato().getStatoString(), offerta.getIdCliente().toString(), offerta.getIdImmobile()
+        ) == 1;
+    }
 }

@@ -5,7 +5,7 @@ import java.util.UUID;
 public class Offerta {
     private final double importo;
     private final StatoOfferta stato;
-    private UUID idCliente;
+    private final UUID idCliente;
     private final int idImmobile;
 
     public Offerta(double importo, StatoOfferta stato, UUID idCliente, int idImmobile) {
