@@ -11,7 +11,7 @@ public enum StatoVisita {
         this.stato = stato;
     }
 
-    public String getStato() {
+    public String getStatoString() {
         return stato;
     }
 }
