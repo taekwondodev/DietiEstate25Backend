@@ -6,34 +6,28 @@ info:
 servers:
   - url: https://api.realestate.com/v1
     description: Server di produzione
-  - url: https://staging-api.realestate.com/v1
-    description: Server di staging
 paths:
   /auth/login:
     post:
       summary: Effettua il login
-      description: Effettua il login utilizzando credenziali proprie o tramite AWS Cognito.
+      description: Effettua il login utilizzando credenziali tramite AWS Cognito.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: user@example.com
-                password:
-                  type: string
-                  example: mySecurePassword123
+              $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '200':
+        '201':
           description: Login effettuato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Credenziali non valide
 
-  /auth/register:
+  /auth/registrazione:
     post:
       summary: Registra un nuovo utente
       description: Registra un nuovo utente con email e password.
@@ -42,25 +36,21 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: user@example.com
-                password:
-                  type: string
-                  example: mySecurePassword123
+              $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
         '201':
           description: Utente registrato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrazioneResponse'
         '400':
           description: Richiesta non valida
 
-  /immobili/search:
+  /immobile/cerca:
     get:
       summary: Cerca immobili
-      description: Cerca immobili in base a distanza e altri filtri.
+      description: Cerca immobili con lo stesso CAP e altri filtri.
       parameters:
         - name: indirizzo
           in: query
@@ -68,17 +58,6 @@ paths:
           schema:
             type: string
           description: Indirizzo di riferimento per la ricerca.
-        - name: distanza
-          in: query
-          schema:
-            type: number
-            format: float
-          description: Raggio di ricerca in chilometri.
-        - name: tipologia
-          in: query
-          schema:
-            type: string
-          description: Filtra per tipologia di immobile.
         - name: prezzoMin
           in: query
           schema:
@@ -92,20 +71,31 @@ paths:
         - name: nStanze
           in: query
           schema:
-            type: integer
+            type: string
           description: Numero minimo di stanze.
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+          description: Filtra per tipologia di immobile.
         - name: classeEnergetica
           in: query
           schema:
             type: string
-            enum: [A4, A3, A2, A1, B, C, D, E, F, G]
+            enum: [ A4, A3, A2, A1, B, C, D, E, F, G ]
       responses:
         '200':
           description: Lista di immobili trovati
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Immobile'
         '404':
           description: Nessun immobile trovato
 
-  /immobili:
+  /immobile/crea:
     post:
       summary: Crea un nuovo immobile
       requestBody:
@@ -118,7 +108,7 @@ paths:
         '201':
           description: Immobile creato con successo
 
-  /offerte:
+  /offerta/aggiungi:
     post:
       summary: Invia una nuova offerta
       requestBody:
@@ -126,12 +116,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Offerta'
+              $ref: '#/components/schemas/OffertaRequest'
       responses:
         '201':
           description: Offerta inviata con successo
 
-  /visite:
+  /offerta/aggiorna:
+    patch:
+      summary: Aggiorna lo stato di un'offerta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OffertaRequest'
+      responses:
+        '200':
+          description: Stato dell'offerta aggiornato
+
+  /visita/prenota:
     post:
       summary: Invia una nuova richiesta di visita
       requestBody:
@@ -139,7 +142,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Visita'
+              $ref: '#/components/schemas/VisitaRequest'
       responses:
         '201':
           description: Richiesta di visita inviata con successo
@@ -157,65 +160,15 @@ paths:
       responses:
         '200':
           description: Notifica inviata con successo
-
-  /prenotazioni:
-    get:
-      summary: Ottieni prenotazioni del cliente
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID del cliente
-      responses:
-        '200':
-          description: Lista di prenotazioni associate al cliente
-
-  /offerte/{id}:
+  /visita/aggiorna:
     patch:
-      summary: Conferma o rifiuta un'offerta
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID dell'offerta.
+      summary: Aggiorna lo stato di una visita
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                stato:
-                  type: string
-                  enum: ["Accettata", "Rifiutata"]
-      responses:
-        '200':
-          description: Stato dell'offerta aggiornato
-
-  /visite/{id}:
-    patch:
-      summary: Conferma o rifiuta una visita
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID della visita.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                stato:
-                  type: string
-                  enum: ["Confermata", "Rifiutata"]
+              $ref: '#/components/schemas/VisitaRequest'
       responses:
         '200':
           description: Stato della visita aggiornato
@@ -225,10 +178,14 @@ components:
     Immobile:
       type: object
       properties:
+        descrizione:
+          type: string
         prezzo:
           type: number
+        nBagni:
+          type: integer
         nStanze:
-          type: string
+          type: integer
         tipologia:
           type: string
         indirizzo:
@@ -236,32 +193,48 @@ components:
         classeEnergetica:
           type: string
           enum: [A4, A3, A2, A1, B, C, D, E, F, G]
-        idAgente:
+        piano:
           type: integer
+        hasAscensore:
+          type: boolean
+        hasBalcone:
+          type: boolean
+        idResponsabile:
+          type: string
+          format: uuid
 
-    Offerta:
+    OffertaRequest:
       type: object
       properties:
         importo:
           type: number
+        stato:
+          type: string
         idCliente:
-          type: integer
-        idImmobile:
-          type: integer
+          type: string
+          format: uuid
+        immobile:
+          $ref: '#/components/schemas/Immobile'
 
-    Visita:
+    VisitaRequest:
       type: object
       properties:
         dataRichiesta:
           type: string
           format: date
-        orario:
+        dataVisita:
+          type: string
+          format: date
+        oraVisita:
           type: string
           format: time
+        stato:
+          type: string
         idCliente:
-          type: integer
-        idImmobile:
-          type: integer
+          type: string
+          format: uuid
+        immobile:
+          $ref: '#/components/schemas/Immobile'
 
     Indirizzo:
       type: object
@@ -271,4 +244,31 @@ components:
         comune:
           type: string
         cap:
+          type: string
+
+    RegistrazioneRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        group:
+          type: string
+
+    RegistrazioneResponse:
+      type: object
+      properties:
+        uid:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        idToken:
+          type: string
+        refreshToken:
           type: string
