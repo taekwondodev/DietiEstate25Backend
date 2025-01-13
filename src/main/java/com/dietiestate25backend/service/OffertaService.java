@@ -4,7 +4,6 @@ import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dao.modelinterface.OffertaDao;
 import com.dietiestate25backend.dao.postgresimplements.ImmobilePostgres;
-import com.dietiestate25backend.dao.postgresimplements.OffertaPostgres;
 import com.dietiestate25backend.dto.OffertaRequest;
 import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.model.Immobile;
@@ -16,7 +15,7 @@ public class OffertaService {
     private final OffertaDao offertaDao;
     private final ImmobileDao immobileDao;
 
-    public OffertaService(OffertaPostgres offertaDao, ImmobilePostgres immobileDao) {
+    public OffertaService(OffertaDao offertaDao, ImmobilePostgres immobileDao) {
         this.offertaDao = offertaDao;
         this.immobileDao = immobileDao;
     }

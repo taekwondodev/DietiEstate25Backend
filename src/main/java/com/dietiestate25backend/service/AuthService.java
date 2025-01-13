@@ -3,7 +3,6 @@ package com.dietiestate25backend.service;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.UtenteDao;
-import com.dietiestate25backend.dao.postgresimplements.ClientePostgres;
 import com.dietiestate25backend.dto.AggiornaPasswordRequest;
 import com.dietiestate25backend.dto.LoginResponse;
 import com.dietiestate25backend.dto.RegistrazioneRequest;
@@ -40,7 +39,7 @@ public class AuthService {
 
     private final CognitoIdentityProviderClient cognitoClient;    /// costruttore definito in AWS Config
 
-    public AuthService(CognitoIdentityProviderClient cognitoClient, ClientePostgres clienteDao) {
+    public AuthService(CognitoIdentityProviderClient cognitoClient, UtenteDao clienteDao) {
         this.cognitoClient = cognitoClient;
         this.clienteDao = clienteDao;
     }
@@ -127,6 +126,24 @@ public class AuthService {
             String username = jwt.getClaim("username").asString();
             logger.info("Password aggiornata con successo: {}", username);
             return ResponseEntity.ok().build();
+        }
+    }
+
+    public String getEmailByUid(String uid) {
+        try {
+            ListUsersRequest request = ListUsersRequest.builder()
+                    .userPoolId(userPoolId)
+                    .filter("sub = \"" + uid + "\"")
+                    .limit(1)
+                    .build();
+
+            ListUsersResponse response = cognitoClient.listUsers(request);
+
+            return response.users().getFirst().username();
+        } catch (CognitoIdentityProviderException e) {
+
+            logger.error(e.awsErrorDetails().errorMessage());
+            throw new NotFoundException("Utente non trovato");
         }
     }
 

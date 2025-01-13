@@ -2,7 +2,6 @@ package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.config.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
-import com.dietiestate25backend.dao.postgresimplements.ImmobilePostgres;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Indirizzo;
@@ -17,7 +16,7 @@ import java.util.Map;
 public class ImmobileService {
     private final ImmobileDao immobileDao;
 
-    public ImmobileService(ImmobilePostgres immobileDao) {
+    public ImmobileService(ImmobileDao immobileDao) {
         this.immobileDao = immobileDao;
     }
 

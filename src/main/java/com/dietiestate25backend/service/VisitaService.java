@@ -14,14 +14,20 @@ public class VisitaService {
     private final VisitaDao visitaDao;
     private final ImmobileDao immobileDao;
 
-    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao) {
+    private final EmailService emailService;
+    private final AuthService authService;
+
+    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService, AuthService authService) {
         this.visitaDao = visitaDao;
         this.immobileDao = immobileDao;
+        this.emailService = emailService;
+        this.authService = authService;
     }
 
     public void prenotaVisita(VisitaRequest request) {
         Immobile immobile = request.getImmobile();
         int idImmobile = immobileDao.getIdImmobile(immobile);
+        String idResponsabile = immobile.getIdResponsabile().toString();
 
         Visita visita = new Visita(
                 request.getDataRichiesta(), request.getDataVisita(), request.getOraVisita(),
@@ -31,6 +37,11 @@ public class VisitaService {
         if (!visitaDao.salva(visita)) {
             throw new DatabaseErrorException("Visita non salvata nel database");
         }
+
+        String agenteEmail = authService.getEmailByUid(idResponsabile);
+        String oggetto = "Nuova prenotazione visita";
+        String testo = "È stata prenotata una nuova visita per l'immobile: " + immobile.getDescrizione();
+        emailService.inviaEmail(agenteEmail, oggetto, testo);
     }
 
     public void aggiornaStatoVisita(VisitaRequest request) {
