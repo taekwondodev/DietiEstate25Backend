@@ -1,4 +1,4 @@
-package com.dietiestate25backend.config;
+package com.dietiestate25backend.Utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
