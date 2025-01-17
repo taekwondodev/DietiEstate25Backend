@@ -5,15 +5,15 @@ FROM maven AS build
 WORKDIR /app
 
 # Copia il file pom.xml e scarica le dipendenze
-COPY pom.xml .
+COPY backend/pom.xml .
 RUN mvn dependency:go-offline
 
 # Copia il codice sorgente e costruisci l'applicazione
-COPY src ./src
+COPY backend/src ./src
 RUN mvn clean package -DskipTests
 
 # Usa un'immagine base di OpenJDK per la fase di runtime
-FROM openjdk:17-jdk-slim
+FROM openjdk:21-jdk-slim
 
 # Imposta la directory di lavoro
 WORKDIR /app
