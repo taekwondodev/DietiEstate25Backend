@@ -15,13 +15,12 @@ public class VisitaService {
     private final ImmobileDao immobileDao;
 
     private final EmailService emailService;
-    private final AuthService authService;
+    //private final AuthService authService;
 
-    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService, AuthService authService) {
+    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService) {
         this.visitaDao = visitaDao;
         this.immobileDao = immobileDao;
         this.emailService = emailService;
-        this.authService = authService;
     }
 
     public void prenotaVisita(VisitaRequest request) {
@@ -38,10 +37,13 @@ public class VisitaService {
             throw new DatabaseErrorException("Visita non salvata nel database");
         }
 
+        /*
         String agenteEmail = authService.getEmailByUid(idResponsabile);
         String oggetto = "Nuova prenotazione visita";
         String testo = "È stata prenotata una nuova visita per l'immobile: " + immobile.getDescrizione();
         emailService.inviaEmail(agenteEmail, oggetto, testo);
+
+         */
     }
 
     public void aggiornaStatoVisita(VisitaRequest request) {
