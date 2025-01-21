@@ -1,6 +1,6 @@
 package com.dietiestate25backend.service;
 
-import com.dietiestate25backend.Utils.TokenUtils;
+import com.dietiestate25backend.utils.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dao.modelinterface.VisitaDao;
 import com.dietiestate25backend.dto.VisitaRequest;
