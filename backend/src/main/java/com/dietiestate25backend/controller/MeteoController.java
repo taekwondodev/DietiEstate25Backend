@@ -5,24 +5,26 @@ package main.java.com.dietiestate25backend.controller;
 public class MeteoController {
     private final MeteoService meteoService;
 
-    public MeteoController(meteoService meteoService) {
+    public MeteoController(MeteoService meteoService) {
         this.meteoService = meteoService;
     }
 
-    @GetMapping
-    public ResponseEntity<?> getWeatherForDate(
-        @RequestParam String city,
-        @RequestParam String date
-    ) {
+    @PostMapping
+    public ResponseEntity<?> getMeteo(@RequestBody MeteoRequest meteoRequest) {
+        // Spacchettiamo la MeteoRequest
+        String city = meteoRequest.getCity();
+        String date = meteoRequest.getDate();
 
-        // Se la data scelta è fuori dal range delle previsioni meteo, allora restituisci avviso
-        if (!meteoService.isDateInRange(date)) {
+        // Verifichiamo se la data è nel range delle previsioni meteo
+        if (!meteoService.isDataNelRange(date)) {
             return ResponseEntity.badRequest()
                 .body("Le previsioni meteo non sono disponibili per la data selezionata.");
         }
 
-        // Ricava meteo solo per quella data
-        MeteoResponse meteo = meteoService.getWeatherForDate(city, date);
-        return ResponseEntity.ok(meteo);
+        // Una volta verificato che la data è nel range, impacchettiamo il meteo di quella data e quella località in una MeteoResponse
+        MeteoResponse meteoResponse = meteoService.getMeteoPerData(city, date);
+
+        // Restituisci la Response all'entità che fa la Request
+        return ResponseEntity.ok(meteoResponse);
     }
 }
