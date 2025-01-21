@@ -15,18 +15,18 @@ public class VisitaService {
     private final ImmobileDao immobileDao;
 
     private final EmailService emailService;
-    //private final AuthService authService;
+    private final AuthService authService;
 
-    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService) {
+    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService, AuthService authService) {
         this.visitaDao = visitaDao;
         this.immobileDao = immobileDao;
         this.emailService = emailService;
+        this.authService = authService;
     }
 
     public void prenotaVisita(VisitaRequest request) {
         Immobile immobile = request.getImmobile();
         int idImmobile = immobileDao.getIdImmobile(immobile);
-        String idResponsabile = immobile.getIdResponsabile().toString();
 
         Visita visita = new Visita(
                 request.getDataRichiesta(), request.getDataVisita(), request.getOraVisita(),
@@ -37,13 +37,7 @@ public class VisitaService {
             throw new DatabaseErrorException("Visita non salvata nel database");
         }
 
-        /*
-        String agenteEmail = authService.getEmailByUid(idResponsabile);
-        String oggetto = "Nuova prenotazione visita";
-        String testo = "È stata prenotata una nuova visita per l'immobile: " + immobile.getDescrizione();
-        emailService.inviaEmail(agenteEmail, oggetto, testo);
-
-         */
+        inviaEmail(immobile);
     }
 
     public void aggiornaStatoVisita(VisitaRequest request) {
@@ -62,5 +56,14 @@ public class VisitaService {
 
     public String getUidFromToken(String token) {
         return TokenUtils.getUidFromToken(token);
+    }
+
+    private void inviaEmail(Immobile immobile){
+        String idResponsabile = immobile.getIdResponsabile().toString();
+        String agenteEmail = authService.getEmailByUid(idResponsabile);
+
+        String oggetto = "Nuova prenotazione visita";
+        String testo = "È stata prenotata una nuova visita per l'immobile: " + immobile.getDescrizione();
+        emailService.inviaEmail(agenteEmail, oggetto, testo);
     }
 }
