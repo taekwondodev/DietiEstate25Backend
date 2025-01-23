@@ -10,7 +10,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     }
 
     @Override
-    public GeoDataResponse ottieniDatiGeografici(double latitudine, double longitudine, int raggio, List<String> categorie) {
+    public Map<String, Integer> ottieniConteggioPuntiInteresse(double latitudine, double longitudine, int raggio, List<String> categorie) {
         String urlTemplate = "https://api.geoapify.com/v2/places?categories=%s&filter=circle:%f,%f,%d&apiKey=%s";
 
         // Effettuiamo il mapping delle categorie generiche specificate dal front-end nella loro equivalente Geoapify
@@ -20,15 +20,14 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
         Map<String, Integer> risultati = new HashMap<>();
 
         // Facciamo per ogni categoria una chiamata API che ci restituisca le occorrenze per quella categoria.
-        for (String categoria : categorie) {
-            String categoriaGeoapify = mappaCategorie.getOrDefault(categoria.toLowerCase(), "");
-
-            // Controlliamo che la categoria specificata sia valida
+        for (String categoriaGenerica : categorie) {
+            // Traduciamo la categoria generica nella categoria specifica di Geoapify
+            String categoriaGeoapify = mappaCategorie.getOrDefault(categoriaGenerica.toLowerCase(), "");
             if (categoriaGeoapify.isEmpty()) {
-                throw new IllegalArgumentException("Categoria non supportata: " + categoria);
+                throw new IllegalArgumentException("Categoria non supportata: " + categoriaGenerica);
             }
 
-            // Costruiamo l'URL per la chiamata API
+            // Costruiamo l'URL specifico per la categoria
             String url = String.format(
                 urlTemplate,
                 categoriaGeoapify,
@@ -38,18 +37,24 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
                 apiKey
             );
 
-            // Effettuiamo la chiamata API e salviamo le occorrenze in un attributo
             try {
-                GeoapifyResponse response = restTemplate.getForObject(url, GeoapifyResponse.class);
-                int conteggio = response != null && response.getFeatures() != null ? response.getFeatures().size() : 0;
+                // Effettuiamo la chiamata API e formalizziamo il risultato in una mappa
+                Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
-                risultati.put(categoria.toLowerCase(), conteggio);
+                // Estraiamo la lista "features" dalla risposta
+                List<?> features = (List<?>) response.get("features");
+
+                // Contiamo gli oggetti trovati e aggiungiamoli alla mappa dei risultati usando il nome generico
+                int conteggio = features != null ? features.size() : 0;
+                risultati.put(categoriaGenerica.toLowerCase(), conteggio);
+
             } catch (RestClientException e) {
-                throw new RuntimeException("Errore nel chiamare Geoapify per categoria: " + categoria, e);
+                throw new RuntimeException("Errore nel chiamare Geoapify per categoria: " + categoriaGenerica, e);
             }
         }
 
-        return new GeoDataResponse(risultati);
+        // Restituiamo la mappa con i conteggi
+        return risultati;
     }
 
     /*

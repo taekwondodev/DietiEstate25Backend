@@ -1,5 +1,5 @@
 @RestController
-@RequestMapping("/api/geodati")
+@RequestMapping("/geodata")
 public class GeoDataController {
     private final GeoDataService geoDataService;
 
@@ -7,9 +7,9 @@ public class GeoDataController {
         this.geoDataService = geoDataService;
     }
 
-    @PostMapping
-    public ResponseEntity<GeoDataResponse> ottieniGeoDati(@RequestBody GeoDataRequest geoDataRequest) {
-        GeoDataResponse geoDataResponse = geoDataService.ottieniDatiGeografici(geoDataRequest);
-        return ResponseEntity.ok(geoDataResponse);
+    @PostMapping("/conteggio-pdi")
+    public ResponseEntity<?> ottieniConteggioPuntiInteresse(@RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
+        Map<String, Integer> conteggioPuntiInteresse = geoDataService.ottieniConteggioPuntiInteresse(conteggioPuntiInteresseRequest);
+        return ResponseEntity.status(201).body(conteggioPuntiInteresse);
     }
 }

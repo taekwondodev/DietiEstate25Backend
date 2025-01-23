@@ -1,4 +1,4 @@
-public class GeoDataRequest {
+public class ConteggioPuntiInteresseRequest {
     private double latitudine;
     private double longitudine;
     private int raggio;
@@ -6,7 +6,7 @@ public class GeoDataRequest {
     // La lista di categorie arriva sotto forma di lista di stringhe, così da generalizzare per qualsiasi Front-End
     private List<String> categorie;
 
-    public GeoDataRequest(double latitudine, double longitudine, int raggio, List<String> categorie) {
+    public ConteggioPuntiInteresseRequest(double latitudine, double longitudine, int raggio, List<String> categorie) {
         this.latitudine = latitudine;
         this.longitudine = longitudine;
         this.raggio = raggio;

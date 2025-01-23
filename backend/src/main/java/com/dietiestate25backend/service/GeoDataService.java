@@ -7,12 +7,12 @@ public class GeoDataService {
         this.geoDataDao = geoDataDao;
     }
 
-    public GeoDataResponse ottieniDatiGeografici(GeoDataRequest geoDataRequest) {
-        return geoDataDao.ottieniDatiGeografici(
-            geoDataRequest.getLatitudine(),
-            geoDataRequest.getLongitudine(),
-            geoDataRequest.getRaggio(),
-            geoDataRequest.getCategorie()
+    public Map<String, Integer> ottieniConteggioPuntiInteresse(ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
+        return geoDataDao.ottieniConteggioPuntiInteresse(
+            conteggioPuntiInteresseRequest.getLatitudine(),
+            conteggioPuntiInteresseRequest.getLongitudine(),
+            conteggioPuntiInteresseRequest.getRaggio(),
+            conteggioPuntiInteresseRequest.getCategorie()
         );
     }
 }
