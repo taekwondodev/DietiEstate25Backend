@@ -1,8 +1,10 @@
 public class GeoDataRequest {
     private double latitudine;
     private double longitudine;
-    private int raggio; // In metri
-    private List<String> categorie; // Categorie richieste
+    private int raggio;
+
+    // La lista di categorie arriva sotto forma di lista di stringhe, così da generalizzare per qualsiasi Front-End
+    private List<String> categorie;
 
     public GeoDataRequest(double latitudine, double longitudine, int raggio, List<String> categorie) {
         this.latitudine = latitudine;
