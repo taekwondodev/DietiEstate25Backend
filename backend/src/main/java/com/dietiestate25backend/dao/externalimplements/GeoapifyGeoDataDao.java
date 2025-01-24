@@ -69,4 +69,39 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
         //... in teoria questo deve essere completato con ulteriori categorie, ma al fine del nostro progetto non serve
         return mappa;
     }
+
+    @Override
+    public Map<String, Double> ottieniCoordinate(String city) {
+        // Costruzione dell'URL per l'API Geoapify
+        String url = String.format(
+            "https://api.geoapify.com/v1/geocode/search?city=%s&apiKey=%s",
+            city, apiKey
+        );
+
+        try {
+
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+            // Estraiamo l'elenco di features dalla risposta
+            List<Map<String, Object>> features = (List<Map<String, Object>>) response.get("features");
+
+            if (features == null || features.isEmpty()) {
+                throw new RuntimeException("Non è stato possibile trovare le coordinate per la città: " + city);
+            }
+
+            // Ottieniamo le coordinate dal primo elemento delle "features"
+            Map<String, Object> geometry = (Map<String, Object>) features.get(0).get("geometry");
+            List<Double> coordinates = (List<Double>) geometry.get("coordinates");
+
+            // Restituiamo latitudine e longitudine sottoforma di mappa
+            return Map.of(
+                "latitudine", coordinates.get(1),
+                "longitudine", coordinates.get(0)
+            );
+
+        } catch (RestClientException e) {
+            throw new RuntimeException("Errore durante la chiamata all'API Geoapify.", e);
+        }
+    }
 }
+

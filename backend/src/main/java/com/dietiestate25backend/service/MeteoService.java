@@ -6,10 +6,12 @@ import main.java.com.dietiestate25backend.dto.MeteoResponse;
 
 @Service
 public class MeteoService {
+    private final GeoDataDao geoDataDao;
     private final MeteoDao meteoDao;
 
     @Autowired
-    public MeteoService(MeteoDao meteoDao) {
+    public MeteoService(GeoDataDao geoDataDao, MeteoDao meteoDao) {
+        this.geoDataDao = geoDataDao;
         this.meteoDao = meteoDao;
     }
 
@@ -21,10 +23,10 @@ public class MeteoService {
     }
 
     public Map<String, Object> ottieniPrevisioni(String city, String date) {
-        return meteoDao.ottieniPrevisioni(city, date);
+
+        Map<String, Double> coordinate = geoDataDao.ottieniCoordinate(city);
+        return meteoDao.ottieniPrevisioni(coordinate.get("latitudine"), coordinate.get("longitudine"), date);
+
     }
 
-    public void validateToken(String token) {
-        TokenUtils.validateToken(token);
-    }
 }
