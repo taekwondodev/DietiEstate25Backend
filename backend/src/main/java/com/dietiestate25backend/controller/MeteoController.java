@@ -10,8 +10,10 @@ public class MeteoController {
     }
 
     @PostMapping
-    public ResponseEntity<?> ottieniPrevisioni(@RequestBody MeteoRequest meteoRequest) {
-        @RequestHeader("Authorization") String token,
+    public ResponseEntity<?> ottieniPrevisioni(@RequestHeader("Authorization") String token, @RequestBody MeteoRequest meteoRequest) {
+
+        TokenUtils.validateToken(token);
+
         String city = meteoRequest.getCity();
         String date = meteoRequest.getDate();
 

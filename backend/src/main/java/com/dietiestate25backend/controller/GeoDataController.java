@@ -8,8 +8,12 @@ public class GeoDataController {
     }
 
     @PostMapping("/conteggio-pdi")
-    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
+    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestHeader("Authorization") String token, @RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
+       
+        TokenUtils.validateToken(token);
+       
         Map<String, Integer> conteggioPuntiInteresse = geoDataService.ottieniConteggioPuntiInteresse(conteggioPuntiInteresseRequest);
+        
         return ResponseEntity.status(201).body(conteggioPuntiInteresse);
     }
 }
