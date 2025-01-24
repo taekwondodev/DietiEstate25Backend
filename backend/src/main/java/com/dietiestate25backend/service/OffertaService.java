@@ -42,7 +42,4 @@ public class OffertaService {
         }
     }
 
-    public String getUidFromToken(String token) {
-        return TokenUtils.getUidFromToken(token);
-    }
 }

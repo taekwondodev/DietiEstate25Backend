@@ -27,7 +27,7 @@ public class ImmobileController {
             @RequestParam (required = false) Double prezzoMax, @RequestParam (required = false) String nStanze,
             @RequestParam (required = false) String tipologia, @RequestParam (required = false) TipoClasseEnergetica classeEnergetica
     ) {
-        immobileService.validateToken(token);
+        TokenUtils.validateToken(token);
         List<Immobile> immobili = immobileService.cercaImmobili(indirizzo, prezzoMin, prezzoMax, nStanze, tipologia, classeEnergetica);
 
         return ResponseEntity.status(201).body(immobili);
@@ -35,7 +35,7 @@ public class ImmobileController {
 
     @PostMapping("/crea")
     public ResponseEntity<Void> creaImmobile(@RequestHeader("Authorization") String token, @RequestBody Immobile immobile) {
-        String uid = immobileService.getUidFromToken(token);
+        String uid = TokenUtils.getUidFromToken(token);
         immobile.setIdResponsabile(UUID.fromString(uid));
         immobileService.creaImmobile(immobile);
 

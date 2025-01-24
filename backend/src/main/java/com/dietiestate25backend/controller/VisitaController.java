@@ -21,7 +21,7 @@ public class VisitaController {
 
     @PostMapping("/prenota")
     public ResponseEntity<Void> prenotaVisita(@RequestHeader("Authorization") String token, @Valid @RequestBody VisitaRequest request) {
-        String uid = visitaService.getUidFromToken(token);
+        String uid = TokenUtils.getUidFromToken(token);
         request.setIdCliente(UUID.fromString(uid));
 
         visitaService.prenotaVisita(request);
@@ -30,7 +30,7 @@ public class VisitaController {
 
     @PatchMapping("/aggiorna")
     public ResponseEntity<Void> aggiornaStatoVisita(@RequestHeader("Authorization") String token, @Valid @RequestBody VisitaRequest request) {
-        String uid = visitaService.getUidFromToken(token);
+        String uid = TokenUtils.getUidFromToken(token);
         request.setIdCliente(UUID.fromString(uid));
 
         visitaService.aggiornaStatoVisita(request);

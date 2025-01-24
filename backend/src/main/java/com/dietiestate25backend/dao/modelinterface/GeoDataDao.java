@@ -1,3 +1,3 @@
 public interface GeoDataDao {
-    ConteggioPuntiInteresseResponse ottieniDatiGeograficiPerCategoria(double latitudine, double longitudine, int raggio, List<String> categorie);
+    Map<String, Integer> ottieniConteggioPuntiInteresse(double latitudine, double longitudine, int raggio, List<String> categorie);
 }

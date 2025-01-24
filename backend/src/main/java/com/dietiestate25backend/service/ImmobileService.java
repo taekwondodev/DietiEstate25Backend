@@ -52,12 +52,4 @@ public class ImmobileService {
             throw new BadRequestException("Errore durante la creazione dell'immobile");
         }
     }
-
-    public void validateToken(String token) {
-        TokenUtils.validateToken(token);
-    }
-
-    public String getUidFromToken(String token) {
-        return TokenUtils.getUidFromToken(token);
-    }
 }

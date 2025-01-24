@@ -54,10 +54,6 @@ public class VisitaService {
         }
     }
 
-    public String getUidFromToken(String token) {
-        return TokenUtils.getUidFromToken(token);
-    }
-
     private void inviaEmail(Immobile immobile){
         String idResponsabile = immobile.getIdResponsabile().toString();
         String agenteEmail = authService.getEmailByUid(idResponsabile);

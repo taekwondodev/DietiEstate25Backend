@@ -21,7 +21,7 @@ public class OffertaController {
 
     @PostMapping("/aggiungi")
     public ResponseEntity<Void> aggiungiOfferta(@RequestHeader("Authorization") String token, @Valid @RequestBody OffertaRequest request) {
-        String uid = offertaService.getUidFromToken(token);
+        String uid = TokenUtils.getUidFromToken(token);
         request.setIdCliente(UUID.fromString(uid));
 
         offertaService.aggiungiOfferta(request);
@@ -30,7 +30,7 @@ public class OffertaController {
 
     @PatchMapping("/aggiorna")
     public ResponseEntity<Void> aggiornaStatoOfferta(@RequestHeader("Authorization") String token, @Valid @RequestBody OffertaRequest request) {
-        String uid = offertaService.getUidFromToken(token);
+        String uid = TokenUtils.getUidFromToken(token);
         request.setIdCliente(UUID.fromString(uid));
 
         offertaService.aggiornaStatoOfferta(request);
