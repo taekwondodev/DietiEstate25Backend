@@ -1,8 +1,15 @@
+package com.dietiestate25backend.service;
+
+import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
+import com.dietiestate25backend.dto.requests.ConteggioPuntiInteresseRequest;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+
 @Service
 public class GeoDataService {
     private final GeoDataDao geoDataDao;
 
-    @Autowired
     public GeoDataService(GeoDataDao geoDataDao) {
         this.geoDataDao = geoDataDao;
     }

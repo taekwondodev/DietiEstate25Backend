@@ -1,3 +1,7 @@
+package com.dietiestate25backend.dto.requests;
+
+import java.util.List;
+
 public class ConteggioPuntiInteresseRequest {
     private double latitudine;
     private double longitudine;

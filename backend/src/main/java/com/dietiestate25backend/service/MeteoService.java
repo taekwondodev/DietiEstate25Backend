@@ -1,15 +1,17 @@
-package main.java.com.dietiestate25backend.service;
+package com.dietiestate25backend.service;
+
+import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
+import com.dietiestate25backend.dao.modelinterface.MeteoDao;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-
-import main.java.com.dietiestate25backend.dto.MeteoResponse;
+import java.util.Map;
 
 @Service
 public class MeteoService {
     private final GeoDataDao geoDataDao;
     private final MeteoDao meteoDao;
 
-    @Autowired
     public MeteoService(GeoDataDao geoDataDao, MeteoDao meteoDao) {
         this.geoDataDao = geoDataDao;
         this.meteoDao = meteoDao;

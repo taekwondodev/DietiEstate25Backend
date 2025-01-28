@@ -1,4 +1,13 @@
-package main.java.com.dietiestate25backend.controller;
+package com.dietiestate25backend.controller;
+
+import com.dietiestate25backend.dto.requests.MeteoRequest;
+import com.dietiestate25backend.service.MeteoService;
+import com.dietiestate25backend.utils.TokenUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/meteo")

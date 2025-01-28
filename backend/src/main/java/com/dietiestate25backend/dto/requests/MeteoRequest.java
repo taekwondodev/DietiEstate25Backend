@@ -1,4 +1,4 @@
-package main.java.com.dietiestate25backend.dto;
+package com.dietiestate25backend.dto.requests;
 
 public class MeteoRequest {
     private String city;

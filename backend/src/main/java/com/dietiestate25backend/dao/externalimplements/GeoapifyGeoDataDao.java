@@ -1,3 +1,15 @@
+package com.dietiestate25backend.dao.externalimplements;
+
+import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Repository
 public class GeoapifyGeoDataDao implements GeoDataDao {
     private final RestTemplate restTemplate;

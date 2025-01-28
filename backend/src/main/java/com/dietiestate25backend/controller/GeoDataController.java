@@ -1,3 +1,13 @@
+package com.dietiestate25backend.controller;
+
+import com.dietiestate25backend.dto.requests.ConteggioPuntiInteresseRequest;
+import com.dietiestate25backend.service.GeoDataService;
+import com.dietiestate25backend.utils.TokenUtils;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
 @RestController
 @RequestMapping("/geodata")
 public class GeoDataController {
