@@ -24,9 +24,18 @@ public class MeteoService {
         return !dataRichiesta.isAfter(dataMassimaSupportata) && !dataRichiesta.isBefore(dataAttuale);
     }
 
-    public Map<String, Object> ottieniPrevisioni(String city, String date) {
+    public Map<String, Object> ottieniPrevisioni(String latitudine, String longitudine, String date) {
 
-        Map<String, Double> coordinate = geoDataDao.ottieniCoordinate(city);
+        // Convertiamo i valori delle Stringhe di latitudine e longitudine Double all'interno di una Map
+        Map<String, Double> coordinate = new HashMap<>();
+
+        try {
+            coordinate.put("latitudine", Double.parseDouble(latitudine));
+            coordinate.put("longitudine", Double.parseDouble(longitudine));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Latitudine o longitudine non valide: devono essere numeri.", e);
+        }
+
         return meteoDao.ottieniPrevisioni(coordinate.get("latitudine"), coordinate.get("longitudine"), date);
 
     }

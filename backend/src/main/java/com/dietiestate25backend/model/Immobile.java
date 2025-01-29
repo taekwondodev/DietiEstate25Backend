@@ -9,19 +9,23 @@ public class Immobile {
     private final int nStanze;
     private final String tipologia;
     private final Indirizzo indirizzo;
+    private final String latitudine;
+    private final String longitudine;
     private final TipoClasseEnergetica classeEnergetica;
     private final int piano;
     private final boolean hasAscensore;
     private final boolean hasBalcone;
     private UUID idResponsabile;
 
-    public Immobile(String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
+    public Immobile(String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, String latitudine, String longitudine, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
         this.descrizione = descrizione;
         this.prezzo = prezzo;
         this.nBagni = nBagni;
         this.nStanze = nStanze;
         this.tipologia = tipologia;
         this.indirizzo = indirizzo;
+        this.latitudine = latitudine;
+        this.longitudine = longitudine;
         this.classeEnergetica = classeEnergetica;
         this.piano = piano;
         this.hasAscensore = hasAscensore;
@@ -51,6 +55,14 @@ public class Immobile {
 
     public Indirizzo getIndirizzo() {
         return indirizzo;
+    }
+
+    public String getLatitudine() {
+        return latitudine;
+    }
+
+    public String getLongitudine() {
+        return longitudine;
     }
 
     public TipoClasseEnergetica getClasseEnergetica() {

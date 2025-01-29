@@ -1,15 +1,24 @@
 package com.dietiestate25backend.dto.requests;
 
 public class MeteoRequest {
-    private String city;
+    private String latitudine;
+    private String longitudine;
     private String date;
 
-    public String getCity() {
-        return city;
+    public String getLatitudine() {
+        return latitudine;
     }
 
-    public void setCity(String city) {
-        this.city = city;
+    public void setLatitudine(String latitudine) {
+        this.latitudine = latitudine;
+    }
+
+    public String getLongitudine() {
+        return latitudine;
+    }
+
+    public void setLongitudine(String longitudine) {
+        this.longitudine = longitudine;
     }
 
     public String getDate() {
