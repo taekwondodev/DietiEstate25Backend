@@ -21,16 +21,25 @@ public class ImmobileController {
     }
 
     @GetMapping("/cerca")
-    public ResponseEntity<List<Immobile>>  cercaImmobili(
+    public ResponseEntity<List<Immobile>> cercaImmobili(
             @RequestHeader("Authorization") String token,
-            @RequestParam Indirizzo indirizzo, @RequestParam (required = false) Double prezzoMin,
-            @RequestParam (required = false) Double prezzoMax, @RequestParam (required = false) String nStanze,
-            @RequestParam (required = false) String tipologia, @RequestParam (required = false) TipoClasseEnergetica classeEnergetica
+            @RequestParam String città,
+            @RequestParam(required = false) String indirizzo, 
+            @RequestParam(required = false) String numeroCivico, 
+            @RequestParam(required = false) Double prezzoMin,
+            @RequestParam(required = false) Double prezzoMax, 
+            @RequestParam(required = false) String nStanze,
+            @RequestParam(required = false) String tipologia, 
+            @RequestParam(required = false) TipoClasseEnergetica classeEnergetica
     ) {
-        TokenUtils.validateToken(token);
-        List<Immobile> immobili = immobileService.cercaImmobili(indirizzo, prezzoMin, prezzoMax, nStanze, tipologia, classeEnergetica);
 
-        return ResponseEntity.status(201).body(immobili);
+        TokenUtils.validateToken(token);
+    
+        List<Immobile> immobili = immobileService.cercaImmobili(
+            indirizzo, numeroCivico, città, prezzoMin, prezzoMax, nStanze, tipologia, classeEnergetica
+        );
+    
+        return ResponseEntity.status(200).body(immobili);
     }
 
     @PostMapping("/crea")

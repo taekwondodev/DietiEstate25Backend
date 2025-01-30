@@ -11,6 +11,8 @@ public class Immobile {
     private final Indirizzo indirizzo;
     private final String latitudine;
     private final String longitudine;
+    private final String indirizzo;
+    private final String numerocivico;
     private final TipoClasseEnergetica classeEnergetica;
     private final int piano;
     private final boolean hasAscensore;
@@ -53,8 +55,12 @@ public class Immobile {
         return tipologia;
     }
 
-    public Indirizzo getIndirizzo() {
+    public String getIndirizzo() {
         return indirizzo;
+    }
+
+    public String getNumeroCivico() {
+        return numerocivico;
     }
 
     public String getLatitudine() {

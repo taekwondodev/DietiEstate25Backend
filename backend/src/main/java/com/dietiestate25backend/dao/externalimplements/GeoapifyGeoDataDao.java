@@ -15,7 +15,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     private final RestTemplate restTemplate;
 
     // Dobbiamo creare un account Geoapify e specificare la chiave fornita da Geoapify qui dentro. Ovviamente usiamo un file .env
-    private final String apiKey = "";
+    private final String apiKey = ""; //<----- QUI VA LA APIKEY
 
     public GeoapifyGeoDataDao(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();
@@ -83,36 +83,38 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     }
 
     @Override
-    public Map<String, Double> ottieniCoordinate(String city) {
-        // Costruzione dell'URL per l'API Geoapify
+    public Map<String, Double> ottieniCoordinate(String indirizzoCompleto) {
+        // Sostituiamo gli spazi con "%20" per l'URL encoding
         String url = String.format(
-            "https://api.geoapify.com/v1/geocode/search?city=%s&apiKey=%s",
-            city, apiKey
+            "https://api.geoapify.com/v1/geocode/search?text=%s&apiKey=%s",
+            indirizzoCompleto.replace(" ", "%20"), apiKey
         );
 
         try {
-
+            // Effettuiamo la chiamata API
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-
-            // Estraiamo l'elenco di features dalla risposta
-            List<Map<String, Object>> features = (List<Map<String, Object>>) response.get("features");
-
-            if (features == null || features.isEmpty()) {
-                throw new RuntimeException("Non è stato possibile trovare le coordinate per la città: " + city);
+            if (response == null || !response.containsKey("features")) {
+                throw new RuntimeException("Geoapify non ha restituito dati validi.");
             }
 
-            // Ottieniamo le coordinate dal primo elemento delle "features"
+            List<Map<String, Object>> features = (List<Map<String, Object>>) response.get("features");
+            if (features.isEmpty()) {
+                throw new RuntimeException("Nessuna coordinata trovata per l'indirizzo fornito.");
+            }
+
+            // Estraiamo la latitudine e la longitudine dal JSON ottenuto dalla chiamata API
             Map<String, Object> geometry = (Map<String, Object>) features.get(0).get("geometry");
-            List<Double> coordinates = (List<Double>) geometry.get("coordinates");
+            double latitudine = (double) geometry.get("lat");
+            double longitudine = (double) geometry.get("lon");
 
-            // Restituiamo latitudine e longitudine sottoforma di mappa
-            return Map.of(
-                "latitudine", coordinates.get(1),
-                "longitudine", coordinates.get(0)
-            );
+            // Creiamo una mappa con le coordinate
+            Map<String, Double> coordinate = new HashMap<>();
+            coordinate.put("latitudine", latitudine);
+            coordinate.put("longitudine", longitudine);
+            return coordinate;
 
-        } catch (RestClientException e) {
-            throw new RuntimeException("Errore durante la chiamata all'API Geoapify.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Errore durante la chiamata a Geoapify.", e);
         }
     }
 }

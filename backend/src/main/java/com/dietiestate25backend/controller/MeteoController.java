@@ -23,7 +23,8 @@ public class MeteoController {
 
         TokenUtils.validateToken(token);
 
-        String city = meteoRequest.getCity();
+        String latitudine = meteoRequest.getLatitudine();
+        String longitudine = meteoRequest.getLongitudine();
         String date = meteoRequest.getDate();
 
         // Verifichiamo se la data è nel range
@@ -33,7 +34,7 @@ public class MeteoController {
 
         // Ottieniamo i dati meteo
         try {
-            Map<String, Object> previsioni = meteoService.ottieniPrevisioni(city, date);
+            Map<String, Object> previsioni = meteoService.ottieniPrevisioni(latitudine, longitudine, date);
             return ResponseEntity.ok(previsioni);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
