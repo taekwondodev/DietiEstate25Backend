@@ -1,9 +1,9 @@
 package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.model.Immobile;
-import com.dietiestate25backend.model.Indirizzo;
 import com.dietiestate25backend.model.TipoClasseEnergetica;
 import com.dietiestate25backend.service.ImmobileService;
+import com.dietiestate25backend.utils.TokenUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,6 +1,5 @@
 package com.dietiestate25backend.service;
 
-import com.dietiestate25backend.utils.TokenUtils;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.model.Immobile;

@@ -2,6 +2,7 @@ package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.VisitaRequest;
 import com.dietiestate25backend.service.VisitaService;
+import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

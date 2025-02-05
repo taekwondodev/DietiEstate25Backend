@@ -23,15 +23,6 @@ public class GeoDataService {
         );
     }
 
-    public Map<String, Integer> ottieniConteggioPuntiInteresse(ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
-        return geoDataDao.ottieniConteggioPuntiInteresse(
-            conteggioPuntiInteresseRequest.getLatitudine(),
-            conteggioPuntiInteresseRequest.getLongitudine(),
-            conteggioPuntiInteresseRequest.getRaggio(),
-            conteggioPuntiInteresseRequest.getCategorie()
-        );
-    }
-
     public Map<String, Double> ottieniCoordinate(String indirizzo, String numeroCivico, String città) {
         // Concateniamo indirizzo, numero civico e città per ottenere un input più preciso
         String indirizzoCompleto = indirizzo + " " + numeroCivico;

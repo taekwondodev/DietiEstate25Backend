@@ -1,4 +1,4 @@
-package com.dietiestate25backend.dto;
+package com.dietiestate25backend.dto.requests;
 
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoVisita;

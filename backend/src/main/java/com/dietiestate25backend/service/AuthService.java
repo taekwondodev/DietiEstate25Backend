@@ -1,14 +1,15 @@
 package com.dietiestate25backend.service;
 
+import com.dietiestate25backend.dao.postgresimplements.AdminPostgres;
+import com.dietiestate25backend.dao.postgresimplements.UtenteAgenziaPostgres;
+import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
+import com.dietiestate25backend.model.UtenteAgenzia;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUserRequest;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUserResponse;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
 @Service
 public class AuthService {
@@ -17,8 +18,14 @@ public class AuthService {
 
     private final CognitoIdentityProviderClient cognitoClient;
 
-    public AuthService(CognitoIdentityProviderClient cognitoClient) {
+    private final AdminPostgres adminPostgres;
+
+    private final UtenteAgenziaPostgres utenteAgenziaPostgres;
+
+    public AuthService(CognitoIdentityProviderClient cognitoClient, AdminPostgres adminPostgres, UtenteAgenziaPostgres utenteAgenziaPostgres) {
         this.cognitoClient = cognitoClient;
+        this.adminPostgres = adminPostgres;
+        this.utenteAgenziaPostgres = utenteAgenziaPostgres;
     }
 
     public String getEmailByUid(String uid) {
@@ -41,4 +48,36 @@ public class AuthService {
             throw new InternalServerErrorException("Errore durante il recupero dell'email", e);
         }
     }
+
+    public void registraGestoreOrAgente(String uid, RegistrazioneRequest request){
+        int idAgenziaAdmin = adminPostgres.getIdAgenzia(uid);
+        String uidUtenteAgenzia = getUsernameByEmail(request.getEmail());
+
+        UtenteAgenzia utenteAgenzia = new UtenteAgenzia(uidUtenteAgenzia, idAgenziaAdmin, request.getRole());
+
+        utenteAgenziaPostgres.save(utenteAgenzia);
+    }
+
+    private String getUsernameByEmail(String email) {
+        try {
+            ListUsersRequest request = ListUsersRequest.builder()
+                    .userPoolId(userPoolId)
+                    .filter("email = \"" + email + "\"")
+                    .build();
+
+            ListUsersResponse response = cognitoClient.listUsers(request);
+
+            if (response.users().isEmpty()) {
+                throw new NotFoundException("Nessun utente trovato");
+            }
+
+            return response.users().getFirst().username();
+
+        } catch (CognitoIdentityProviderException e) {
+            System.err.println(e.awsErrorDetails().errorMessage());  /// da cambiare
+        }
+
+        return null;
+    }
+
 }
