@@ -11,10 +11,16 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class AuthService {
     @Value("${aws.cognito.userPoolId}")
     private String userPoolId;
+
+    @Value("${aws.cognito.clientId}")
+    private String clientId;
 
     private final CognitoIdentityProviderClient cognitoClient;
 
@@ -49,35 +55,44 @@ public class AuthService {
         }
     }
 
-    public void registraGestoreOrAgente(String uid, RegistrazioneRequest request){
-        int idAgenziaAdmin = adminPostgres.getIdAgenzia(uid);
-        String uidUtenteAgenzia = getUsernameByEmail(request.getEmail());
+    public void registraGestoreOrAgente(String uidAdmin, RegistrazioneRequest request){
+        int idAgenziaAdmin = adminPostgres.getIdAgenzia(uidAdmin);
+        String uidUtenteAgenzia = salvaToCognito(request);
 
         UtenteAgenzia utenteAgenzia = new UtenteAgenzia(uidUtenteAgenzia, idAgenziaAdmin, request.getRole());
 
         utenteAgenziaPostgres.save(utenteAgenzia);
     }
 
-    private String getUsernameByEmail(String email) {
+    private String salvaToCognito(RegistrazioneRequest request) {
+        AttributeType attributeEmail = AttributeType.builder()
+                .name("email")
+                .value(request.getEmail())
+                .build();
+        AttributeType attributeRole = AttributeType.builder()
+                .name("custom:role")
+                .value(request.getRole())
+                .build();
+
+        List<AttributeType> attributes = new ArrayList<>();
+        attributes.add(attributeEmail);
+        attributes.add(attributeRole);
+
         try {
-            ListUsersRequest request = ListUsersRequest.builder()
-                    .userPoolId(userPoolId)
-                    .filter("email = \"" + email + "\"")
+            SignUpRequest signUpRequest = SignUpRequest.builder()
+                    .userAttributes(attributes)
+                    .username(request.getEmail())
+                    .clientId(clientId)
+                    .password(request.getPassword())
                     .build();
 
-            ListUsersResponse response = cognitoClient.listUsers(request);
+            SignUpResponse signUpResponse = cognitoClient.signUp(signUpRequest);
+            System.out.println("Utente registrato con successo");
 
-            if (response.users().isEmpty()) {
-                throw new NotFoundException("Nessun utente trovato");
-            }
-
-            return response.users().getFirst().username();
-
+            return signUpResponse.userSub();
         } catch (CognitoIdentityProviderException e) {
-            System.err.println(e.awsErrorDetails().errorMessage());  /// da cambiare
+            throw new InternalServerErrorException("Errore durante la registrazione dell'utente", e);
         }
-
-        return null;
     }
 
 }
