@@ -5,24 +5,20 @@ import java.sql.Time;
 import java.util.UUID;
 
 public class Visita {
-    private final Date dataRichiesta;
+    private int idVisita;
     private final Date dataVisita;
     private final Time oraVisita;
     private final StatoVisita stato;
-    private final UUID idCliente;
-    private final int idImmobile;
+    private UUID idCliente;
+    private final Immobile immobile;
 
-    public Visita(Date dataRichiesta, Date dataVisita, Time oraVisita, StatoVisita stato, UUID idCliente, int idImmobile) {
-        this.dataRichiesta = dataRichiesta;
+    public Visita(int idVisita, Date dataVisita, Time oraVisita, StatoVisita stato, UUID idCliente, Immobile immobile) {
+        this.idVisita = idVisita;
         this.dataVisita = dataVisita;
         this.oraVisita = oraVisita;
         this.stato = stato;
         this.idCliente = idCliente;
-        this.idImmobile = idImmobile;
-    }
-
-    public Date getDataRichiesta() {
-        return dataRichiesta;
+        this.immobile = immobile;
     }
 
     public Date getDataVisita() {
@@ -41,7 +37,19 @@ public class Visita {
         return idCliente;
     }
 
-    public int getIdImmobile() {
-        return idImmobile;
+    public Immobile getImmobile() {
+        return immobile;
+    }
+
+    public int getIdVisita() {
+        return idVisita;
+    }
+
+    public void setIdVisita(int idVisita) {
+        this.idVisita = idVisita;
+    }
+
+    public void setIdCliente(UUID idCliente) {
+        this.idCliente = idCliente;
     }
 }

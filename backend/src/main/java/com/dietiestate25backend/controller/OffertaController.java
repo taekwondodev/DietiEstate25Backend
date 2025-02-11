@@ -1,6 +1,6 @@
 package com.dietiestate25backend.controller;
 
-import com.dietiestate25backend.dto.OffertaRequest;
+import com.dietiestate25backend.model.Offerta;
 import com.dietiestate25backend.service.OffertaService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,20 +22,28 @@ public class OffertaController {
     }
 
     @PostMapping("/aggiungi")
-    public ResponseEntity<Void> aggiungiOfferta(@RequestHeader("Authorization") String token, @Valid @RequestBody OffertaRequest request) {
-        String uid = TokenUtils.getUidFromToken(token);
-        request.setIdCliente(UUID.fromString(uid));
+    public ResponseEntity<Void> aggiungiOfferta(@Valid @RequestBody Offerta request) {
+        String uidCliente = TokenUtils.getUserSub();
+        request.setIdCliente(UUID.fromString(uidCliente));
 
         offertaService.aggiungiOfferta(request);
         return ResponseEntity.status(201).build();
     }
 
     @PatchMapping("/aggiorna")
-    public ResponseEntity<Void> aggiornaStatoOfferta(@RequestHeader("Authorization") String token, @Valid @RequestBody OffertaRequest request) {
-        String uid = TokenUtils.getUidFromToken(token);
-        request.setIdCliente(UUID.fromString(uid));
+    public ResponseEntity<Void> aggiornaStatoOfferta(@Valid @RequestBody Offerta request) {
+        String uidCliente = TokenUtils.getUserSub();
+        request.setIdCliente(UUID.fromString(uidCliente));
 
         offertaService.aggiornaStatoOfferta(request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/riepilogo")
+    public ResponseEntity<List<Offerta>> riepilogoOfferteCliente() {
+        String uidCliente = TokenUtils.getUserSub();
+        List<Offerta> offerte = offertaService.riepilogoOfferteCliente(UUID.fromString(uidCliente));
+
+        return ResponseEntity.ok(offerte);
     }
 }

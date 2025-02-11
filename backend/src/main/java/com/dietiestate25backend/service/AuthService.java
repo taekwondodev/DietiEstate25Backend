@@ -87,7 +87,6 @@ public class AuthService {
                     .build();
 
             SignUpResponse signUpResponse = cognitoClient.signUp(signUpRequest);
-            System.out.println("Utente registrato con successo");
 
             return signUpResponse.userSub();
         } catch (CognitoIdentityProviderException e) {

@@ -1,56 +1,42 @@
 package com.dietiestate25backend.service;
 
-import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dao.modelinterface.VisitaDao;
-import com.dietiestate25backend.dto.VisitaRequest;
 import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Visita;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+
 @Service
 public class VisitaService {
     private final VisitaDao visitaDao;
-    private final ImmobileDao immobileDao;
-
     private final EmailService emailService;
     private final AuthService authService;
 
-    public VisitaService(VisitaDao visitaDao, ImmobileDao immobileDao, EmailService emailService, AuthService authService) {
+    public VisitaService(VisitaDao visitaDao, EmailService emailService, AuthService authService) {
         this.visitaDao = visitaDao;
-        this.immobileDao = immobileDao;
         this.emailService = emailService;
         this.authService = authService;
     }
 
-    public void prenotaVisita(VisitaRequest request) {
-        Immobile immobile = request.getImmobile();
-        int idImmobile = immobileDao.getIdImmobile(immobile);
-
-        Visita visita = new Visita(
-                request.getDataRichiesta(), request.getDataVisita(), request.getOraVisita(),
-                request.getStato(), request.getIdCliente(), idImmobile
-        );
-
+    public void prenotaVisita(Visita visita) {
         if (!visitaDao.salva(visita)) {
             throw new DatabaseErrorException("Visita non salvata nel database");
         }
 
-        inviaEmail(immobile);
+        inviaEmail(visita.getImmobile());
     }
 
-    public void aggiornaStatoVisita(VisitaRequest request) {
-        Immobile immobile = request.getImmobile();
-        int idImmobile = immobileDao.getIdImmobile(immobile);
-
-        Visita visita = new Visita(
-                request.getDataRichiesta(), request.getDataVisita(), request.getOraVisita(),
-                request.getStato(), request.getIdCliente(), idImmobile
-        );
-
+    public void aggiornaStatoVisita(Visita visita) {
         if (!visitaDao.aggiornaStato(visita)) {
             throw new DatabaseErrorException("Visita non trovata nel database");
         }
+    }
+
+    public List<Visita> riepilogoVisiteCliente(UUID idCliente) {
+        return visitaDao.riepilogoVisiteCliente(idCliente);
     }
 
     private void inviaEmail(Immobile immobile){

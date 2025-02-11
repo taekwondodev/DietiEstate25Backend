@@ -3,6 +3,7 @@ package com.dietiestate25backend.model;
 import java.util.UUID;
 
 public class Immobile {
+    private final int idImmobile;
     private final String descrizione;
     private final double prezzo;
     private final int nBagni;
@@ -19,7 +20,8 @@ public class Immobile {
     private final boolean hasBalcone;
     private UUID idResponsabile;
 
-    public Immobile(String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, String latitudine, String longitudine, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
+    public Immobile(int idImmobile, String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, String latitudine, String longitudine, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
+        this.idImmobile = idImmobile;
         this.descrizione = descrizione;
         this.prezzo = prezzo;
         this.nBagni = nBagni;
@@ -102,5 +104,9 @@ public class Immobile {
                 classeEnergetica == null || classeEnergetica.getClasse() == null || piano == 0 ||
                 idResponsabile == null
         );
+    }
+
+    public int getIdImmobile() {
+        return idImmobile;
     }
 }

@@ -1,9 +1,14 @@
 package com.dietiestate25backend.dao.postgresimplements;
 
 import com.dietiestate25backend.dao.modelinterface.OffertaDao;
+import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Offerta;
+import com.dietiestate25backend.model.StatoOfferta;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class OffertaPostgres implements OffertaDao {
@@ -16,16 +21,43 @@ public class OffertaPostgres implements OffertaDao {
     @Override
     public boolean salvaOfferta(Offerta offerta) {
         String sql = "INSERT INTO offerta (importo, stato, idCliente, idImmobile) VALUES (?, ?, ?, ?)";
-        return jdbcTemplate.update(sql,
-                offerta.getImporto(), offerta.getStato().getStatoString(), offerta.getIdCliente().toString(), offerta.getIdImmobile()
-        ) == 1;
+        int result = jdbcTemplate.update(sql,
+                offerta.getImporto(),
+                offerta.getStato().toString(),
+                offerta.getIdCliente().toString(),
+                offerta.getImmobile().getIdImmobile()
+        );
+        return result > 0;
     }
 
     @Override
     public boolean aggiornaStatoOfferta(Offerta offerta) {
-        String sql = "UPDATE offerta SET stato = ? WHERE idCliente = ? AND idImmobile = ?";
-        return jdbcTemplate.update(sql,
-                offerta.getStato().getStatoString(), offerta.getIdCliente().toString(), offerta.getIdImmobile()
-        ) == 1;
+        String sql = "UPDATE offerta SET stato = ? WHERE idOfferta = ?";
+
+        int result = jdbcTemplate.update(sql,
+                offerta.getStato().toString(),
+                offerta.getIdOfferta()
+        );
+        return result > 0;
+    }
+
+    @Override
+    public List<Offerta> riepilogoOfferteCliente(UUID idCliente) {
+        String sql = "SELECT o.*, i.* " +
+                "FROM offerta o " +
+                "JOIN immobile i ON o.idImmobile = i.idImmobile " +
+                "WHERE o.idCliente = ?";
+        return jdbcTemplate.query(sql, (resultSet, i) -> {
+            Immobile immobile = new Immobile(
+                    /// TODO: da fixare
+            );
+            return new Offerta(
+                    resultSet.getInt("idOfferta"),
+                    resultSet.getDouble("importo"),
+                    StatoOfferta.fromString(resultSet.getString("stato")),
+                    UUID.fromString(resultSet.getString("idCliente")),
+                    immobile
+            );
+        }, idCliente.toString());
     }
 }

@@ -19,8 +19,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Void> registraGestoreOrAgente(@RequestHeader("Authorization") String token, @Valid @RequestBody RegistrazioneRequest request) {
-        String uidAdmin = TokenUtils.getUidFromToken(token);
+    public ResponseEntity<Void> registraGestoreOrAgente(@Valid @RequestBody RegistrazioneRequest request) {
+        TokenUtils.checkIfAdmin();
+
+        String uidAdmin = TokenUtils.getUserSub();
         authService.registraGestoreOrAgente(uidAdmin, request);
 
         return ResponseEntity.ok().build();

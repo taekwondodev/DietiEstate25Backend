@@ -14,4 +14,13 @@ public enum StatoOfferta {
     public String getStatoString() {
         return stato;
     }
+
+    public static StatoOfferta fromString(String stato) {
+        for (StatoOfferta s : StatoOfferta.values()) {
+            if (s.getStatoString().equalsIgnoreCase(stato)) {
+                return s;
+            }
+        }
+        throw new IllegalArgumentException("Stato offerta non valida: " + stato);
+    }
 }

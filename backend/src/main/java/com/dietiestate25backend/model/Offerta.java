@@ -1,18 +1,26 @@
 package com.dietiestate25backend.model;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
 import java.util.UUID;
 
 public class Offerta {
+    private int idOfferta;
+    @Positive
     private final double importo;
+    @NotNull
     private final StatoOfferta stato;
-    private final UUID idCliente;
-    private final int idImmobile;
+    private UUID idCliente;
+    @NotNull
+    private final Immobile immobile;
 
-    public Offerta(double importo, StatoOfferta stato, UUID idCliente, int idImmobile) {
+    public Offerta(int idOfferta, double importo, StatoOfferta stato, UUID idCliente, Immobile immobile) {
+        this.idOfferta = idOfferta;
         this.importo = importo;
         this.stato = stato;
         this.idCliente = idCliente;
-        this.idImmobile = idImmobile;
+        this.immobile = immobile;
     }
 
     public double getImporto() {
@@ -27,7 +35,19 @@ public class Offerta {
         return idCliente;
     }
 
-    public int getIdImmobile() {
-        return idImmobile;
+    public Immobile getImmobile() {
+        return immobile;
+    }
+
+    public int getIdOfferta() {
+        return idOfferta;
+    }
+
+    public void setIdCliente(UUID idCliente) {
+        this.idCliente = idCliente;
+    }
+
+    public void setIdOfferta(int idOfferta) {
+        this.idOfferta = idOfferta;
     }
 }
