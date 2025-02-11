@@ -5,6 +5,7 @@ import com.dietiestate25backend.dao.modelinterface.MeteoDao;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service

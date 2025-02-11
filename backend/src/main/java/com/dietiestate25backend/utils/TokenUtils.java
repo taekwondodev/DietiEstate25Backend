@@ -39,8 +39,28 @@ public class TokenUtils {
     public static void checkIfAdmin() {
         Optional<String> role = getJwt().map(jwt -> jwt.getClaim("custom:role"));
 
-        if (role.isEmpty() || !role.get().equals("Admin")) {
+        if (isNotAdmin(role.orElse(null))) {
             throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
         }
+    }
+
+    public static void checkIfUtenteAgenzia() {
+        Optional<String> role = getJwt().map(jwt -> jwt.getClaim("custom:role"));
+
+        if (isNotAdmin(role.orElse(null)) || isNotGestore(role.orElse(null)) || isNotAgente(role.orElse(null))) {
+            throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
+        }
+    }
+
+    private static boolean isNotAdmin(String role) {
+        return role == null || !role.equals("Admin");
+    }
+
+    private static boolean isNotGestore(String role) {
+        return role == null || !role.equals("Gestore");
+    }
+
+    private static boolean isNotAgente(String role) {
+        return role == null || !role.equals("AgenteImmobiliare");
     }
 }

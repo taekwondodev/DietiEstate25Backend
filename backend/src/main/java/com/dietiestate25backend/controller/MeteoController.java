@@ -2,7 +2,6 @@ package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.requests.MeteoRequest;
 import com.dietiestate25backend.service.MeteoService;
-import com.dietiestate25backend.utils.TokenUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,17 +18,15 @@ public class MeteoController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> ottieniPrevisioni(@RequestHeader("Authorization") String token, @RequestBody MeteoRequest meteoRequest) {
-
-        TokenUtils.validateToken(token);
-
+    public ResponseEntity<Map<String, Object>> ottieniPrevisioni(@RequestBody MeteoRequest meteoRequest) {
         String latitudine = meteoRequest.getLatitudine();
         String longitudine = meteoRequest.getLongitudine();
         String date = meteoRequest.getDate();
 
         // Verifichiamo se la data è nel range
         if (!meteoService.isDataNelRange(date)) {
-            return ResponseEntity.badRequest().body("Le previsioni meteo non sono disponibili per la data selezionata.");
+            Map<String, Object> errorResponse = Map.of("error", "Le previsioni meteo non sono disponibili per la data selezionata.");
+            return ResponseEntity.badRequest().body(errorResponse);
         }
 
         // Ottieniamo i dati meteo
@@ -37,6 +34,9 @@ public class MeteoController {
             Map<String, Object> previsioni = meteoService.ottieniPrevisioni(latitudine, longitudine, date);
             return ResponseEntity.ok(previsioni);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+            Map<String, Object> errorResponse = Map.of("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+}

@@ -2,7 +2,6 @@ package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.requests.ConteggioPuntiInteresseRequest;
 import com.dietiestate25backend.service.GeoDataService;
-import com.dietiestate25backend.utils.TokenUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +17,7 @@ public class GeoDataController {
     }
 
     @PostMapping("/conteggio-pdi")
-    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestHeader("Authorization") String token, @RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
-       
-        TokenUtils.validateToken(token);
-       
+    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
         Map<String, Integer> conteggioPuntiInteresse = geoDataService.ottieniConteggioPuntiInteresse(conteggioPuntiInteresseRequest);
         
         return ResponseEntity.status(201).body(conteggioPuntiInteresse);
