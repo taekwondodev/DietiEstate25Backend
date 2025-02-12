@@ -1,9 +1,9 @@
 package com.dietiestate25backend.model;
 
 public class UtenteAgenzia {
-    private String uid;
-    private int idAgenzia;
-    private String ruolo;
+    private final String uid;
+    private final int idAgenzia;
+    private final String ruolo;
 
     public UtenteAgenzia(String ruolo, int idAgenzia, String uid) {
         this.ruolo = ruolo;
