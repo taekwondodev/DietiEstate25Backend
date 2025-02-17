@@ -3,38 +3,128 @@ package com.dietiestate25backend.model;
 import java.util.UUID;
 
 public class Immobile {
-    private final int idImmobile;
+    private int idImmobile;
+    private final String urlFoto;
     private final String descrizione;
     private final double prezzo;
     private final int nBagni;
     private final int nStanze;
     private final String tipologia;
-    private final Indirizzo indirizzo;
-    private final String latitudine;
-    private final String longitudine;
+    private final double longitudine;
+    private final double latitudine;
     private final String indirizzo;
-    private final String numerocivico;
-    private final TipoClasseEnergetica classeEnergetica;
     private final int piano;
     private final boolean hasAscensore;
     private final boolean hasBalcone;
-    private UUID idResponsabile;
+    private final UUID idResponsabile;
 
-    public Immobile(int idImmobile, String descrizione, double prezzo, int nBagni, int nStanze, String tipologia, Indirizzo indirizzo, String latitudine, String longitudine, TipoClasseEnergetica classeEnergetica, int piano, boolean hasAscensore, boolean hasBalcone, UUID idResponsabile) {
-        this.idImmobile = idImmobile;
-        this.descrizione = descrizione;
-        this.prezzo = prezzo;
-        this.nBagni = nBagni;
-        this.nStanze = nStanze;
-        this.tipologia = tipologia;
-        this.indirizzo = indirizzo;
-        this.latitudine = latitudine;
-        this.longitudine = longitudine;
-        this.classeEnergetica = classeEnergetica;
-        this.piano = piano;
-        this.hasAscensore = hasAscensore;
-        this.hasBalcone = hasBalcone;
-        this.idResponsabile = idResponsabile;
+    private Immobile(Builder builder) {
+        this.idImmobile = builder.idImmobile;
+        this.urlFoto = builder.urlFoto;
+        this.descrizione = builder.descrizione;
+        this.prezzo = builder.prezzo;
+        this.nBagni = builder.nBagni;
+        this.nStanze = builder.nStanze;
+        this.tipologia = builder.tipologia;
+        this.longitudine = builder.longitudine;
+        this.latitudine = builder.latitudine;
+        this.indirizzo = builder.indirizzo;
+        this.piano = builder.piano;
+        this.hasAscensore = builder.hasAscensore;
+        this.hasBalcone = builder.hasBalcone;
+        this.idResponsabile = builder.idResponsabile;
+    }
+
+
+    public static class Builder {
+        private int idImmobile;
+        private String urlFoto;
+        private String descrizione;
+        private double prezzo;
+        private int nBagni;
+        private int nStanze;
+        private String tipologia;
+        private double longitudine;
+        private double latitudine;
+        private String indirizzo;
+        private int piano;
+        private boolean hasAscensore;
+        private boolean hasBalcone;
+        private UUID idResponsabile;
+
+        public Builder setIdImmobile(int idImmobile) {
+            this.idImmobile = idImmobile;
+            return this;
+        }
+
+        public Builder setUrlFoto(String urlFoto) {
+            this.urlFoto = urlFoto;
+            return this;
+        }
+
+        public Builder setDescrizione(String descrizione) {
+            this.descrizione = descrizione;
+            return this;
+        }
+
+        public Builder setPrezzo(double prezzo) {
+            this.prezzo = prezzo;
+            return this;
+        }
+
+        public Builder setNBagni(int nBagni) {
+            this.nBagni = nBagni;
+            return this;
+        }
+
+        public Builder setNStanze(int nStanze) {
+            this.nStanze = nStanze;
+            return this;
+        }
+
+        public Builder setTipologia(String tipologia) {
+            this.tipologia = tipologia;
+            return this;
+        }
+
+        public Builder setLongitudine(double longitudine) {
+            this.longitudine = longitudine;
+            return this;
+        }
+
+        public Builder setLatitudine(double latitudine) {
+            this.latitudine = latitudine;
+            return this;
+        }
+
+        public Builder setIndirizzo(String indirizzo) {
+            this.indirizzo = indirizzo;
+            return this;
+        }
+
+        public Builder setPiano(int piano) {
+            this.piano = piano;
+            return this;
+        }
+
+        public Builder setHasAscensore(boolean hasAscensore) {
+            this.hasAscensore = hasAscensore;
+            return this;
+        }
+
+        public Builder setHasBalcone(boolean hasBalcone) {
+            this.hasBalcone = hasBalcone;
+            return this;
+        }
+
+        public Builder setIdResponsabile(UUID idResponsabile) {
+            this.idResponsabile = idResponsabile;
+            return this;
+        }
+
+        public Immobile build() {
+            return new Immobile(this);
+        }
     }
 
     public String getDescrizione() {
@@ -61,22 +151,6 @@ public class Immobile {
         return indirizzo;
     }
 
-    public String getNumeroCivico() {
-        return numerocivico;
-    }
-
-    public String getLatitudine() {
-        return latitudine;
-    }
-
-    public String getLongitudine() {
-        return longitudine;
-    }
-
-    public TipoClasseEnergetica getClasseEnergetica() {
-        return classeEnergetica;
-    }
-
     public int getPiano() {
         return piano;
     }
@@ -93,20 +167,19 @@ public class Immobile {
         return idResponsabile;
     }
 
-    public void setIdResponsabile(UUID idResponsabile) {
-        this.idResponsabile = idResponsabile;
-    }
-
-    public boolean isValid() {
-        return (
-                descrizione == null || prezzo == 0 || nBagni == 0 || nStanze == 0 || tipologia == null ||
-                indirizzo == null || indirizzo.getVia() == null || indirizzo.getComune() == null || indirizzo.getCap() == null ||
-                classeEnergetica == null || classeEnergetica.getClasse() == null || piano == 0 ||
-                idResponsabile == null
-        );
-    }
-
     public int getIdImmobile() {
         return idImmobile;
+    }
+
+    public String getUrlFoto() {
+        return urlFoto;
+    }
+
+    public double getLatitudine() {
+        return latitudine;
+    }
+
+    public double getLongitudine() {
+        return longitudine;
     }
 }

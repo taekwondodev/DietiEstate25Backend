@@ -1,14 +1,16 @@
 package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
+import com.dietiestate25backend.dto.requests.CreaImmobileRequest;
 import com.dietiestate25backend.error.exception.BadRequestException;
+import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.model.Immobile;
-import com.dietiestate25backend.model.TipoClasseEnergetica;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class ImmobileService {
@@ -23,7 +25,7 @@ public class ImmobileService {
     public List<Immobile> cercaImmobili(
         String indirizzo, String numeroCivico, String città,
         Double prezzoMin, Double prezzoMax,
-        String nStanze, String tipologia, TipoClasseEnergetica classeEnergetica
+        String nStanze, String tipologia
     ) {
         // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
         Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, numeroCivico, città);
@@ -57,23 +59,33 @@ public class ImmobileService {
         return immobileDao.cercaImmobiliConFiltri(filters);
     }
 
-    public void creaImmobile(Immobile immobile) {
+    public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
 
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(
-            immobile.getIndirizzo(), immobile.getNumeroCivico(), immobile.getCittà()
-        );
+        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(request.getIndirizzo());
 
         // Verifichiamo che le coordinate siano valide
         if (coordinate == null || !coordinate.containsKey("latitudine") || !coordinate.containsKey("longitudine")) {
             throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
         }
 
-        immobile.setLatitudine(coordinate.get("latitudine"));
-        immobile.setLongitudine(coordinate.get("longitudine"));
+        Immobile immobile = new Immobile.Builder()
+                .setUrlFoto(request.getUrlFoto())
+                .setDescrizione(request.getDescrizione())
+                .setPrezzo(request.getPrezzo())
+                .setNBagni(request.getnBagni())
+                .setNStanze(request.getnStanze())
+                .setTipologia(request.getTipologia())
+                .setLatitudine(coordinate.get("latitudine"))
+                .setLongitudine(coordinate.get("longitudine"))
+                .setIndirizzo(request.getIndirizzo())
+                .setPiano(request.getPiano())
+                .setHasAscensore(request.isHasAscensore())
+                .setHasBalcone(request.isHasBalcone())
+                .setIdResponsabile(UUID.fromString(uidResponsabile))
+                .build();
 
         if (!immobileDao.creaImmobile(immobile)) {
-            throw new BadRequestException("Errore durante la creazione dell'immobile.");
+            throw new DatabaseErrorException("Impossibile creare l'immobile");
         }
     }
-}
 }

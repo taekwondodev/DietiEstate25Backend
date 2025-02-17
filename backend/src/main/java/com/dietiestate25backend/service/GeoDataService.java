@@ -23,13 +23,7 @@ public class GeoDataService {
         );
     }
 
-    public Map<String, Double> ottieniCoordinate(String indirizzo, String numeroCivico, String città) {
-        // Concateniamo indirizzo, numero civico e città per ottenere un input più preciso
-        String indirizzoCompleto = indirizzo + " " + numeroCivico;
-        if (città != null && !città.trim().isEmpty()) {
-            indirizzoCompleto += ", " + città;
-        }
-        
-        return geoDataDao.ottieniCoordinate(indirizzoCompleto);
+    public Map<String, Double> ottieniCoordinate(String indirizzo) {
+        return geoDataDao.ottieniCoordinate(indirizzo);
     }
 }

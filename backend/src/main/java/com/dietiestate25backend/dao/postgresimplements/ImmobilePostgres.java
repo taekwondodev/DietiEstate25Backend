@@ -1,10 +1,7 @@
 package com.dietiestate25backend.dao.postgresimplements;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
-import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.model.Immobile;
-import com.dietiestate25backend.model.Indirizzo;
-import com.dietiestate25backend.model.TipoClasseEnergetica;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -20,10 +17,6 @@ public class ImmobilePostgres implements ImmobileDao {
     private static final String N_BAGNI = "nBagni";
     private static final String N_STANZE = "nStanze";
     private static final String TIPOLOGIA = "tipologia";
-    private static final String VIA = "via";
-    private static final String CIVICO = "civico";
-    private static final String CAP = "cap";
-    private static final String CLASSE_ENERGETICA = "classeEnergetica";
     private static final String PIANO = "piano";
     private static final String ID_AGENTE = "idAgente";
     private static final String HAS_ASCENSORE = "hasAscensore";
@@ -62,54 +55,27 @@ public class ImmobilePostgres implements ImmobileDao {
 
     @Override
     public boolean creaImmobile(Immobile immobile) {
-        String sql = "INSERT INTO immobile (descrizione, prezzo, nBagni, nStanze, tipologia, via, comune, cap, classeEnergetica, piano, hasAscensore, hasBalcone, idAgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        return jdbcTemplate.update(sql,
+        String sql = "INSERT INTO " +
+                "immobile (urlFoto, descrizione, prezzo, nBagni, nStanze, tipologia, coordinate, indirizzo, piano, hasAscensore, hasBalcone, idAgente)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?, ?, ?, ?, ?)";
+
+        int result = jdbcTemplate.update(sql,
+                immobile.getUrlFoto(),
                 immobile.getDescrizione(),
                 immobile.getPrezzo(),
                 immobile.getnBagni(),
                 immobile.getnStanze(),
                 immobile.getTipologia(),
-                immobile.getIndirizzo().getVia(),
-                immobile.getIndirizzo().getComune(),
-                immobile.getIndirizzo().getCap(),
-                immobile.getClasseEnergetica().getClasse(),
+                immobile.getLongitudine(),
+                immobile.getLatitudine(),
+                immobile.getIndirizzo(),
                 immobile.getPiano(),
                 immobile.isHasAscensore(),
                 immobile.isHasBalcone(),
-                immobile.getIdResponsabile()
-        ) > 0;
-    }
+                immobile.getIdResponsabile().toString()
+        );
 
-    @Override
-    public int getIdImmobile(Immobile immobile) {
-        if (!immobile.isValid()){
-            throw new IllegalArgumentException("Immobile non valido");
-        }
-        else {
-            String sql = "SELECT id FROM immobile WHERE descrizione = ? AND prezzo = ? AND nBagni = ? AND nStanze = ? AND tipologia = ? AND via = ? AND comune = ? AND cap = ? AND classeEnergetica = ? AND piano = ? AND hasAscensore = ? AND hasBalcone = ? AND idAgente = ?";
-            Integer id = jdbcTemplate.queryForObject(sql, Integer.class,
-                    immobile.getDescrizione(),
-                    immobile.getPrezzo(),
-                    immobile.getnBagni(),
-                    immobile.getnStanze(),
-                    immobile.getTipologia(),
-                    immobile.getIndirizzo().getVia(),
-                    immobile.getIndirizzo().getComune(),
-                    immobile.getIndirizzo().getCap(),
-                    immobile.getClasseEnergetica().getClasse(),
-                    immobile.getPiano(),
-                    immobile.isHasAscensore(),
-                    immobile.isHasBalcone(),
-                    immobile.getIdResponsabile()
-            );
-
-            if (id == null){
-                throw new NotFoundException("Immobile non trovato");
-            }
-            else {
-                return id;
-            }
-        }
+        return result > 0;
     }
 
     private String buildSql(Map<String, Object> filters) {
