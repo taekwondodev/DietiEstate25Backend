@@ -10,6 +10,8 @@ public class CreaImmobileRequest {
     @NotNull
     private double prezzo;
     @NotNull
+    private int dimensione;
+    @NotNull
     private int nBagni;
     @NotNull
     private int nStanze;
@@ -34,6 +36,10 @@ public class CreaImmobileRequest {
 
     public double getPrezzo() {
         return prezzo;
+    }
+
+    public int getDimensione() {
+        return dimensione;
     }
 
     public int getnBagni() {

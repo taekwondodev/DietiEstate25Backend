@@ -7,6 +7,7 @@ public class Immobile {
     private final String urlFoto;
     private final String descrizione;
     private final double prezzo;
+    private final int dimensione;
     private final int nBagni;
     private final int nStanze;
     private final String tipologia;
@@ -23,6 +24,7 @@ public class Immobile {
         this.urlFoto = builder.urlFoto;
         this.descrizione = builder.descrizione;
         this.prezzo = builder.prezzo;
+        this.dimensione = builder.dimensione;
         this.nBagni = builder.nBagni;
         this.nStanze = builder.nStanze;
         this.tipologia = builder.tipologia;
@@ -41,6 +43,7 @@ public class Immobile {
         private String urlFoto;
         private String descrizione;
         private double prezzo;
+        private int dimensione;
         private int nBagni;
         private int nStanze;
         private String tipologia;
@@ -69,6 +72,11 @@ public class Immobile {
 
         public Builder setPrezzo(double prezzo) {
             this.prezzo = prezzo;
+            return this;
+        }
+
+        public Builder setDimensione(int dimensione) {
+            this.dimensione = dimensione;
             return this;
         }
 
@@ -133,6 +141,10 @@ public class Immobile {
 
     public double getPrezzo() {
         return prezzo;
+    }
+
+    public int getDimensione() {
+        return dimensione;
     }
 
     public int getnBagni() {

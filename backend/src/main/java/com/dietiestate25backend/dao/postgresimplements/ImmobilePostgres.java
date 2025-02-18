@@ -56,13 +56,14 @@ public class ImmobilePostgres implements ImmobileDao {
     @Override
     public boolean creaImmobile(Immobile immobile) {
         String sql = "INSERT INTO " +
-                "immobile (urlFoto, descrizione, prezzo, nBagni, nStanze, tipologia, coordinate, indirizzo, piano, hasAscensore, hasBalcone, idAgente)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?, ?, ?, ?, ?)";
+                "immobile (urlFoto, descrizione, prezzo, dimensione, nBagni, nStanze, tipologia, coordinate, indirizzo, piano, hasAscensore, hasBalcone, idAgente)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?, ?, ?, ?, ?)";
 
         int result = jdbcTemplate.update(sql,
                 immobile.getUrlFoto(),
                 immobile.getDescrizione(),
                 immobile.getPrezzo(),
+                immobile.getDimensione(),
                 immobile.getnBagni(),
                 immobile.getnStanze(),
                 immobile.getTipologia(),

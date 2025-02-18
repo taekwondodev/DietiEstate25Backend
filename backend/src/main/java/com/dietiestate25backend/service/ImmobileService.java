@@ -23,12 +23,12 @@ public class ImmobileService {
     }
 
     public List<Immobile> cercaImmobili(
-        String indirizzo, String numeroCivico, String città,
+        String indirizzo,
         Double prezzoMin, Double prezzoMax,
         String nStanze, String tipologia
     ) {
         // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, numeroCivico, città);
+        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo);
 
         if (coordinate == null || !coordinate.containsKey("latitudine") || !coordinate.containsKey("longitudine")) {
             throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
@@ -72,6 +72,7 @@ public class ImmobileService {
                 .setUrlFoto(request.getUrlFoto())
                 .setDescrizione(request.getDescrizione())
                 .setPrezzo(request.getPrezzo())
+                .setDimensione(request.getDimensione())
                 .setNBagni(request.getnBagni())
                 .setNStanze(request.getnStanze())
                 .setTipologia(request.getTipologia())
