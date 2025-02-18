@@ -55,7 +55,7 @@ public class ImmobileService {
     }
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
-        Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo());
+        Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo(), request.getCitta());
 
         Immobile immobile = new Immobile.Builder()
                 .setUrlFoto(request.getUrlFoto())
@@ -80,9 +80,9 @@ public class ImmobileService {
         }
     }
 
-    private Map<String, Double> ottieniCoordinate(String indirizzo) {
+    private Map<String, Double> ottieniCoordinate(String indirizzo, String citta) {
         // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo);
+        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, citta);
 
         // Verifichiamo che le coordinate siano valide
         if (coordinate == null || !coordinate.containsKey(LATITUDINE) || !coordinate.containsKey(LONGITUDINE)) {
