@@ -1,19 +1,20 @@
 package com.dietiestate25backend.dto.requests;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class CreaImmobileRequest {
     @NotNull
     private String descrizione;
     @NotNull
     private String urlFoto;
-    @NotNull
+    @Positive
     private double prezzo;
-    @NotNull
+    @Positive
     private int dimensione;
-    @NotNull
+    @Positive
     private int nBagni;
-    @NotNull
+    @Positive
     private int nStanze;
     @NotNull
     private String tipologia;
@@ -21,7 +22,7 @@ public class CreaImmobileRequest {
     private String indirizzo;
     @NotNull
     private String citta;
-    @NotNull
+    @Positive
     private int piano;
     @NotNull
     private boolean hasAscensore;

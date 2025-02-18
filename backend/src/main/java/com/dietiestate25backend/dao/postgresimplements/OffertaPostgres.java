@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
+import static com.dietiestate25backend.dao.postgresimplements.VisitaPostgres.buildImmobile;
+
 @Repository
 public class OffertaPostgres implements OffertaDao {
     private final JdbcTemplate jdbcTemplate;
@@ -48,9 +50,8 @@ public class OffertaPostgres implements OffertaDao {
                 "JOIN immobile i ON o.idImmobile = i.idImmobile " +
                 "WHERE o.idCliente = ?";
         return jdbcTemplate.query(sql, (resultSet, i) -> {
-            Immobile immobile = new Immobile(
-                    /// TODO: da fixare
-            );
+            Immobile immobile = buildImmobile(resultSet);
+
             return new Offerta(
                     resultSet.getInt("idOfferta"),
                     resultSet.getDouble("importo"),

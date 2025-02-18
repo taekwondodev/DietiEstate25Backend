@@ -7,6 +7,8 @@ import com.dietiestate25backend.model.Visita;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,9 +51,8 @@ public class VisitaPostgres implements VisitaDao {
                 "WHERE v.idCliente = ?";
 
         return jdbcTemplate.query(sql, (resultSet, i) -> {
-            Immobile immobile = new Immobile(
-                    /// TODO: da fixare
-            );
+            Immobile immobile = buildImmobile(resultSet);
+
             return new Visita(
                     resultSet.getInt("idVisita"),
                     resultSet.getDate("data"),
@@ -63,4 +64,24 @@ public class VisitaPostgres implements VisitaDao {
         }, idCliente.toString());
     }
 
+    static Immobile buildImmobile(ResultSet resultSet) throws SQLException {
+        return new Immobile.Builder()
+                .setIdImmobile(resultSet.getInt("idImmobile"))
+                .setUrlFoto(resultSet.getString("urlFoto"))
+                .setDescrizione(resultSet.getString("descrizione"))
+                .setPrezzo(resultSet.getDouble("prezzo"))
+                .setDimensione(resultSet.getInt("dimensione"))
+                .setNBagni(resultSet.getInt("nBagni"))
+                .setNStanze(resultSet.getInt("nStanze"))
+                .setTipologia(resultSet.getString("tipologia"))
+                .setLatitudine(resultSet.getDouble("latitudine"))
+                .setLongitudine(resultSet.getDouble("longitudine"))
+                .setIndirizzo(resultSet.getString("indirizzo"))
+                .setCitta(resultSet.getString("citta"))
+                .setPiano(resultSet.getInt("piano"))
+                .setHasAscensore(resultSet.getBoolean("hasAscensore"))
+                .setHasBalcone(resultSet.getBoolean("hasBalcone"))
+                .setIdResponsabile(UUID.fromString(resultSet.getString("idAgente")))
+                .build();
+    }
 }
