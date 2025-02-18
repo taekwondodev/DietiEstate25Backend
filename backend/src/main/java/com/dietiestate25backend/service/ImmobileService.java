@@ -2,6 +2,7 @@ package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dto.requests.CreaImmobileRequest;
+import com.dietiestate25backend.dto.response.CercaImmobileResponse;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.model.Immobile;
@@ -14,6 +15,9 @@ import java.util.UUID;
 
 @Service
 public class ImmobileService {
+    private static final String LATITUDINE = "latitudine";
+    private static final String LONGITUDINE = "longitudine";
+
     private final ImmobileDao immobileDao;
     private final GeoDataService geoDataService;
 
@@ -22,51 +26,42 @@ public class ImmobileService {
         this.geoDataService = geoDataService;
     }
 
-    public List<Immobile> cercaImmobili(
-        String indirizzo,
+    public List<CercaImmobileResponse> cercaImmobili(
+        String indirizzo, String tipologia,
         Double prezzoMin, Double prezzoMax,
-        String nStanze, String tipologia
+        Double dimensione, Integer nBagni
     ) {
-        // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo);
-
-        if (coordinate == null || !coordinate.containsKey("latitudine") || !coordinate.containsKey("longitudine")) {
-            throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
-        }
+        Map<String, Double> coordinate = ottieniCoordinate(indirizzo);
 
         // Creiamo i filters, ovvero le opzioni di ricerca (nei filtri sono inclusi anche le coordinate, di base)
         Map<String, Object> filters = new HashMap<>();
-        filters.put("latitudine", coordinate.get("latitudine"));
-        filters.put("longitudine", coordinate.get("longitudine"));
+        filters.put(LATITUDINE, coordinate.get(LATITUDINE));
+        filters.put(LONGITUDINE, coordinate.get(LONGITUDINE));
+
+        if (tipologia != null) {
+            filters.put("tipologia", tipologia);
+        }
 
         if (prezzoMin != null && prezzoMax != null) {
             filters.put("prezzoMin", prezzoMin);
             filters.put("prezzoMax", prezzoMax);
         }
 
-        if (nStanze != null) {
-            filters.put("nStanze", nStanze);
+        if (dimensione != null) {
+            filters.put("dimensione", dimensione);
         }
 
-        if (tipologia != null) {
-            filters.put("tipologia", tipologia);
+        if (nBagni != null) {
+            filters.put("nBagni", nBagni);
         }
 
-        if (classeEnergetica != null) {
-            filters.put("classeEnergetica", classeEnergetica);
-        }
+        List<Immobile> immobili = immobileDao.cercaImmobiliConFiltri(filters);
 
-        return immobileDao.cercaImmobiliConFiltri(filters);
+        ///  TODO: a partire da questi immobili devo trovare i punti di interesse
     }
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
-
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(request.getIndirizzo());
-
-        // Verifichiamo che le coordinate siano valide
-        if (coordinate == null || !coordinate.containsKey("latitudine") || !coordinate.containsKey("longitudine")) {
-            throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
-        }
+        Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo());
 
         Immobile immobile = new Immobile.Builder()
                 .setUrlFoto(request.getUrlFoto())
@@ -76,8 +71,8 @@ public class ImmobileService {
                 .setNBagni(request.getnBagni())
                 .setNStanze(request.getnStanze())
                 .setTipologia(request.getTipologia())
-                .setLatitudine(coordinate.get("latitudine"))
-                .setLongitudine(coordinate.get("longitudine"))
+                .setLatitudine(coordinate.get(LATITUDINE))
+                .setLongitudine(coordinate.get(LONGITUDINE))
                 .setIndirizzo(request.getIndirizzo())
                 .setPiano(request.getPiano())
                 .setHasAscensore(request.isHasAscensore())
@@ -88,5 +83,17 @@ public class ImmobileService {
         if (!immobileDao.creaImmobile(immobile)) {
             throw new DatabaseErrorException("Impossibile creare l'immobile");
         }
+    }
+
+    private Map<String, Double> ottieniCoordinate(String indirizzo) {
+        // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
+        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo);
+
+        // Verifichiamo che le coordinate siano valide
+        if (coordinate == null || !coordinate.containsKey(LATITUDINE) || !coordinate.containsKey(LONGITUDINE)) {
+            throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
+        }
+
+        return coordinate;
     }
 }
