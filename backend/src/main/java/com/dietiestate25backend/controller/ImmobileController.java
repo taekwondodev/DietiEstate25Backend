@@ -1,7 +1,7 @@
 package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.requests.CreaImmobileRequest;
-import com.dietiestate25backend.dto.response.CercaImmobileResponse;
+import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.service.ImmobileService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
@@ -21,8 +21,8 @@ public class ImmobileController {
     }
 
     @GetMapping("/cerca")
-    public ResponseEntity<List<CercaImmobileResponse>> cercaImmobili(
-            @RequestParam String indirizzo,
+    public ResponseEntity<List<Immobile>> cercaImmobili(
+            @RequestParam String citta,
             @RequestParam(required = false) String tipologia,
             @RequestParam(required = false) Double prezzoMin,
             @RequestParam(required = false) Double prezzoMax,
@@ -30,8 +30,8 @@ public class ImmobileController {
             @RequestParam(required = false) Integer nBagni
     ) {
     
-        List<CercaImmobileResponse> response = immobileService.cercaImmobili(
-            tipologia, indirizzo, prezzoMin, prezzoMax, dimensione, nBagni
+        List<Immobile> response = immobileService.cercaImmobili(
+            tipologia, citta, prezzoMin, prezzoMax, dimensione, nBagni
         );
     
         return ResponseEntity.status(200).body(response);

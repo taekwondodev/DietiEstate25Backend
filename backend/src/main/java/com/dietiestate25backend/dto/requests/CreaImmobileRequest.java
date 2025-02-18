@@ -20,6 +20,8 @@ public class CreaImmobileRequest {
     @NotNull
     private String indirizzo;
     @NotNull
+    private String citta;
+    @NotNull
     private int piano;
     @NotNull
     private boolean hasAscensore;
@@ -56,6 +58,10 @@ public class CreaImmobileRequest {
 
     public String getIndirizzo() {
         return indirizzo;
+    }
+
+    public String getCitta() {
+        return citta;
     }
 
     public int getPiano() {

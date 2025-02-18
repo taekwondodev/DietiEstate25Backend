@@ -3,8 +3,12 @@ package com.dietiestate25backend.dao.postgresimplements;
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.model.Immobile;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,11 +16,18 @@ import java.util.UUID;
 
 @Repository
 public class ImmobilePostgres implements ImmobileDao {
+    private static final String IDIMMOBILE = "idImmobile";
+    private static final String URLFOTO = "urlFoto";
     private static final String DESCRIZIONE = "descrizione";
     private static final String PREZZO = "prezzo";
+    private static final String DIMENSIONE = "dimensione";
     private static final String N_BAGNI = "nBagni";
     private static final String N_STANZE = "nStanze";
     private static final String TIPOLOGIA = "tipologia";
+    private static final String LATITUDINE = "latitudine";
+    private static final String LONGITUDINE = "longitudine";
+    private static final String INDIRIZZO = "indirizzo";
+    private static final String CITTA = "citta";
     private static final String PIANO = "piano";
     private static final String ID_AGENTE = "idAgente";
     private static final String HAS_ASCENSORE = "hasAscensore";
@@ -35,29 +46,20 @@ public class ImmobilePostgres implements ImmobileDao {
        String sql = buildSql(filters);
        List<Object> parameters = buildParameters(filters);
 
-       return jdbcTemplate.query(sql, (rs, rowNum) -> {
-           String descrizione = rs.getString(DESCRIZIONE);
-           double prezzo = rs.getDouble(PREZZO);
-           int nBagni = rs.getInt(N_BAGNI);
-           int nStanze = rs.getInt(N_STANZE);
-           String tipologia = rs.getString(TIPOLOGIA);
-           Indirizzo indirizzo = new Indirizzo(rs.getString(VIA), rs.getString(CIVICO), rs.getString(CAP));
-           TipoClasseEnergetica classeEnergetica = TipoClasseEnergetica.fromString(rs.getString(CLASSE_ENERGETICA));
-           int piano = rs.getInt(PIANO);
-           boolean hasAscensore = rs.getBoolean(HAS_ASCENSORE);
-           boolean hasBalcone = rs.getBoolean(HAS_BALCONE);
-           UUID idResponsabile = UUID.fromString(rs.getString(ID_AGENTE));
-
-           return new Immobile(descrizione, prezzo, nBagni, nStanze, tipologia, indirizzo, classeEnergetica, piano, hasAscensore, hasBalcone, idResponsabile);
-
-       }, parameters.toArray());
+        return jdbcTemplate.query(con -> {
+            PreparedStatement ps = con.prepareStatement(sql);
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+            return ps;
+        }, new ImmobileRowMapper());
     }
 
     @Override
     public boolean creaImmobile(Immobile immobile) {
         String sql = "INSERT INTO " +
-                "immobile (urlFoto, descrizione, prezzo, dimensione, nBagni, nStanze, tipologia, coordinate, indirizzo, piano, hasAscensore, hasBalcone, idAgente)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?, ?, ?, ?, ?)";
+                "immobile (urlFoto, descrizione, prezzo, dimensione, nBagni, nStanze, tipologia, latitudine, longitudine, indirizzo, citta, piano, hasAscensore, hasBalcone, idAgente)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         int result = jdbcTemplate.update(sql,
                 immobile.getUrlFoto(),
@@ -67,9 +69,10 @@ public class ImmobilePostgres implements ImmobileDao {
                 immobile.getnBagni(),
                 immobile.getnStanze(),
                 immobile.getTipologia(),
-                immobile.getLongitudine(),
                 immobile.getLatitudine(),
+                immobile.getLongitudine(),
                 immobile.getIndirizzo(),
+                immobile.getCitta(),
                 immobile.getPiano(),
                 immobile.isHasAscensore(),
                 immobile.isHasBalcone(),
@@ -81,22 +84,22 @@ public class ImmobilePostgres implements ImmobileDao {
 
     private String buildSql(Map<String, Object> filters) {
         StringBuilder sql = new StringBuilder("SELECT * FROM immobile WHERE 1=1");
-        sql.append(" AND cap = ?");
-
-        if (filters.containsKey(PREZZO_MIN) && filters.containsKey(PREZZO_MAX)) {
-            sql.append(" AND prezzo BETWEEN ? AND ?");
-        }
-
-        if (filters.containsKey(N_STANZE)) {
-            sql.append(" AND nStanze = ?");
-        }
+        sql.append(" AND citta = ?");
 
         if (filters.containsKey(TIPOLOGIA)) {
             sql.append(" AND tipologia = ?");
         }
 
-        if (filters.containsKey(CLASSE_ENERGETICA)) {
-            sql.append(" AND classeEnergetica = ?");
+        if (filters.containsKey(PREZZO_MIN) && filters.containsKey(PREZZO_MAX)) {
+            sql.append(" AND prezzo BETWEEN ? AND ?");
+        }
+
+        if (filters.containsKey(DIMENSIONE)) {
+            sql.append(" AND dimensione = ?");
+        }
+
+        if (filters.containsKey(N_BAGNI)) {
+            sql.append(" AND nBagni = ?");
         }
 
         return sql.toString();
@@ -104,25 +107,49 @@ public class ImmobilePostgres implements ImmobileDao {
 
     private List<Object> buildParameters(Map<String, Object> filters){
         List<Object> params = new ArrayList<>();
-        params.add(filters.get(CAP));
+        params.add(filters.get(CITTA));
+
+        if (filters.containsKey(TIPOLOGIA)) {
+            params.add(filters.get(TIPOLOGIA));
+        }
 
         if (filters.containsKey(PREZZO_MIN) && filters.containsKey(PREZZO_MAX)) {
             params.add(filters.get(PREZZO_MIN));
             params.add(filters.get(PREZZO_MAX));
         }
 
-        if (filters.containsKey(N_STANZE)) {
-            params.add(filters.get(N_STANZE));
+        if (filters.containsKey(DIMENSIONE)) {
+            params.add(filters.get(DIMENSIONE));
         }
 
-        if (filters.containsKey(TIPOLOGIA)) {
-            params.add(filters.get(TIPOLOGIA));
-        }
-
-        if (filters.containsKey(CLASSE_ENERGETICA)) {
-            params.add(((TipoClasseEnergetica) filters.get(CLASSE_ENERGETICA)).getClasse());
+        if (filters.containsKey(N_BAGNI)) {
+            params.add(filters.get(N_BAGNI));
         }
 
         return params;
+    }
+
+    private static class ImmobileRowMapper implements RowMapper<Immobile> {
+        @Override
+        public Immobile mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new Immobile.Builder()
+                    .setIdImmobile(rs.getInt(IDIMMOBILE))
+                    .setUrlFoto(rs.getString(URLFOTO))
+                    .setDescrizione(rs.getString(DESCRIZIONE))
+                    .setPrezzo(rs.getDouble(PREZZO))
+                    .setDimensione(rs.getInt(DIMENSIONE))
+                    .setNBagni(rs.getInt(N_BAGNI))
+                    .setNStanze(rs.getInt(N_STANZE))
+                    .setTipologia(rs.getString(TIPOLOGIA))
+                    .setLatitudine(rs.getDouble(LATITUDINE))
+                    .setLongitudine(rs.getDouble(LONGITUDINE))
+                    .setIndirizzo(rs.getString(INDIRIZZO))
+                    .setCitta(rs.getString(CITTA))
+                    .setPiano(rs.getInt(PIANO))
+                    .setHasAscensore(rs.getBoolean(HAS_ASCENSORE))
+                    .setHasBalcone(rs.getBoolean(HAS_BALCONE))
+                    .setIdResponsabile(UUID.fromString(rs.getString(ID_AGENTE)))
+                    .build();
+        }
     }
 }

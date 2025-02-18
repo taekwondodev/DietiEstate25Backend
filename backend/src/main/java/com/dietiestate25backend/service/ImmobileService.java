@@ -2,7 +2,6 @@ package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dto.requests.CreaImmobileRequest;
-import com.dietiestate25backend.dto.response.CercaImmobileResponse;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.DatabaseErrorException;
 import com.dietiestate25backend.model.Immobile;
@@ -26,17 +25,14 @@ public class ImmobileService {
         this.geoDataService = geoDataService;
     }
 
-    public List<CercaImmobileResponse> cercaImmobili(
-        String indirizzo, String tipologia,
+    public List<Immobile> cercaImmobili(
+        String citta, String tipologia,
         Double prezzoMin, Double prezzoMax,
         Double dimensione, Integer nBagni
     ) {
-        Map<String, Double> coordinate = ottieniCoordinate(indirizzo);
-
-        // Creiamo i filters, ovvero le opzioni di ricerca (nei filtri sono inclusi anche le coordinate, di base)
+        // Creiamo i filters, ovvero le opzioni di ricerca
         Map<String, Object> filters = new HashMap<>();
-        filters.put(LATITUDINE, coordinate.get(LATITUDINE));
-        filters.put(LONGITUDINE, coordinate.get(LONGITUDINE));
+        filters.put("citta", citta);
 
         if (tipologia != null) {
             filters.put("tipologia", tipologia);
@@ -55,9 +51,7 @@ public class ImmobileService {
             filters.put("nBagni", nBagni);
         }
 
-        List<Immobile> immobili = immobileDao.cercaImmobiliConFiltri(filters);
-
-        ///  TODO: a partire da questi immobili devo trovare i punti di interesse
+        return immobileDao.cercaImmobiliConFiltri(filters);
     }
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
@@ -74,6 +68,7 @@ public class ImmobileService {
                 .setLatitudine(coordinate.get(LATITUDINE))
                 .setLongitudine(coordinate.get(LONGITUDINE))
                 .setIndirizzo(request.getIndirizzo())
+                .setCitta(request.getCitta())
                 .setPiano(request.getPiano())
                 .setHasAscensore(request.isHasAscensore())
                 .setHasBalcone(request.isHasBalcone())

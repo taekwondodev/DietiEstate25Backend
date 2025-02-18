@@ -14,6 +14,7 @@ public class Immobile {
     private final double longitudine;
     private final double latitudine;
     private final String indirizzo;
+    private final String citta;
     private final int piano;
     private final boolean hasAscensore;
     private final boolean hasBalcone;
@@ -31,6 +32,7 @@ public class Immobile {
         this.longitudine = builder.longitudine;
         this.latitudine = builder.latitudine;
         this.indirizzo = builder.indirizzo;
+        this.citta = builder.citta;
         this.piano = builder.piano;
         this.hasAscensore = builder.hasAscensore;
         this.hasBalcone = builder.hasBalcone;
@@ -50,6 +52,7 @@ public class Immobile {
         private double longitudine;
         private double latitudine;
         private String indirizzo;
+        private String citta;
         private int piano;
         private boolean hasAscensore;
         private boolean hasBalcone;
@@ -107,6 +110,11 @@ public class Immobile {
 
         public Builder setIndirizzo(String indirizzo) {
             this.indirizzo = indirizzo;
+            return this;
+        }
+
+        public Builder setCitta(String citta) {
+            this.citta = citta;
             return this;
         }
 
@@ -193,5 +201,9 @@ public class Immobile {
 
     public double getLongitudine() {
         return longitudine;
+    }
+
+    public String getCitta() {
+        return citta;
     }
 }
