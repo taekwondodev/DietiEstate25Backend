@@ -14,7 +14,7 @@ public class MeteoRequest {
     }
 
     public String getLongitudine() {
-        return latitudine;
+        return longitudine;
     }
 
     public void setLongitudine(String longitudine) {
