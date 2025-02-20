@@ -1,6 +1,9 @@
 package com.dietiestate25backend.dao.externalimplements;
 
 import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
+import com.dietiestate25backend.error.exception.BadRequestException;
+import com.dietiestate25backend.error.exception.InternalServerErrorException;
+import com.dietiestate25backend.error.exception.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Repository;
@@ -38,7 +41,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
             // Traduciamo la categoria generica nella categoria specifica di Geoapify
             String categoriaGeoapify = mappaCategorie.getOrDefault(categoriaGenerica.toLowerCase(), "");
             if (categoriaGeoapify.isEmpty()) {
-                throw new IllegalArgumentException("Categoria non supportata: " + categoriaGenerica);
+                throw new BadRequestException("Categoria non supportata: " + categoriaGenerica);
             }
 
             // Costruiamo l'URL specifico per la categoria
@@ -55,6 +58,10 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
                 // Effettuiamo la chiamata API e formalizziamo il risultato in una mappa
                 Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
+                if (response == null || !response.containsKey("features")) {
+                    throw new NotFoundException("Geoapify non ha restituito dati validi.");
+                }
+
                 // Estraiamo la lista "features" dalla risposta
                 List<?> features = (List<?>) response.get("features");
 
@@ -63,7 +70,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
                 risultati.put(categoriaGenerica.toLowerCase(), conteggio);
 
             } catch (RestClientException e) {
-                throw new RuntimeException("Errore nel chiamare Geoapify per categoria: " + categoriaGenerica, e);
+                throw new InternalServerErrorException("Errore nel chiamare Geoapify per categoria: " + categoriaGenerica, e);
             }
         }
 
@@ -78,7 +85,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     private Map<String, String> creaMappaCategorie() {
         Map<String, String> mappa = new HashMap<>();
         mappa.put("parco", "leisure.park");
-        mappa.put("trasporto", "transport.public");
+        mappa.put("trasporto", "public_transport");
         mappa.put("scuola", "education.school");
         //... in teoria questo deve essere completato con ulteriori categorie, ma al fine del nostro progetto non serve
         return mappa;
