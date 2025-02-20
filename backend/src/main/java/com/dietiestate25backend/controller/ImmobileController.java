@@ -22,7 +22,7 @@ public class ImmobileController {
 
     @GetMapping("/cerca")
     public ResponseEntity<List<Immobile>> cercaImmobili(
-            @RequestParam String citta,
+            @RequestParam String comune,
             @RequestParam(required = false) String tipologia,
             @RequestParam(required = false) Double prezzoMin,
             @RequestParam(required = false) Double prezzoMax,
@@ -31,7 +31,7 @@ public class ImmobileController {
     ) {
     
         List<Immobile> response = immobileService.cercaImmobili(
-            tipologia, citta, prezzoMin, prezzoMax, dimensione, nBagni
+            tipologia, comune, prezzoMin, prezzoMax, dimensione, nBagni
         );
     
         return ResponseEntity.status(200).body(response);

@@ -27,7 +27,7 @@ public class ImmobilePostgres implements ImmobileDao {
     private static final String LATITUDINE = "latitudine";
     private static final String LONGITUDINE = "longitudine";
     private static final String INDIRIZZO = "indirizzo";
-    private static final String CITTA = "citta";
+    private static final String COMUNE = "comune";
     private static final String PIANO = "piano";
     private static final String ID_AGENTE = "idAgente";
     private static final String HAS_ASCENSORE = "hasAscensore";
@@ -58,7 +58,7 @@ public class ImmobilePostgres implements ImmobileDao {
     @Override
     public boolean creaImmobile(Immobile immobile) {
         String sql = "INSERT INTO " +
-                "immobile (urlFoto, descrizione, prezzo, dimensione, nBagni, nStanze, tipologia, latitudine, longitudine, indirizzo, citta, piano, hasAscensore, hasBalcone, idAgente)" +
+                "immobile (urlFoto, descrizione, prezzo, dimensione, nBagni, nStanze, tipologia, latitudine, longitudine, indirizzo, comune, piano, hasAscensore, hasBalcone, idAgente)" +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         int result = jdbcTemplate.update(sql,
@@ -72,7 +72,7 @@ public class ImmobilePostgres implements ImmobileDao {
                 immobile.getLatitudine(),
                 immobile.getLongitudine(),
                 immobile.getIndirizzo(),
-                immobile.getCitta(),
+                immobile.getComune(),
                 immobile.getPiano(),
                 immobile.isHasAscensore(),
                 immobile.isHasBalcone(),
@@ -84,7 +84,7 @@ public class ImmobilePostgres implements ImmobileDao {
 
     private String buildSql(Map<String, Object> filters) {
         StringBuilder sql = new StringBuilder("SELECT * FROM immobile WHERE 1=1");
-        sql.append(" AND citta = ?");
+        sql.append(" AND comune = ?");
 
         if (filters.containsKey(TIPOLOGIA)) {
             sql.append(" AND tipologia = ?");
@@ -107,7 +107,7 @@ public class ImmobilePostgres implements ImmobileDao {
 
     private List<Object> buildParameters(Map<String, Object> filters){
         List<Object> params = new ArrayList<>();
-        params.add(filters.get(CITTA));
+        params.add(filters.get(COMUNE));
 
         if (filters.containsKey(TIPOLOGIA)) {
             params.add(filters.get(TIPOLOGIA));
@@ -144,7 +144,7 @@ public class ImmobilePostgres implements ImmobileDao {
                     .setLatitudine(rs.getDouble(LATITUDINE))
                     .setLongitudine(rs.getDouble(LONGITUDINE))
                     .setIndirizzo(rs.getString(INDIRIZZO))
-                    .setCitta(rs.getString(CITTA))
+                    .setComune(rs.getString(COMUNE))
                     .setPiano(rs.getInt(PIANO))
                     .setHasAscensore(rs.getBoolean(HAS_ASCENSORE))
                     .setHasBalcone(rs.getBoolean(HAS_BALCONE))

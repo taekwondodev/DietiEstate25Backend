@@ -77,7 +77,7 @@ public class VisitaPostgres implements VisitaDao {
                 .setLatitudine(resultSet.getDouble("latitudine"))
                 .setLongitudine(resultSet.getDouble("longitudine"))
                 .setIndirizzo(resultSet.getString("indirizzo"))
-                .setCitta(resultSet.getString("citta"))
+                .setComune(resultSet.getString("comune"))
                 .setPiano(resultSet.getInt("piano"))
                 .setHasAscensore(resultSet.getBoolean("hasAscensore"))
                 .setHasBalcone(resultSet.getBoolean("hasBalcone"))

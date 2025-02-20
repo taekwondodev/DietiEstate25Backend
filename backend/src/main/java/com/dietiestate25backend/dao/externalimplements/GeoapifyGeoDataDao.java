@@ -1,6 +1,7 @@
 package com.dietiestate25backend.dao.externalimplements;
 
 import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.client.RestClientException;
@@ -15,7 +16,8 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     private final RestTemplate restTemplate;
 
     // Dobbiamo creare un account Geoapify e specificare la chiave fornita da Geoapify qui dentro. Ovviamente usiamo un file .env
-    private final String apiKey = ""; //<----- QUI VA LA APIKEY
+    @Value("${GEO_KEY}")
+    private String apiKey;
 
     public GeoapifyGeoDataDao(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();

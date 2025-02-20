@@ -21,7 +21,7 @@ public class CreaImmobileRequest {
     @NotNull
     private String indirizzo;
     @NotNull
-    private String citta;
+    private String comune;
     @Positive
     private int piano;
     @NotNull
@@ -61,8 +61,8 @@ public class CreaImmobileRequest {
         return indirizzo;
     }
 
-    public String getCitta() {
-        return citta;
+    public String getComune() {
+        return comune;
     }
 
     public int getPiano() {

@@ -26,13 +26,13 @@ public class ImmobileService {
     }
 
     public List<Immobile> cercaImmobili(
-        String citta, String tipologia,
+        String comune, String tipologia,
         Double prezzoMin, Double prezzoMax,
         Double dimensione, Integer nBagni
     ) {
         // Creiamo i filters, ovvero le opzioni di ricerca
         Map<String, Object> filters = new HashMap<>();
-        filters.put("citta", citta);
+        filters.put("comune", comune);
 
         if (tipologia != null) {
             filters.put("tipologia", tipologia);
@@ -55,7 +55,7 @@ public class ImmobileService {
     }
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
-        Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo(), request.getCitta());
+        Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo(), request.getComune());
 
         Immobile immobile = new Immobile.Builder()
                 .setUrlFoto(request.getUrlFoto())
@@ -68,7 +68,7 @@ public class ImmobileService {
                 .setLatitudine(coordinate.get(LATITUDINE))
                 .setLongitudine(coordinate.get(LONGITUDINE))
                 .setIndirizzo(request.getIndirizzo())
-                .setCitta(request.getCitta())
+                .setComune(request.getComune())
                 .setPiano(request.getPiano())
                 .setHasAscensore(request.isHasAscensore())
                 .setHasBalcone(request.isHasBalcone())
@@ -80,9 +80,9 @@ public class ImmobileService {
         }
     }
 
-    private Map<String, Double> ottieniCoordinate(String indirizzo, String citta) {
+    private Map<String, Double> ottieniCoordinate(String indirizzo, String comune) {
         // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
-        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, citta);
+        Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, comune);
 
         // Verifichiamo che le coordinate siano valide
         if (coordinate == null || !coordinate.containsKey(LATITUDINE) || !coordinate.containsKey(LONGITUDINE)) {

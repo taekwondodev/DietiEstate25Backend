@@ -23,8 +23,8 @@ public class GeoDataService {
         );
     }
 
-    public Map<String, Double> ottieniCoordinate(String indirizzo, String citta) {
-        String indirizzoCompleto = indirizzo + ", " + citta;
+    public Map<String, Double> ottieniCoordinate(String indirizzo, String comune) {
+        String indirizzoCompleto = indirizzo + ", " + comune;
         return geoDataDao.ottieniCoordinate(indirizzoCompleto);
     }
 }
