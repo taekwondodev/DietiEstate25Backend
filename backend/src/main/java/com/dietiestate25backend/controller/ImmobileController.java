@@ -37,6 +37,15 @@ public class ImmobileController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/personali")
+    public ResponseEntity<List<Immobile>> immobiliPersonali() {
+        TokenUtils.checkIfUtenteAgenzia();
+        String uidResponsabile = TokenUtils.getUserSub();
+        List<Immobile> response = immobileService.immobiliPersonali(uidResponsabile);
+
+        return ResponseEntity.status(200).body(response);
+    }
+
     @PostMapping("/crea")
     public ResponseEntity<Void> creaImmobile(@Valid @RequestBody CreaImmobileRequest request) {
         TokenUtils.checkIfUtenteAgenzia();

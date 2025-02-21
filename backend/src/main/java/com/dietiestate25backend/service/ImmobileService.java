@@ -80,6 +80,10 @@ public class ImmobileService {
         }
     }
 
+    public List<Immobile> immobiliPersonali(String uidResponsabile) {
+        return immobileDao.immobiliPersonali(uidResponsabile);
+    }
+
     private Map<String, Double> ottieniCoordinate(String indirizzo, String comune) {
         // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
         Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, comune);

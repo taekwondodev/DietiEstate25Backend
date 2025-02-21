@@ -46,13 +46,14 @@ public class ImmobilePostgres implements ImmobileDao {
        String sql = buildSql(filters);
        List<Object> parameters = buildParameters(filters);
 
-        return jdbcTemplate.query(con -> {
+       return jdbcTemplate.query(con -> {
             PreparedStatement ps = con.prepareStatement(sql);
             for (int i = 0; i < parameters.size(); i++) {
                 ps.setObject(i + 1, parameters.get(i));
             }
             return ps;
-        }, new ImmobileRowMapper());
+            }, new ImmobileRowMapper()
+       );
     }
 
     @Override
@@ -80,6 +81,12 @@ public class ImmobilePostgres implements ImmobileDao {
         );
 
         return result > 0;
+    }
+
+    @Override
+    public List<Immobile> immobiliPersonali(String uidResponsabile) {
+        String sql = "SELECT * FROM immobile WHERE idAgente = ?";
+        return jdbcTemplate.query(sql, new ImmobileRowMapper(), uidResponsabile);
     }
 
     private String buildSql(Map<String, Object> filters) {

@@ -8,4 +8,5 @@ import java.util.Map;
 public interface ImmobileDao {
     List<Immobile> cercaImmobiliConFiltri(Map<String, Object> filters);
     boolean creaImmobile(Immobile immobile);
+    List<Immobile> immobiliPersonali(String uidResponsabile);
 }
