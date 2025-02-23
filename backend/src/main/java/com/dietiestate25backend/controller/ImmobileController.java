@@ -6,12 +6,14 @@ import com.dietiestate25backend.service.ImmobileService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/immobile")
+@Validated
 public class ImmobileController {
 
     private final ImmobileService immobileService;
