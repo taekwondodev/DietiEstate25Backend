@@ -7,29 +7,9 @@ servers:
   - url: https://api.realestate.com/v1
     description: Server di produzione
 paths:
-  /auth/login:
+  /auth/register:
     post:
-      summary: Effettua il login
-      description: Effettua il login utilizzando credenziali tramite AWS Cognito.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegistrazioneRequest'
-      responses:
-        '201':
-          description: Login effettuato con successo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '401':
-          description: Credenziali non valide
-
-  /auth/registrazione:
-    post:
-      summary: Registra un nuovo utente
+      summary: Registra un gestore o agente immobiliare
       description: Registra un nuovo utente con email e password.
       requestBody:
         required: true
@@ -38,26 +18,22 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '201':
+        '200':
           description: Utente registrato con successo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RegistrazioneResponse'
         '400':
           description: Richiesta non valida
 
   /immobile/cerca:
     get:
       summary: Cerca immobili
-      description: Cerca immobili con lo stesso CAP e altri filtri.
+      description: Cerca immobili con lo stesso comune e altri filtri.
       parameters:
-        - name: indirizzo
+        - name: comune
           in: query
           required: true
           schema:
             type: string
-          description: Indirizzo di riferimento per la ricerca.
+          description: Comune di riferimento per la ricerca.
         - name: prezzoMin
           in: query
           schema:
@@ -68,21 +44,21 @@ paths:
           schema:
             type: number
           description: Prezzo massimo.
-        - name: nStanze
+        - name: dimensione
           in: query
           schema:
-            type: string
-          description: Numero minimo di stanze.
+            type: number
+          description: Dimensione dell'immobile.
+        - name: nBagni
+          in: query
+          schema:
+            type: integer
+          description: Numero di bagni.
         - name: tipologia
           in: query
           schema:
             type: string
           description: Filtra per tipologia di immobile.
-        - name: classeEnergetica
-          in: query
-          schema:
-            type: string
-            enum: [ A4, A3, A2, A1, B, C, D, E, F, G ]
       responses:
         '200':
           description: Lista di immobili trovati
@@ -103,10 +79,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Immobile'
+              $ref: '#/components/schemas/CreaImmobileRequest'
       responses:
         '201':
           description: Immobile creato con successo
+
+  /immobile/personali:
+    get:
+      summary: Ottieni immobili personali
+      description: Ottieni la lista degli immobili personali dell'utente.
+      responses:
+        '200':
+          description: Lista di immobili personali
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Immobile'
 
   /offerta/aggiungi:
     post:
@@ -134,6 +124,20 @@ paths:
         '200':
           description: Stato dell'offerta aggiornato
 
+  /offerta/riepilogo:
+    get:
+      summary: Riepilogo delle offerte del cliente
+      description: Ottieni il riepilogo delle offerte del cliente.
+      responses:
+        '200':
+          description: Lista delle offerte del cliente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Offerta'
+
   /visita/prenota:
     post:
       summary: Invia una nuova richiesta di visita
@@ -147,19 +151,6 @@ paths:
         '201':
           description: Richiesta di visita inviata con successo
 
-  /visite/{id}/notifica:
-    post:
-      summary: Invia una notifica all'agente
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID della visita.
-      responses:
-        '200':
-          description: Notifica inviata con successo
   /visita/aggiorna:
     patch:
       summary: Aggiorna lo stato di una visita
@@ -173,14 +164,88 @@ paths:
         '200':
           description: Stato della visita aggiornato
 
+  /visita/riepilogo:
+    get:
+      summary: Riepilogo delle visite del cliente
+      description: Ottieni il riepilogo delle visite del cliente.
+      responses:
+        '200':
+          description: Lista delle visite del cliente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Visita'
+
+  /geodata/conteggio-pdi:
+    post:
+      summary: Ottieni il conteggio dei punti di interesse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConteggioPuntiInteresseRequest'
+      responses:
+        '201':
+          description: Conteggio dei punti di interesse ottenuto con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+
+  /api/meteo:
+    post:
+      summary: Ottieni previsioni meteo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeteoRequest'
+      responses:
+        '200':
+          description: Previsioni meteo ottenute con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+        '400':
+          description: Richiesta non valida
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        '500':
+          description: Errore interno del server
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+
 components:
   schemas:
     Immobile:
       type: object
       properties:
+        idImmobile:
+          type: integer
+        urlFoto:
+          type: string
         descrizione:
           type: string
         prezzo:
+          type: number
+        dimensione:
           type: number
         nBagni:
           type: integer
@@ -188,11 +253,14 @@ components:
           type: integer
         tipologia:
           type: string
+        latitudine:
+          type: number
+        longitudine:
+          type: number
         indirizzo:
-          $ref: '#/components/schemas/Indirizzo'
-        classeEnergetica:
           type: string
-          enum: [A4, A3, A2, A1, B, C, D, E, F, G]
+        comune:
+          type: string
         piano:
           type: integer
         hasAscensore:
@@ -236,16 +304,6 @@ components:
         immobile:
           $ref: '#/components/schemas/Immobile'
 
-    Indirizzo:
-      type: object
-      properties:
-        via:
-          type: string
-        comune:
-          type: string
-        cap:
-          type: string
-
     RegistrazioneRequest:
       type: object
       properties:
@@ -257,18 +315,88 @@ components:
         group:
           type: string
 
-    RegistrazioneResponse:
+    ConteggioPuntiInteresseRequest:
       type: object
       properties:
-        uid:
+        latitudine:
+          type: number
+        longitudine:
+          type: number
+        raggio:
+          type: integer
+        categorie:
+          type: array
+          items:
+            type: string
+
+    MeteoRequest:
+      type: object
+      properties:
+        latitudine:
+          type: string
+        longitudine:
+          type: string
+        date:
           type: string
 
-    LoginResponse:
+    Visita:
       type: object
       properties:
-        accessToken:
+        idVisita:
+          type: integer
+        dataVisita:
           type: string
-        idToken:
+          format: date
+        oraVisita:
           type: string
-        refreshToken:
+          format: time
+        stato:
           type: string
+        idCliente:
+          type: string
+          format: uuid
+        immobile:
+          $ref: '#/components/schemas/Immobile'
+
+    Offerta:
+      type: object
+      properties:
+        idOfferta:
+          type: integer
+        importo:
+            type: number
+        stato:
+            type: string
+        idCliente:
+            type: string
+            format: uuid
+        immobile:
+            $ref: '#/components/schemas/Immobile'
+
+    CreaImmobileRequest:
+        type: object
+        properties:
+          descrizione:
+            type: string
+          urlFoto:
+            type: string
+          prezzo:
+            type: number
+          dimensione:
+            type: number
+          nBagni:
+            type: integer
+          nStanze:
+            type: integer
+          tipologia:
+            type: string
+          indirizzo:
+            type: string
+          comune:
+            type: string
+          piano:
+            type: integer
+          hasAscensore:
+            type: boolean
+          hasBalcone:
+            type: boolean
