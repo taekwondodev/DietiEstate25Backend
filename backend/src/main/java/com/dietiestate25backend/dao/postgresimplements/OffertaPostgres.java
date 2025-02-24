@@ -49,6 +49,21 @@ public class OffertaPostgres implements OffertaDao {
                 "FROM offerta o " +
                 "JOIN immobile i ON o.idImmobile = i.idImmobile " +
                 "WHERE o.idCliente = ?";
+
+        return getOffertas(idCliente, sql);
+    }
+
+    @Override
+    public List<Offerta> riepilogoOfferteUteneAgenzia(UUID idAgente) {
+        String sql = "SELECT o.*, i.* " +
+                "FROM offerta o " +
+                "JOIN immobile i ON o.idImmobile = i.idImmobile " +
+                "WHERE i.idAgente = ?";
+
+        return getOffertas(idAgente, sql);
+    }
+
+    private List<Offerta> getOffertas(UUID idAgente, String sql) {
         return jdbcTemplate.query(sql, (resultSet, i) -> {
             Immobile immobile = buildImmobile(resultSet);
 
@@ -59,6 +74,7 @@ public class OffertaPostgres implements OffertaDao {
                     UUID.fromString(resultSet.getString("idCliente")),
                     immobile
             );
-        }, idCliente.toString());
+        }, idAgente.toString());
     }
+
 }

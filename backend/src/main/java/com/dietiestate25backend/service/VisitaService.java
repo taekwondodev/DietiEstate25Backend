@@ -39,6 +39,10 @@ public class VisitaService {
         return visitaDao.riepilogoVisiteCliente(idCliente);
     }
 
+    public List<Visita> riepilogoVisiteUtenteAgenzia(UUID idAgente) {
+        return visitaDao.riepilogoVisiteUtenteAgenzia(idAgente);
+    }
+
     private void inviaEmail(Immobile immobile){
         String idResponsabile = immobile.getIdResponsabile().toString();
         String agenteEmail = authService.getEmailByUid(idResponsabile);

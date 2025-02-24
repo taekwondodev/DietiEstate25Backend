@@ -50,6 +50,20 @@ public class VisitaPostgres implements VisitaDao {
                 "JOIN immobile i ON v.idImmobile = i.idImmobile " +
                 "WHERE v.idCliente = ?";
 
+        return getVisitas(idCliente, sql);
+    }
+
+    @Override
+    public List<Visita> riepilogoVisiteUtenteAgenzia(UUID idAgente) {
+        String sql = "SELECT v.*, i.* " +
+                "FROM visita v " +
+                "JOIN immobile i ON v.idImmobile = i.idImmobile " +
+                "WHERE i.idAgente = ?";
+
+        return getVisitas(idAgente, sql);
+    }
+
+    private List<Visita> getVisitas(UUID idAgente, String sql) {
         return jdbcTemplate.query(sql, (resultSet, i) -> {
             Immobile immobile = buildImmobile(resultSet);
 
@@ -61,7 +75,7 @@ public class VisitaPostgres implements VisitaDao {
                     UUID.fromString(resultSet.getString("idCliente")),
                     immobile
             );
-        }, idCliente.toString());
+        }, idAgente.toString());
     }
 
     static Immobile buildImmobile(ResultSet resultSet) throws SQLException {

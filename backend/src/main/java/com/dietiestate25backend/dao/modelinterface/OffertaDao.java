@@ -9,4 +9,5 @@ public interface OffertaDao {
     boolean salvaOfferta(Offerta offerta);
     boolean aggiornaStatoOfferta(Offerta offerta);
     List<Offerta> riepilogoOfferteCliente(UUID idCliente);
+    List<Offerta> riepilogoOfferteUteneAgenzia(UUID idAgente);
 }

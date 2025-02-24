@@ -39,10 +39,18 @@ public class VisitaController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/riepilogo")
+    @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Visita>> riepilogoVisiteCliente() {
         String uidCliente = TokenUtils.getUserSub();
         List<Visita> visite = visitaService.riepilogoVisiteCliente(UUID.fromString(uidCliente));
+
+        return ResponseEntity.ok(visite);
+    }
+
+    @GetMapping("/riepilogoUtenteAgenzia")
+    public ResponseEntity<List<Visita>> riepilogoVisitaUtenteAgenzia() {
+        String idResponsabile = TokenUtils.getUserSub();
+        List<Visita> visite = visitaService.riepilogoVisiteUtenteAgenzia(UUID.fromString(idResponsabile));
 
         return ResponseEntity.ok(visite);
     }

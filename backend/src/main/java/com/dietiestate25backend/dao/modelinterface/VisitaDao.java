@@ -9,4 +9,5 @@ public interface VisitaDao {
     boolean salva(Visita visita);
     boolean aggiornaStato(Visita visita);
     List<Visita> riepilogoVisiteCliente(UUID idCliente);
+    List<Visita> riepilogoVisiteUtenteAgenzia(UUID idAgente);
 }

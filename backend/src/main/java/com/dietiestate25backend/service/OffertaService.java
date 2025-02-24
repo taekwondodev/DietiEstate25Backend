@@ -32,4 +32,8 @@ public class OffertaService {
         return offertaDao.riepilogoOfferteCliente(idCliente);
     }
 
+    public List<Offerta> riepilogoOfferteUtenteAgenzia(UUID idAgente){
+        return offertaDao.riepilogoOfferteUteneAgenzia(idAgente);
+    }
+
 }

@@ -39,10 +39,18 @@ public class OffertaController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/riepilogo")
+    @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Offerta>> riepilogoOfferteCliente() {
         String uidCliente = TokenUtils.getUserSub();
         List<Offerta> offerte = offertaService.riepilogoOfferteCliente(UUID.fromString(uidCliente));
+
+        return ResponseEntity.ok(offerte);
+    }
+
+    @GetMapping("/riepilogoUtenteAgenzia")
+    public ResponseEntity<List<Offerta>> riepilogoOfferteUtenteAgenzia() {
+        String idAgente = TokenUtils.getUserSub();
+        List<Offerta> offerte = offertaService.riepilogoOfferteUtenteAgenzia(UUID.fromString(idAgente));
 
         return ResponseEntity.ok(offerte);
     }
