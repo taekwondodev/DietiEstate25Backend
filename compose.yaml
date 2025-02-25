@@ -24,16 +24,5 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./db-init:/docker-entrypoint-initdb.d
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: my-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-    ports:
-      - "8000:80"
-    depends_on:
-      - postgres
-
 volumes:
   postgres-data:
