@@ -22,7 +22,7 @@ public class TokenUtils {
     private static Optional<Jwt> getJwt() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            logger.info("JWT trovato: {}", jwtAuth.getToken().getTokenValue());
+            logger.info("JWT trovato");
             return Optional.of(jwtAuth.getToken());
         }
         return Optional.empty();
