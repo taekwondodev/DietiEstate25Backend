@@ -42,9 +42,11 @@ public class ImmobilePostgres implements ImmobileDao {
     }
 
     @Override
-    public List<Immobile> cercaImmobiliConFiltri(Map<String, Object> filters) {
-       String sql = buildSql(filters);
+    public List<Immobile> cercaImmobiliConFiltri(Map<String, Object> filters, int page, int size) {
+       String sql = buildSql(filters) + " LIMIT ? OFFSET ?";
        List<Object> parameters = buildParameters(filters);
+       parameters.add(size);
+       parameters.add(page * size);
 
        return jdbcTemplate.query(con -> {
             PreparedStatement ps = con.prepareStatement(sql);

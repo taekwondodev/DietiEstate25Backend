@@ -28,7 +28,8 @@ public class ImmobileService {
     public List<Immobile> cercaImmobili(
         String comune, String tipologia,
         Double prezzoMin, Double prezzoMax,
-        Double dimensione, Integer nBagni
+        Double dimensione, Integer nBagni,
+        int page, int size
     ) {
         // Creiamo i filters, ovvero le opzioni di ricerca
         Map<String, Object> filters = new HashMap<>();
@@ -51,7 +52,7 @@ public class ImmobileService {
             filters.put("nBagni", nBagni);
         }
 
-        return immobileDao.cercaImmobiliConFiltri(filters);
+        return immobileDao.cercaImmobiliConFiltri(filters, page, size);
     }
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
