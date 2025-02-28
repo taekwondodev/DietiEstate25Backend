@@ -74,7 +74,7 @@ public class OffertaPostgres implements OffertaDao {
                     UUID.fromString(resultSet.getString("idCliente")),
                     immobile
             );
-        }, idAgente.toString());
+        }, idAgente);
     }
 
 }

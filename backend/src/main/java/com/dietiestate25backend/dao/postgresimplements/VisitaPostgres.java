@@ -75,7 +75,7 @@ public class VisitaPostgres implements VisitaDao {
                     UUID.fromString(resultSet.getString("idCliente")),
                     immobile
             );
-        }, idAgente.toString());
+        }, idAgente);
     }
 
     static Immobile buildImmobile(ResultSet resultSet) throws SQLException {

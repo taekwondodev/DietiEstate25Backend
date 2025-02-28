@@ -88,7 +88,7 @@ public class ImmobilePostgres implements ImmobileDao {
     @Override
     public List<Immobile> immobiliPersonali(String uidResponsabile) {
         String sql = "SELECT * FROM immobile WHERE idAgente = ?";
-        return jdbcTemplate.query(sql, new ImmobileRowMapper(), uidResponsabile);
+        return jdbcTemplate.query(sql, new ImmobileRowMapper(), UUID.fromString(uidResponsabile));
     }
 
     private String buildSql(Map<String, Object> filters) {
