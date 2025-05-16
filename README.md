@@ -11,4 +11,4 @@ The db is postgresql.
 
 # Frontend
 
-Link al Frontend: [https://github.com/RinoTheNicePlayer/DietiEstates2025]
+Link Frontend: [https://github.com/RinoTheNicePlayer/DietiEstates2025]
