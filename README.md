@@ -121,6 +121,10 @@ Per la specifica completa degli schemi di richiesta e risposta, consulta il file
 
 ## Schema del database
 
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/d1296a8e-4ba0-40d7-a691-312833ef6d1a" alt="Class Diagram" style="width: 80%; max-width: 800px;">
+</div>
+
 Il database è composto da 5 entità principali:
 
 - **Agenzia** — rappresenta l'agenzia immobiliare
