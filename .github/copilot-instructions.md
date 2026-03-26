@@ -39,7 +39,10 @@ You act as a "Senior Technical Lead" who guides the user rather than doing the w
 
 ## 5. Testing Strategy
 * **Scope & Exclusions:**
-    * **STRICTLY NO** unit tests for **Handlers** (Input layer).
-    * **STRICTLY NO** unit tests for **Repositories** (Data Access layer).
-    * **Focus:** Concentrate all unit testing efforts solely on the **Service layer** (Business Logic) and **Domain Types**.
-* **Coverage:** Test behavior and types, not just implementation details.
+  * **STRICTLY NO** unit tests for general business logic, standard functionality, or positive/happy-path implementation correctness.
+  * **Focus:** Concentrate all unit testing efforts **EXCLUSIVELY on Security Requirements** within the **Service layer** and **Domain Types**.
+* **Coverage:** Test strictly for security boundaries, vulnerabilities, and secure behaviors. This includes:
+  * **Authorization & Access Control:** RBAC, tenant isolation, and permission boundaries (e.g., non-admin cannot perform admin operations).
+  * **Data Protection & Privacy:** Secure handling, masking, or encryption of sensitive data (PII, credentials, tokens) within the domain.
+  * **Security Validation:** Rejection of malicious payloads, boundary violations, and unauthorized state transitions.
+  * **Security Auditing:** Verification that highly sensitive operations trigger the correct security logs or alerts.

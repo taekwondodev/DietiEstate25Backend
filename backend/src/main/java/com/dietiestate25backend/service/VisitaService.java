@@ -7,7 +7,6 @@ import com.dietiestate25backend.model.Visita;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class VisitaService {
@@ -35,11 +34,11 @@ public class VisitaService {
         }
     }
 
-    public List<Visita> riepilogoVisiteCliente(UUID idCliente) {
+    public List<Visita> riepilogoVisiteCliente(String idCliente) {
         return visitaDao.riepilogoVisiteCliente(idCliente);
     }
 
-    public List<Visita> riepilogoVisiteUtenteAgenzia(UUID idAgente) {
+    public List<Visita> riepilogoVisiteUtenteAgenzia(String idAgente) {
         return visitaDao.riepilogoVisiteUtenteAgenzia(idAgente);
     }
 

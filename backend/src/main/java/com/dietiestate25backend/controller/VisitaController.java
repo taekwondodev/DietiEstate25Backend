@@ -9,7 +9,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/visita")
@@ -24,7 +23,7 @@ public class VisitaController {
     @PostMapping("/prenota")
     public ResponseEntity<Void> prenotaVisita(@Valid @RequestBody Visita request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(UUID.fromString(uidCliente));
+        request.setIdCliente(uidCliente);
 
         visitaService.prenotaVisita(request);
         return ResponseEntity.status(201).build();
@@ -33,7 +32,7 @@ public class VisitaController {
     @PatchMapping("/aggiorna")
     public ResponseEntity<Void> aggiornaStatoVisita(@Valid @RequestBody Visita request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(UUID.fromString(uidCliente));
+        request.setIdCliente(uidCliente);
 
         visitaService.aggiornaStatoVisita(request);
         return ResponseEntity.ok().build();
@@ -42,7 +41,7 @@ public class VisitaController {
     @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Visita>> riepilogoVisiteCliente() {
         String uidCliente = TokenUtils.getUserSub();
-        List<Visita> visite = visitaService.riepilogoVisiteCliente(UUID.fromString(uidCliente));
+        List<Visita> visite = visitaService.riepilogoVisiteCliente(uidCliente);
 
         return ResponseEntity.ok(visite);
     }
@@ -50,7 +49,7 @@ public class VisitaController {
     @GetMapping("/riepilogoUtenteAgenzia")
     public ResponseEntity<List<Visita>> riepilogoVisitaUtenteAgenzia() {
         String idResponsabile = TokenUtils.getUserSub();
-        List<Visita> visite = visitaService.riepilogoVisiteUtenteAgenzia(UUID.fromString(idResponsabile));
+        List<Visita> visite = visitaService.riepilogoVisiteUtenteAgenzia(idResponsabile);
 
         return ResponseEntity.ok(visite);
     }

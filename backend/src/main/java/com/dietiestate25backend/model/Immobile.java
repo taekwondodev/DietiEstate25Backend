@@ -18,7 +18,7 @@ public class Immobile {
     private final int piano;
     private final boolean hasAscensore;
     private final boolean hasBalcone;
-    private final UUID idResponsabile;
+    private final String idResponsabile;
 
     private Immobile(Builder builder) {
         this.idImmobile = builder.idImmobile;
@@ -56,7 +56,7 @@ public class Immobile {
         private int piano;
         private boolean hasAscensore;
         private boolean hasBalcone;
-        private UUID idResponsabile;
+        private String idResponsabile;
 
         public Builder setIdImmobile(int idImmobile) {
             this.idImmobile = idImmobile;
@@ -133,7 +133,7 @@ public class Immobile {
             return this;
         }
 
-        public Builder setIdResponsabile(UUID idResponsabile) {
+        public Builder setIdResponsabile(String idResponsabile) {
             this.idResponsabile = idResponsabile;
             return this;
         }
@@ -183,7 +183,7 @@ public class Immobile {
         return hasBalcone;
     }
 
-    public UUID getIdResponsabile() {
+    public String getIdResponsabile() {
         return idResponsabile;
     }
 

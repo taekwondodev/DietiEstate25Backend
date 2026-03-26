@@ -6,7 +6,6 @@ import com.dietiestate25backend.model.Offerta;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class OffertaService {
@@ -28,11 +27,11 @@ public class OffertaService {
         }
     }
 
-    public List<Offerta> riepilogoOfferteCliente(UUID idCliente){
+    public List<Offerta> riepilogoOfferteCliente(String idCliente){
         return offertaDao.riepilogoOfferteCliente(idCliente);
     }
 
-    public List<Offerta> riepilogoOfferteUtenteAgenzia(UUID idAgente){
+    public List<Offerta> riepilogoOfferteUtenteAgenzia(String idAgente){
         return offertaDao.riepilogoOfferteUteneAgenzia(idAgente);
     }
 

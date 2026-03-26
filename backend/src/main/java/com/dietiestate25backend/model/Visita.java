@@ -9,10 +9,10 @@ public class Visita {
     private final Date dataVisita;
     private final Time oraVisita;
     private final StatoVisita stato;
-    private UUID idCliente;
+    private String idCliente;
     private final Immobile immobile;
 
-    public Visita(int idVisita, Date dataVisita, Time oraVisita, StatoVisita stato, UUID idCliente, Immobile immobile) {
+    public Visita(int idVisita, Date dataVisita, Time oraVisita, StatoVisita stato, String idCliente, Immobile immobile) {
         this.idVisita = idVisita;
         this.dataVisita = dataVisita;
         this.oraVisita = oraVisita;
@@ -33,7 +33,7 @@ public class Visita {
         return stato;
     }
 
-    public UUID getIdCliente() {
+    public String getIdCliente() {
         return idCliente;
     }
 
@@ -49,7 +49,7 @@ public class Visita {
         this.idVisita = idVisita;
     }
 
-    public void setIdCliente(UUID idCliente) {
+    public void setIdCliente(String idCliente) {
         this.idCliente = idCliente;
     }
 }

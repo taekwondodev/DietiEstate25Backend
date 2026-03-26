@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 import static com.dietiestate25backend.dao.postgresimplements.VisitaPostgres.buildImmobile;
 
@@ -44,7 +43,7 @@ public class OffertaPostgres implements OffertaDao {
     }
 
     @Override
-    public List<Offerta> riepilogoOfferteCliente(UUID idCliente) {
+    public List<Offerta> riepilogoOfferteCliente(String idCliente) {
         String sql = "SELECT o.*, i.* " +
                 "FROM offerta o " +
                 "JOIN immobile i ON o.idImmobile = i.idImmobile " +
@@ -54,7 +53,7 @@ public class OffertaPostgres implements OffertaDao {
     }
 
     @Override
-    public List<Offerta> riepilogoOfferteUteneAgenzia(UUID idAgente) {
+    public List<Offerta> riepilogoOfferteUteneAgenzia(String idAgente) {
         String sql = "SELECT o.*, i.* " +
                 "FROM offerta o " +
                 "JOIN immobile i ON o.idImmobile = i.idImmobile " +
@@ -63,7 +62,7 @@ public class OffertaPostgres implements OffertaDao {
         return getOffertas(idAgente, sql);
     }
 
-    private List<Offerta> getOffertas(UUID idAgente, String sql) {
+    private List<Offerta> getOffertas(String idAgente, String sql) {
         return jdbcTemplate.query(sql, (resultSet, i) -> {
             Immobile immobile = buildImmobile(resultSet);
 
@@ -71,7 +70,7 @@ public class OffertaPostgres implements OffertaDao {
                     resultSet.getInt("idOfferta"),
                     resultSet.getDouble("importo"),
                     StatoOfferta.fromString(resultSet.getString("stato")),
-                    UUID.fromString(resultSet.getString("idCliente")),
+                    resultSet.getString("idCliente"),
                     immobile
             );
         }, idAgente);

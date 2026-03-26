@@ -9,7 +9,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/offerta")
@@ -24,7 +23,7 @@ public class OffertaController {
     @PostMapping("/aggiungi")
     public ResponseEntity<Void> aggiungiOfferta(@Valid @RequestBody Offerta request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(UUID.fromString(uidCliente));
+        request.setIdCliente(uidCliente);
 
         offertaService.aggiungiOfferta(request);
         return ResponseEntity.status(201).build();
@@ -33,7 +32,7 @@ public class OffertaController {
     @PatchMapping("/aggiorna")
     public ResponseEntity<Void> aggiornaStatoOfferta(@Valid @RequestBody Offerta request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(UUID.fromString(uidCliente));
+        request.setIdCliente(uidCliente);
 
         offertaService.aggiornaStatoOfferta(request);
         return ResponseEntity.ok().build();
@@ -42,7 +41,7 @@ public class OffertaController {
     @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Offerta>> riepilogoOfferteCliente() {
         String uidCliente = TokenUtils.getUserSub();
-        List<Offerta> offerte = offertaService.riepilogoOfferteCliente(UUID.fromString(uidCliente));
+        List<Offerta> offerte = offertaService.riepilogoOfferteCliente(uidCliente);
 
         return ResponseEntity.ok(offerte);
     }
@@ -50,7 +49,7 @@ public class OffertaController {
     @GetMapping("/riepilogoUtenteAgenzia")
     public ResponseEntity<List<Offerta>> riepilogoOfferteUtenteAgenzia() {
         String idAgente = TokenUtils.getUserSub();
-        List<Offerta> offerte = offertaService.riepilogoOfferteUtenteAgenzia(UUID.fromString(idAgente));
+        List<Offerta> offerte = offertaService.riepilogoOfferteUtenteAgenzia(idAgente);
 
         return ResponseEntity.ok(offerte);
     }

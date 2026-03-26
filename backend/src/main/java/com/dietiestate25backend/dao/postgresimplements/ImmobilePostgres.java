@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Repository
 public class ImmobilePostgres implements ImmobileDao {
@@ -88,7 +87,7 @@ public class ImmobilePostgres implements ImmobileDao {
     @Override
     public List<Immobile> immobiliPersonali(String uidResponsabile) {
         String sql = "SELECT * FROM immobile WHERE idAgente = ?";
-        return jdbcTemplate.query(sql, new ImmobileRowMapper(), UUID.fromString(uidResponsabile));
+        return jdbcTemplate.query(sql, new ImmobileRowMapper(), uidResponsabile);
     }
 
     private String buildSql(Map<String, Object> filters) {
@@ -157,7 +156,7 @@ public class ImmobilePostgres implements ImmobileDao {
                     .setPiano(rs.getInt(PIANO))
                     .setHasAscensore(rs.getBoolean(HAS_ASCENSORE))
                     .setHasBalcone(rs.getBoolean(HAS_BALCONE))
-                    .setIdResponsabile(UUID.fromString(rs.getString(ID_AGENTE)))
+                    .setIdResponsabile(rs.getString(ID_AGENTE))
                     .build();
         }
     }

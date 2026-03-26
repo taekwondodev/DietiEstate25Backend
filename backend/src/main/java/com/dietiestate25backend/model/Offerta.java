@@ -11,11 +11,11 @@ public class Offerta {
     private final double importo;
     @NotNull
     private final StatoOfferta stato;
-    private UUID idCliente;
+    private String idCliente;
     @NotNull
     private final Immobile immobile;
 
-    public Offerta(int idOfferta, double importo, StatoOfferta stato, UUID idCliente, Immobile immobile) {
+    public Offerta(int idOfferta, double importo, StatoOfferta stato, String idCliente, Immobile immobile) {
         this.idOfferta = idOfferta;
         this.importo = importo;
         this.stato = stato;
@@ -31,7 +31,7 @@ public class Offerta {
         return stato;
     }
 
-    public UUID getIdCliente() {
+    public String getIdCliente() {
         return idCliente;
     }
 
@@ -43,7 +43,7 @@ public class Offerta {
         return idOfferta;
     }
 
-    public void setIdCliente(UUID idCliente) {
+    public void setIdCliente(String idCliente) {
         this.idCliente = idCliente;
     }
 

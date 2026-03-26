@@ -44,7 +44,7 @@ public class VisitaPostgres implements VisitaDao {
     }
 
     @Override
-    public List<Visita> riepilogoVisiteCliente(UUID idCliente) {
+    public List<Visita> riepilogoVisiteCliente(String idCliente) {
         String sql = "SELECT v.*, i.* " +
                 "FROM visita v " +
                 "JOIN immobile i ON v.idImmobile = i.idImmobile " +
@@ -54,7 +54,7 @@ public class VisitaPostgres implements VisitaDao {
     }
 
     @Override
-    public List<Visita> riepilogoVisiteUtenteAgenzia(UUID idAgente) {
+    public List<Visita> riepilogoVisiteUtenteAgenzia(String idAgente) {
         String sql = "SELECT v.*, i.* " +
                 "FROM visita v " +
                 "JOIN immobile i ON v.idImmobile = i.idImmobile " +
@@ -63,7 +63,7 @@ public class VisitaPostgres implements VisitaDao {
         return getVisitas(idAgente, sql);
     }
 
-    private List<Visita> getVisitas(UUID idAgente, String sql) {
+    private List<Visita> getVisitas(String idAgente, String sql) {
         return jdbcTemplate.query(sql, (resultSet, i) -> {
             Immobile immobile = buildImmobile(resultSet);
 
@@ -72,7 +72,7 @@ public class VisitaPostgres implements VisitaDao {
                     resultSet.getDate("data"),
                     resultSet.getTime("orario"),
                     StatoVisita.fromString(resultSet.getString("stato")),
-                    UUID.fromString(resultSet.getString("idCliente")),
+                    resultSet.getString("idCliente"),
                     immobile
             );
         }, idAgente);
@@ -95,7 +95,7 @@ public class VisitaPostgres implements VisitaDao {
                 .setPiano(resultSet.getInt("piano"))
                 .setHasAscensore(resultSet.getBoolean("hasAscensore"))
                 .setHasBalcone(resultSet.getBoolean("hasBalcone"))
-                .setIdResponsabile(UUID.fromString(resultSet.getString("idAgente")))
+                .setIdResponsabile(resultSet.getString("idAgente"))
                 .build();
     }
 }

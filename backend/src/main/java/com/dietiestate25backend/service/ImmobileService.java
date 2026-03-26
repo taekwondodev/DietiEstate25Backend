@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class ImmobileService {
@@ -73,7 +72,7 @@ public class ImmobileService {
                 .setPiano(request.getPiano())
                 .setHasAscensore(request.isHasAscensore())
                 .setHasBalcone(request.isHasBalcone())
-                .setIdResponsabile(UUID.fromString(uidResponsabile))
+                .setIdResponsabile(uidResponsabile)
                 .build();
 
         if (!immobileDao.creaImmobile(immobile)) {
