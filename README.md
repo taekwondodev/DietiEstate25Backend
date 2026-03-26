@@ -6,7 +6,7 @@ Backend REST API per la piattaforma di gestione di servizi immobiliari **DietiEs
 
 ## Descrizione
 
-Il backend espone una REST API stateless che gestisce le funzionalità principali della piattaforma: autenticazione degli utenti, ricerca e creazione di immobili, gestione di offerte e prenotazioni di visite, integrazione con servizi geospaziali (Geoapify) e meteo (Open Meteo).
+Il backend espone una REST API stateless che gestisce le funzionalità principali della piattaforma: autenticazione degli utenti, ricerca e creazione di immobili, gestione di offerte e prenotazioni di visite con invio di mail, integrazione con servizi geospaziali (Geoapify) e meteo (Open Meteo).
 
 ---
 
