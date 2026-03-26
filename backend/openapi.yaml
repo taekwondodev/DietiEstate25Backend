@@ -4,7 +4,7 @@ info:
   description: API per la gestione di un'applicazione immobiliare.
   version: 1.0.0
 servers:
-  - url: https://api.realestate.com/v1
+  - url: http://localhost:8080
     description: Server di produzione
 paths:
   /auth/register:

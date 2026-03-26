@@ -32,5 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
+## MacOS
+**/.DS_Store
+
 .env
-backend/src/main/resources/application.properties

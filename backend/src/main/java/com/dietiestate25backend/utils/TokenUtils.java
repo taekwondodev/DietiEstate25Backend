@@ -1,17 +1,12 @@
 package com.dietiestate25backend.utils;
 
 import com.dietiestate25backend.error.exception.UnauthorizedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import java.util.Optional;
 
 public class TokenUtils {
-
-    private static final Logger logger = LoggerFactory.getLogger(TokenUtils.class);
-
     private TokenUtils() {
         throw new IllegalStateException("Utility class");
     }
@@ -22,7 +17,6 @@ public class TokenUtils {
     private static Optional<Jwt> getJwt() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            logger.info("JWT trovato");
             return Optional.of(jwtAuth.getToken());
         }
         return Optional.empty();
@@ -37,12 +31,26 @@ public class TokenUtils {
                 .orElseThrow(() -> new UnauthorizedException("Sub dell'Utente non trovato"));
     }
 
-    public static void checkIfAdmin() {
-        String role = getJwt()
-                .map(jwt -> jwt.getClaimAsString("custom:role"))
-                .orElse(null);
+    /**
+     * Ottiene l'email dell'utente autenticato dal token JWT
+     */
+    public static String getEmail() {
+        return getJwt()
+                .map(jwt -> jwt.getClaimAsString("email"))
+                .orElseThrow(() -> new UnauthorizedException("Email dell'Utente non trovata"));
+    }
 
-        logger.info("Ruolo estratto dal token JWT per verificare admin: {}", role);
+    /**
+     * Ottiene il valore del claim "role" (ruolo dell'utente)
+     */
+    public static String getRole() {
+        return getJwt()
+                .map(jwt -> jwt.getClaimAsString("role"))
+                .orElseThrow(() -> new UnauthorizedException("Role dell'Utente non trovato"));
+    }
+
+    public static void checkIfAdmin() {
+        String role = getRole();
 
         if (isNotAdmin(role)) {
             throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
@@ -50,13 +58,9 @@ public class TokenUtils {
     }
 
     public static void checkIfUtenteAgenzia() {
-        String role = getJwt()
-                .map(jwt -> jwt.getClaimAsString("custom:role"))
-                .orElse(null);
+        String role = getRole();
 
-        logger.info("Ruolo estratto dal token JWT per verificare utenteagenzia: {}", role);
-
-        if (isNotAdmin(role) && isNotGestore(role) && isNotAgente(role)) {
+        if (!hasValidAgencyRole(role)) {
             throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
         }
     }
@@ -65,11 +69,7 @@ public class TokenUtils {
         return role == null || !role.equals("Admin");
     }
 
-    private static boolean isNotGestore(String role) {
-        return role == null || !role.equals("Gestore");
-    }
-
-    private static boolean isNotAgente(String role) {
-        return role == null || !role.equals("AgenteImmobiliare");
+    private static boolean hasValidAgencyRole(String role) {
+        return role.equals("Admin") || role.equals("Gestore") || role.equals("AgenteImmobiliare");
     }
 }

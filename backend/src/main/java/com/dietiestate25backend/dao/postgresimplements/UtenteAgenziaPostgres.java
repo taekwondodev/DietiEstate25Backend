@@ -15,9 +15,9 @@ public class UtenteAgenziaPostgres implements UtenteAgenziaDao {
 
     @Override
     public boolean save(UtenteAgenzia utente) {
-        String sql = "INSERT INTO utenteagenzia (uid, idAgenzia, ruolo) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO utenteagenzia (uid, idAgenzia) VALUES (?, ?)";
 
-        int result = jdbcTemplate.update(sql, utente.getUid(), utente.getIdAgenzia(), utente.getRuolo());
+        int result = jdbcTemplate.update(sql, utente.getUid(), utente.getIdAgenzia());
         return result > 0;
     }
 
