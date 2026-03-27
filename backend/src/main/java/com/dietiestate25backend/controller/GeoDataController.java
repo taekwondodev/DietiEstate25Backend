@@ -16,7 +16,7 @@ public class GeoDataController {
         this.geoDataService = geoDataService;
     }
 
-    @PostMapping("/conteggio-pdi")
+    @PostMapping
     public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
         Map<String, Integer> conteggioPuntiInteresse = geoDataService.ottieniConteggioPuntiInteresse(conteggioPuntiInteresseRequest);
         

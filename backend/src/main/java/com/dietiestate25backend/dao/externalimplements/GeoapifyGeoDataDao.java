@@ -111,10 +111,9 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
                 throw new RuntimeException("Nessuna coordinata trovata per l'indirizzo fornito.");
             }
 
-            // Estraiamo la latitudine e la longitudine dal JSON ottenuto dalla chiamata API
-            Map<String, Object> geometry = (Map<String, Object>) features.get(0).get("geometry");
-            double latitudine = (double) geometry.get("lat");
-            double longitudine = (double) geometry.get("lon");
+            Map<String, Object> properties = (Map<String, Object>) features.get(0).get("properties");
+            double latitudine = ((Number) properties.get("lat")).doubleValue();
+            double longitudine = ((Number) properties.get("lon")).doubleValue();
 
             // Creiamo una mappa con le coordinate
             Map<String, Double> coordinate = new HashMap<>();

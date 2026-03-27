@@ -2,15 +2,52 @@ openapi: 3.0.3
 info:
   title: DietiEstate API
   description: API per la gestione di un'applicazione immobiliare.
-  version: 1.0.0
+  version: 0.0.1
 servers:
   - url: http://localhost:8080
     description: Server di produzione
+tags:
+  - name: Autenticazione
+    description: Endpoint di autenticazione e registrazione
+  - name: Immobili
+    description: Gestione immobili e ricerca
+  - name: Offerte
+    description: Gestione offerte economiche
+  - name: Visite
+    description: Prenotazione e gestione visite
+  - name: Servizi Esterni
+    description: Integrazione con servizi geospaziali e meteo
 paths:
+  /auth/login:
+    post:
+      summary: Login con email e password
+      description: Esegue il login e ritorna un JWT token.
+      tags:
+        - Autenticazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login riuscito, token JWT ritornato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Credenziali non valide
+        '401':
+          description: Email o password errata
+
   /auth/register:
     post:
-      summary: Registra un gestore o agente immobiliare
-      description: Registra un nuovo utente con email e password.
+      summary: Registra un nuovo cliente
+      description: Registra un nuovo cliente con email e password.
+      tags:
+        - Autenticazione
       requestBody:
         required: true
         content:
@@ -19,14 +56,40 @@ paths:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
         '200':
-          description: Utente registrato con successo
+          description: Cliente registrato con successo
         '400':
           description: Richiesta non valida
+        '409':
+          description: Email già registrata
+
+  /auth/register-staff:
+    post:
+      summary: Registra un gestore o agente immobiliare
+      description: Registra un nuovo gestore o agente immobiliare. Solo gli admin possono eseguire questa operazione.
+      tags:
+        - Autenticazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrazioneRequest'
+      responses:
+        '200':
+          description: Gestore/Agente registrato con successo
+        '400':
+          description: Richiesta non valida
+        '401':
+          description: Non autenticato o non autorizzato
+        '409':
+          description: Email già registrata
 
   /immobile/cerca:
     get:
       summary: Cerca immobili
-      description: Cerca immobili con lo stesso comune e altri filtri.
+      description: Cerca immobili con lo stesso comune e altri filtri. Endpoint pubblico accessibile senza autenticazione.
+      tags:
+        - Immobili
       parameters:
         - name: comune
           in: query
@@ -59,6 +122,18 @@ paths:
           schema:
             type: string
           description: Filtra per tipologia di immobile.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Numero della pagina per la paginazione.
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 5
+          description: Numero di risultati per pagina.
       responses:
         '200':
           description: Lista di immobili trovati
@@ -74,6 +149,9 @@ paths:
   /immobile/crea:
     post:
       summary: Crea un nuovo immobile
+      description: Crea un nuovo immobile. Richiede autenticazione da agente/gestore.
+      tags:
+        - Immobili
       requestBody:
         required: true
         content:
@@ -83,11 +161,15 @@ paths:
       responses:
         '201':
           description: Immobile creato con successo
+        '401':
+          description: Non autenticato o non autorizzato
 
   /immobile/personali:
     get:
       summary: Ottieni immobili personali
-      description: Ottieni la lista degli immobili personali dell'utente.
+      description: Ottieni la lista degli immobili personali dell'utente. Richiede autenticazione da agente/gestore.
+      tags:
+        - Immobili
       responses:
         '200':
           description: Lista di immobili personali
@@ -97,10 +179,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Immobile'
+        '401':
+          description: Non autenticato o non autorizzato
 
   /offerta/aggiungi:
     post:
       summary: Invia una nuova offerta
+      tags:
+        - Offerte
       requestBody:
         required: true
         content:
@@ -110,10 +196,14 @@ paths:
       responses:
         '201':
           description: Offerta inviata con successo
+        '401':
+          description: Non autenticato
 
   /offerta/aggiorna:
     patch:
       summary: Aggiorna lo stato di un'offerta
+      tags:
+        - Offerte
       requestBody:
         required: true
         content:
@@ -123,11 +213,17 @@ paths:
       responses:
         '200':
           description: Stato dell'offerta aggiornato
+        '401':
+          description: Non autenticato
+        '404':
+          description: Offerta non trovata
 
-  /offerta/riepilogo:
+  /offerta/riepilogoCliente:
     get:
       summary: Riepilogo delle offerte del cliente
-      description: Ottieni il riepilogo delle offerte del cliente.
+      description: Ottieni il riepilogo delle offerte inviate dal cliente.
+      tags:
+        - Offerte
       responses:
         '200':
           description: Lista delle offerte del cliente
@@ -137,10 +233,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Offerta'
+        '401':
+          description: Non autenticato
+
+  /offerta/riepilogoUtenteAgenzia:
+    get:
+      summary: Riepilogo delle offerte per l'agente
+      description: Ottieni il riepilogo delle offerte ricevute per gli immobili di cui è responsabile l'agente.
+      tags:
+        - Offerte
+      responses:
+        '200':
+          description: Lista delle offerte ricevute
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Offerta'
+        '401':
+          description: Non autenticato o non autorizzato
 
   /visita/prenota:
     post:
       summary: Invia una nuova richiesta di visita
+      tags:
+        - Visite
       requestBody:
         required: true
         content:
@@ -150,10 +268,14 @@ paths:
       responses:
         '201':
           description: Richiesta di visita inviata con successo
+        '401':
+          description: Non autenticato
 
   /visita/aggiorna:
     patch:
       summary: Aggiorna lo stato di una visita
+      tags:
+        - Visite
       requestBody:
         required: true
         content:
@@ -163,11 +285,17 @@ paths:
       responses:
         '200':
           description: Stato della visita aggiornato
+        '401':
+          description: Non autenticato
+        '404':
+          description: Visita non trovata
 
-  /visita/riepilogo:
+  /visita/riepilogoCliente:
     get:
       summary: Riepilogo delle visite del cliente
-      description: Ottieni il riepilogo delle visite del cliente.
+      description: Ottieni il riepilogo delle visite richieste dal cliente.
+      tags:
+        - Visite
       responses:
         '200':
           description: Lista delle visite del cliente
@@ -177,10 +305,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Visita'
+        '401':
+          description: Non autenticato
 
-  /geodata/conteggio-pdi:
+  /visita/riepilogoUtenteAgenzia:
+    get:
+      summary: Riepilogo delle visite per l'agente
+      description: Ottieni il riepilogo delle visite prenotate per gli immobili di cui è responsabile l'agente.
+      tags:
+        - Visite
+      responses:
+        '200':
+          description: Lista delle visite prenotate
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Visita'
+        '401':
+          description: Non autenticato o non autorizzato
+
+  /geodata:
     post:
       summary: Ottieni il conteggio dei punti di interesse
+      tags:
+        - Servizi Esterni
       requestBody:
         required: true
         content:
@@ -196,10 +346,14 @@ paths:
                 type: object
                 additionalProperties:
                   type: integer
+        '400':
+          description: Richiesta non valida
 
-  /api/meteo:
+  /meteo:
     post:
       summary: Ottieni previsioni meteo
+      tags:
+        - Servizi Esterni
       requestBody:
         required: true
         content:
@@ -304,16 +458,62 @@ components:
         immobile:
           $ref: '#/components/schemas/Immobile'
 
-    RegistrazioneRequest:
+components:
+  schemas:
+    LoginRequest:
       type: object
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
           format: email
+          description: Email dell'utente
         password:
           type: string
-        group:
+          description: Password dell'utente
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
           type: string
+          description: JWT token per l'autenticazione
+        sub:
+          type: string
+          format: uuid
+          description: UUID dell'utente Cognito
+        role:
+          type: string
+          description: Ruolo dell'utente (CLIENTE, ADMIN, GESTORE, AGENTE)
+          enum:
+            - CLIENTE
+            - ADMIN
+            - GESTORE
+            - AGENTE
+
+    RegistrazioneRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email dell'utente
+        password:
+          type: string
+          description: Password dell'utente
+        role:
+          type: string
+          description: Ruolo dell'utente
+          enum:
+            - CLIENTE
+            - GESTORE
+            - AGENTE
 
     ConteggioPuntiInteresseRequest:
       type: object

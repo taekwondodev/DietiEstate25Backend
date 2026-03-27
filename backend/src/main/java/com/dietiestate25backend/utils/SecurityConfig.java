@@ -17,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
@@ -26,7 +27,7 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/auth/login", "/auth/register", "/immobile/cerca").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -42,13 +43,15 @@ public class SecurityConfig {
 
     @Bean
     public JwtEncoder jwtEncoder(@Value("${app.jwt.secret}") String secret) {
-        SecretKey key = new SecretKeySpec(secret.getBytes(), 0, secret.getBytes().length, "HmacSHA256");
+        byte[] decodedSecret = Base64.getDecoder().decode(secret);
+        SecretKey key = new SecretKeySpec(decodedSecret, 0, decodedSecret.length, "HmacSHA256");
         return new NimbusJwtEncoder(new ImmutableSecret<>(key));
     }
 
     @Bean
     public JwtDecoder jwtDecoder(@Value("${app.jwt.secret}") String secret) {
-        SecretKey key = new SecretKeySpec(secret.getBytes(), 0, secret.getBytes().length, "HmacSHA256");
+        byte[] decodedSecret = Base64.getDecoder().decode(secret);
+        SecretKey key = new SecretKeySpec(decodedSecret, 0, decodedSecret.length, "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
     }
 
