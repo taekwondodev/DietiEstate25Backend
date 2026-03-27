@@ -48,6 +48,7 @@ public class OffertaController {
 
     @GetMapping("/riepilogoUtenteAgenzia")
     public ResponseEntity<List<Offerta>> riepilogoOfferteUtenteAgenzia() {
+        TokenUtils.checkIfUtenteAgenzia();
         String idAgente = TokenUtils.getUserSub();
         List<Offerta> offerte = offertaService.riepilogoOfferteUtenteAgenzia(idAgente);
 

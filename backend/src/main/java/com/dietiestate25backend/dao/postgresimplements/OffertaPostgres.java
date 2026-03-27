@@ -25,7 +25,7 @@ public class OffertaPostgres implements OffertaDao {
         int result = jdbcTemplate.update(sql,
                 offerta.getImporto(),
                 offerta.getStato().toString(),
-                offerta.getIdCliente().toString(),
+                offerta.getIdCliente(),
                 offerta.getImmobile().getIdImmobile()
         );
         return result > 0;

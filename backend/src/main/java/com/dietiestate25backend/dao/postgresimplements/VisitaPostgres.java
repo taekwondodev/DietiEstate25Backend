@@ -26,7 +26,7 @@ public class VisitaPostgres implements VisitaDao {
 
         int result = jdbcTemplate.update(sql,
                 visita.getDataVisita(), visita.getOraVisita(),
-                visita.getStato().getStatoString(), visita.getIdCliente().toString(),
+                visita.getStato().getStatoString(), visita.getIdCliente(),
                 visita.getImmobile().getIdImmobile()
         );
         return result > 0;

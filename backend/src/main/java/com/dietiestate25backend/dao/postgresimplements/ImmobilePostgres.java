@@ -78,7 +78,7 @@ public class ImmobilePostgres implements ImmobileDao {
                 immobile.getPiano(),
                 immobile.isHasAscensore(),
                 immobile.isHasBalcone(),
-                immobile.getIdResponsabile().toString()
+                immobile.getIdResponsabile()
         );
 
         return result > 0;
