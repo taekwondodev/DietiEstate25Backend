@@ -333,7 +333,9 @@ SecretKey key = new SecretKeySpec(decodedSecret, 0, decodedSecret.length, "HmacS
 
 ## 5. Schema del Database
 
-**qui diagram**
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/29412d45-2306-4535-ae53-92c4f0da8756" alt="Class Diagram" style="width: 80%; max-width: 800px;">
+</div>
 
 Il database è composto da 6 entità principali:
 
