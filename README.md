@@ -148,6 +148,11 @@ La qualità del codice è monitorata con **SonarCloud**. Il report attuale mostr
 
 ---
 
+## Report di Sicurezza
+
+[Link al report](https://github.com/taekwondodev/DietiEstate25Backend/tree/security)
+
+---
 
 ## Frontend
 
