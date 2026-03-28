@@ -5,6 +5,8 @@ public class MeteoRequest {
     private String longitudine;
     private String date;
 
+    public MeteoRequest() {}
+
     public String getLatitudine() {
         return latitudine;
     }

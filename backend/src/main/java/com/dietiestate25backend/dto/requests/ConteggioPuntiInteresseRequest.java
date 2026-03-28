@@ -10,6 +10,8 @@ public class ConteggioPuntiInteresseRequest {
     // La lista di categorie arriva sotto forma di lista di stringhe, così da generalizzare per qualsiasi Front-End
     private List<String> categorie;
 
+    public ConteggioPuntiInteresseRequest() {}
+
     public ConteggioPuntiInteresseRequest(double latitudine, double longitudine, int raggio, List<String> categorie) {
         this.latitudine = latitudine;
         this.longitudine = longitudine;

@@ -10,6 +10,14 @@ public class RegistrazioneRequest {
     @NotNull
     private String role;
 
+    public RegistrazioneRequest() {}
+
+    public RegistrazioneRequest(String email, String password, String role) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+    }
+
     public String getEmail() {
         return email;
     }

@@ -1,8 +1,7 @@
 package com.dietiestate25backend.service;
 
-import com.dietiestate25backend.dao.postgresimplements.AdminPostgres;
-import com.dietiestate25backend.dao.postgresimplements.UtenteAgenziaPostgres;
-import com.dietiestate25backend.dao.postgresimplements.UtentePostgres;
+import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
+import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.dto.response.LoginResponse;
@@ -17,25 +16,23 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
-    private final AdminPostgres adminPostgres;
-    private final UtenteAgenziaPostgres utenteAgenziaPostgres;
-    private final UtentePostgres utentePostgres;
+    private final UtenteAgenziaDao utenteAgenziaDao;
+    private final UtenteDao utenteDao;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(AdminPostgres adminPostgres, UtenteAgenziaPostgres utenteAgenziaPostgres, UtentePostgres utentePostgres, JwtService jwtService, PasswordEncoder passwordEncoder) {
-        this.utentePostgres = utentePostgres;
+    public AuthService(UtenteDao utenteDao, UtenteAgenziaDao utenteAgenziaDao, JwtService jwtService, PasswordEncoder passwordEncoder) {
+        this.utenteDao = utenteDao;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
-        this.adminPostgres = adminPostgres;
-        this.utenteAgenziaPostgres = utenteAgenziaPostgres;
+        this.utenteAgenziaDao = utenteAgenziaDao;
     }
 
     /**
      * Effettua il login e ritorna il JWT
      */
     public LoginResponse login(LoginRequest request) {
-        Utente utente = utentePostgres.findByEmail(request.getEmail());
+        Utente utente = utenteDao.findByEmail(request.getEmail());
 
         if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {
             throw new UnauthorizedException("Email o password non corrette");
@@ -54,7 +51,7 @@ public class AuthService {
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
         Utente utente = new Utente(uid, request.getEmail(), hashedPassword, "Cliente");
-        utentePostgres.save(utente);
+        utenteDao.save(utente);
     }
 
     /**
@@ -62,18 +59,18 @@ public class AuthService {
      * Crea l'utente e lo associa a una agenzia via UtenteAgenzia
      */
     public void registraGestoreOrAgente(String uidAdmin, RegistrazioneRequest request) {
-        int idAgenzia = adminPostgres.getIdAgenzia(uidAdmin);
+        int idAgenzia = utenteAgenziaDao.getIdAgenzia(uidAdmin);
 
         String uid = UUID.randomUUID().toString();
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         String role = request.getRole();
 
         Utente utente = new Utente(uid, request.getEmail(), hashedPassword, role);
-        utentePostgres.save(utente);
+        utenteDao.save(utente);
 
         // Associa l'utente all'agenzia tramite UtenteAgenzia
         UtenteAgenzia utenteAgenzia = new UtenteAgenzia(idAgenzia, uid);
-        utenteAgenziaPostgres.save(utenteAgenzia);
+        utenteAgenziaDao.save(utenteAgenzia);
     }
 
     /**
@@ -81,7 +78,7 @@ public class AuthService {
      */
     public String getEmailByUid(String uid) {
         try {
-            return utentePostgres.findEmailByUid(uid);
+            return utenteDao.findEmailByUid(uid);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             throw new NotFoundException("Email non trovata per l'utente");
         }

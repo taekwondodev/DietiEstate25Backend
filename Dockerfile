@@ -1,5 +1,5 @@
 # Usa un'immagine base di OpenJDK per la fase di build
-FROM maven AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 # Imposta la directory di lavoro
 WORKDIR /app
@@ -13,13 +13,13 @@ COPY backend/src ./src
 RUN mvn clean package -DskipTests
 
 # Usa un'immagine base di OpenJDK per la fase di runtime
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-jammy
 
 # Imposta la directory di lavoro
 WORKDIR /app
 
 # Copia il file JAR dall'immagine di build
-COPY --from=build /app/target/DietiEstate25Backend-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/dieti-estate25-backend-0.0.1-SNAPSHOT.jar app.jar
 
 # Espone la porta su cui l'applicazione ascolta
 EXPOSE 8080

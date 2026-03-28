@@ -29,6 +29,25 @@ public class CreaImmobileRequest {
     @NotNull
     private boolean hasBalcone;
 
+    public CreaImmobileRequest() {}
+
+    public CreaImmobileRequest(String urlFoto, String descrizione, double prezzo, double dimensione,
+                               int nBagni, int nStanze, String tipologia, String indirizzo,
+                               String comune, int piano, boolean hasAscensore, boolean hasBalcone) {
+        this.urlFoto = urlFoto;
+        this.descrizione = descrizione;
+        this.prezzo = prezzo;
+        this.dimensione = (int) dimensione;
+        this.nBagni = nBagni;
+        this.nStanze = nStanze;
+        this.tipologia = tipologia;
+        this.indirizzo = indirizzo;
+        this.comune = comune;
+        this.piano = piano;
+        this.hasAscensore = hasAscensore;
+        this.hasBalcone = hasBalcone;
+    }
+
     public String getDescrizione() {
         return descrizione;
     }

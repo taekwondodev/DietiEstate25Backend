@@ -475,6 +475,14 @@ In caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup:
 
 ## 9. Testing
 
+```bash
+docker build -t test-runner -f Dockerfile.test .
+```
+
+```bash
+podman compose -f compose.test.yaml up --build --abort-on-container-exit
+```
+
 ### 9.1 Stato Attuale
 
 🚧 **Work in progress** — La suite di test sarà implementata nella fase successiva con focus su:

@@ -16,26 +16,26 @@ public class UtentePostgres implements UtenteDao {
 
     @Override
     public boolean save(Utente u) {
-        String sql = "INSERT INTO utenti (sub, email, password, role) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO utenti (uid, email, password, role) VALUES (?, ?, ?, ?)";
         int result = jdbcTemplate.update(sql, u.getUid(), u.getEmail(), u.getPassword(), u.getRole());
         return result > 0;
     }
 
     @Override
     public Utente findByEmail(String email) {
-        String sql = "SELECT sub, email, password, role FROM utenti WHERE email = ?";
+        String sql = "SELECT uid, email, password, role FROM utenti WHERE email = ?";
         return jdbcTemplate.queryForObject(sql, utenteRowMapper(), email);
     }
 
     @Override
     public String findEmailByUid(String uid) {
-        String sql = "SELECT email FROM utenti WHERE sub = ?";
+        String sql = "SELECT email FROM utenti WHERE uid = ?";
         return jdbcTemplate.queryForObject(sql, String.class, uid);
     }
 
     private RowMapper<Utente> utenteRowMapper() {
         return (rs, rowNum) -> new Utente(
-                rs.getString("sub"),
+                rs.getString("uid"),
                 rs.getString("email"),
                 rs.getString("password"),
                 rs.getString("role")

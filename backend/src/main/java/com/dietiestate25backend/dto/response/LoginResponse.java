@@ -1,9 +1,11 @@
 package com.dietiestate25backend.dto.response;
 
 public class LoginResponse {
-    private final String token;
-    private final String sub;
-    private final String role;
+    private String token;
+    private String sub;
+    private String role;
+
+    public LoginResponse() {}
 
     public LoginResponse(String token, String sub, String role) {
         this.token = token;
