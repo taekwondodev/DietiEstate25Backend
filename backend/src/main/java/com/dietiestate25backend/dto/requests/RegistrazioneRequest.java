@@ -1,13 +1,17 @@
 package com.dietiestate25backend.dto.requests;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 public class RegistrazioneRequest {
-    @NotNull
+    @NotBlank
+    @Email(message = "Email non valida")
+    @Size(max = 254, message = "L'email non può superare i 254 caratteri")
     private String email;
-    @NotNull
+    @NotBlank
+    @Size(min=1, max=255, message = "La password deve essere tra 1 e 255 caratteri")
     private String password;
-    @NotNull
+    @NotBlank
+    @Pattern(regexp = "^(Cliente|Gestore|AgenteImmobiliare)$", message = "Il ruolo deve essere Cliente, Gestore o AgenteImmobiliare")
     private String role;
 
     public RegistrazioneRequest() {}

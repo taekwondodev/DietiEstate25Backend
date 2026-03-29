@@ -4,6 +4,7 @@ import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
+import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
@@ -167,7 +168,7 @@ class AuthServiceSecurityTests {
     @Test
     @DisplayName("Staff Registration Security - Only Admin can register staff")
     void testRegistraGestoreOrAgente_OnlyAdminCanRegister() {
-        RegistrazioneRequest request = new RegistrazioneRequest("agente@example.com", validPassword, "Gestore");
+        RegistrazioneStaffRequest request = new RegistrazioneStaffRequest("agente@example.com", validPassword, "Gestore");
         String adminUid = "admin-uid-123";
 
         when(passwordEncoder.encode(validPassword)).thenReturn(hashedPassword);

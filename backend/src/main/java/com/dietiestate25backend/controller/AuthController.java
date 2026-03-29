@@ -2,6 +2,7 @@ package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
+import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.dto.response.LoginResponse;
 import com.dietiestate25backend.service.AuthService;
 import com.dietiestate25backend.utils.TokenUtils;
@@ -42,8 +43,8 @@ public class AuthController {
      * Registrazione di un nuovo Gestore o AgenteImmobiliare (solo Admin)
      */
     @PostMapping("/register-staff")
-    public ResponseEntity<Void> registraGestoreOrAgente(@Valid @RequestBody RegistrazioneRequest request) {
-        TokenUtils.checkIfAdmin();
+    public ResponseEntity<Void> registraGestoreOrAgente(@Valid @RequestBody RegistrazioneStaffRequest request) {
+        TokenUtils.checkIfAdminOrGestore();
         String uidAdmin = TokenUtils.getUserSub();
 
         authService.registraGestoreOrAgente(uidAdmin, request);

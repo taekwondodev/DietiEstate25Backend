@@ -103,12 +103,12 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
             // Effettuiamo la chiamata API
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response == null || !response.containsKey("features")) {
-                throw new RuntimeException("Geoapify non ha restituito dati validi.");
+                throw new BadRequestException("Geoapify non ha restituito dati validi.");
             }
 
             List<Map<String, Object>> features = (List<Map<String, Object>>) response.get("features");
             if (features.isEmpty()) {
-                throw new RuntimeException("Nessuna coordinata trovata per l'indirizzo fornito.");
+                throw new BadRequestException("Nessuna coordinata trovata per l'indirizzo fornito.");
             }
 
             Map<String, Object> properties = (Map<String, Object>) features.get(0).get("properties");
@@ -121,8 +121,12 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
             coordinate.put("longitudine", longitudine);
             return coordinate;
 
-        } catch (Exception e) {
-            throw new RuntimeException("Errore durante la chiamata a Geoapify.", e);
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (RestClientException e){
+            throw new InternalServerErrorException("Errore servizio geografico: ", e);
+        } catch(Exception e) {
+            throw new InternalServerErrorException("Errore durante l'elaborazione delle coordinate: ", e);
         }
     }
 }

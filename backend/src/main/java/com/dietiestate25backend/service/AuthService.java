@@ -4,13 +4,17 @@ import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
 import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
+import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.dto.response.LoginResponse;
+import com.dietiestate25backend.error.exception.BadRequestException;
+import com.dietiestate25backend.error.exception.ConflictException;
+import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
-import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.model.UtenteAgenzia;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -32,10 +36,15 @@ public class AuthService {
      * Effettua il login e ritorna il JWT
      */
     public LoginResponse login(LoginRequest request) {
-        Utente utente = utenteDao.findByEmail(request.getEmail());
+        Utente utente;
+        try {
+            utente = utenteDao.findByEmail(request.getEmail());
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            throw new NotFoundException("Email o password non corrette");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {
-            throw new UnauthorizedException("Email o password non corrette");
+            throw new NotFoundException("Email o password non corrette");
         }
 
         String token = jwtService.generateToken(utente.getUid(), utente.getRole(), utente.getEmail());
@@ -47,30 +56,58 @@ public class AuthService {
      * Registrazione di un Cliente
      */
     public void registraCliente(RegistrazioneRequest request) {
+        if (!request.getRole().equals("Cliente")){
+            throw new BadRequestException("Solo i clienti possono registrarsi attraverso questo endpoint");
+        }
         String uid = UUID.randomUUID().toString();
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
         Utente utente = new Utente(uid, request.getEmail(), hashedPassword, "Cliente");
-        utenteDao.save(utente);
+        try {
+            utenteDao.save(utente);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new ConflictException("Email già in uso");
+        } catch (org.springframework.dao.DataAccessException e) {
+            throw new InternalServerErrorException("Errore durante la registrazione del cliente:", e);
+        }
     }
 
     /**
      * Registrazione di Agente o Gestore (solo Admin)
      * Crea l'utente e lo associa a una agenzia via UtenteAgenzia
      */
-    public void registraGestoreOrAgente(String uidAdmin, RegistrazioneRequest request) {
-        int idAgenzia = utenteAgenziaDao.getIdAgenzia(uidAdmin);
+    @Transactional
+    public void registraGestoreOrAgente(String uidAdmin, RegistrazioneStaffRequest request) {
+        if  (!request.getRole().equals("Gestore") && !request.getRole().equals("AgenteImmobiliare")){
+            throw new BadRequestException("Il ruolo deve essere 'Gestore' o 'AgenteImmobiliare'");
+        }
+        int idAgenzia;
+        try {
+            idAgenzia = utenteAgenziaDao.getIdAgenzia(uidAdmin);
+        } catch (org.springframework.dao.DataAccessException e) {
+            throw new InternalServerErrorException("Errore durante il recupero dell'id agenzia:", e);
+        }
 
         String uid = UUID.randomUUID().toString();
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         String role = request.getRole();
 
         Utente utente = new Utente(uid, request.getEmail(), hashedPassword, role);
-        utenteDao.save(utente);
+        try {
+            utenteDao.save(utente);
+        } catch (org.springframework.dao.DataAccessException e) {
+            throw new InternalServerErrorException("Errore durante la registrazione dell'utente:", e);
+        }
 
         // Associa l'utente all'agenzia tramite UtenteAgenzia
         UtenteAgenzia utenteAgenzia = new UtenteAgenzia(idAgenzia, uid);
-        utenteAgenziaDao.save(utenteAgenzia);
+        try {
+            utenteAgenziaDao.save(utenteAgenzia);
+        } catch (org.springframework.dao.DataIntegrityViolationException e){
+            throw new ConflictException("Utente è gia associato ad un'altra agenzia");
+        } catch (org.springframework.dao.DataAccessException e){
+            throw new InternalServerErrorException("Errore durante l'associazione dell'utente all'agenzia:", e);
+        }
     }
 
     /**

@@ -1,8 +1,11 @@
 package com.dietiestate25backend.dao.externalimplements;
 
 import com.dietiestate25backend.dao.modelinterface.MeteoDao;
+import com.dietiestate25backend.error.exception.BadRequestException;
+import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -29,6 +32,10 @@ public class OpenMeteoDao implements MeteoDao {
             // Effettuiamo la chiamata API
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
 
+            if (response == null || !response.containsKey("daily")) {
+                throw new Exception("Errore comunicazione servizio meteo");
+            }
+
             // Parsing della risposta per estrarre i dati necessari
             Map<String, Object> daily = (Map<String, Object>) response.get("daily");
             List<String> dates = (List<String>) daily.get("time");
@@ -39,7 +46,7 @@ public class OpenMeteoDao implements MeteoDao {
             // Troviamo l'indice corrispondente alla data
             int index = dates.indexOf(data);
             if (index == -1) {
-                throw new RuntimeException("Data non trovata nelle previsioni meteo.");
+                throw new BadRequestException("Data non trovata nelle previsioni meteo.");
             }
 
             // Otteniamo i dati solo per la data richiesta
@@ -55,8 +62,13 @@ public class OpenMeteoDao implements MeteoDao {
             risultati.put("weather_description", weatherDescription);
             return risultati;
 
+        } catch (BadRequestException e) {
+            throw e;
+        }
+        catch (RestClientException e) {
+            throw new InternalServerErrorException("Errore durante la comunicazione con il servizio meteo: ", e);
         } catch (Exception e) {
-            throw new RuntimeException("Errore durante la chiamata all'API OpenMeteo.", e);
+            throw new InternalServerErrorException(e.getMessage());
         }
     }
 

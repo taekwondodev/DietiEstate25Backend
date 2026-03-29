@@ -1,5 +1,7 @@
 package com.dietiestate25backend.controller;
 
+import com.dietiestate25backend.dto.requests.AggiornaOffertaRequest;
+import com.dietiestate25backend.dto.requests.CreaOffertaRequest;
 import com.dietiestate25backend.model.Offerta;
 import com.dietiestate25backend.service.OffertaService;
 import com.dietiestate25backend.utils.TokenUtils;
@@ -21,20 +23,16 @@ public class OffertaController {
     }
 
     @PostMapping("/aggiungi")
-    public ResponseEntity<Void> aggiungiOfferta(@Valid @RequestBody Offerta request) {
+    public ResponseEntity<Void> aggiungiOfferta(@Valid @RequestBody CreaOffertaRequest request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(uidCliente);
-
-        offertaService.aggiungiOfferta(request);
+        offertaService.aggiungiOfferta(request, uidCliente);
         return ResponseEntity.status(201).build();
     }
 
     @PatchMapping("/aggiorna")
-    public ResponseEntity<Void> aggiornaStatoOfferta(@Valid @RequestBody Offerta request) {
+    public ResponseEntity<Void> aggiornaStatoOfferta(@Valid @RequestBody AggiornaOffertaRequest request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(uidCliente);
-
-        offertaService.aggiornaStatoOfferta(request);
+        offertaService.aggiornaStatoOfferta(request, uidCliente);
         return ResponseEntity.ok().build();
     }
 

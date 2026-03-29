@@ -2,13 +2,16 @@ package com.dietiestate25backend.controller;
 
 import com.dietiestate25backend.dto.requests.ConteggioPuntiInteresseRequest;
 import com.dietiestate25backend.service.GeoDataService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/geodata")
+@Validated
 public class GeoDataController {
     private final GeoDataService geoDataService;
 
@@ -17,7 +20,7 @@ public class GeoDataController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
+    public ResponseEntity<Map<String, Integer>> ottieniConteggioPuntiInteresse(@Valid @RequestBody ConteggioPuntiInteresseRequest conteggioPuntiInteresseRequest) {
         Map<String, Integer> conteggioPuntiInteresse = geoDataService.ottieniConteggioPuntiInteresse(conteggioPuntiInteresseRequest);
         
         return ResponseEntity.status(201).body(conteggioPuntiInteresse);

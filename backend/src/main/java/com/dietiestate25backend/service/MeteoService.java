@@ -1,44 +1,54 @@
 package com.dietiestate25backend.service;
 
-import com.dietiestate25backend.dao.modelinterface.GeoDataDao;
 import com.dietiestate25backend.dao.modelinterface.MeteoDao;
+import com.dietiestate25backend.error.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 
 @Service
 public class MeteoService {
-    private final GeoDataDao geoDataDao;
     private final MeteoDao meteoDao;
 
-    public MeteoService(GeoDataDao geoDataDao, MeteoDao meteoDao) {
-        this.geoDataDao = geoDataDao;
+    public MeteoService(MeteoDao meteoDao) {
         this.meteoDao = meteoDao;
     }
 
-    public boolean isDataNelRange(String date) {
-        LocalDate dataRichiesta = LocalDate.parse(date);
-        LocalDate dataAttuale = LocalDate.now();
-        LocalDate dataMassimaSupportata = dataAttuale.plusDays(7);
-        return !dataRichiesta.isAfter(dataMassimaSupportata) && !dataRichiesta.isBefore(dataAttuale);
-    }
-
     public Map<String, Object> ottieniPrevisioni(String latitudine, String longitudine, String date) {
-
-        // Convertiamo i valori delle Stringhe di latitudine e longitudine Double all'interno di una Map
-        Map<String, Double> coordinate = new HashMap<>();
-
+        LocalDate dataRichiesta;
         try {
-            coordinate.put("latitudine", Double.parseDouble(latitudine));
-            coordinate.put("longitudine", Double.parseDouble(longitudine));
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Latitudine o longitudine non valide: devono essere numeri.", e);
+            dataRichiesta = LocalDate.parse(date);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException("La data fornita non è in un formato valido. Utilizzare il formato YYYY-MM-DD.");
         }
 
-        return meteoDao.ottieniPrevisioni(coordinate.get("latitudine"), coordinate.get("longitudine"), date);
+        LocalDate dataAttuale = LocalDate.now();
+        LocalDate dataMassimaSupportata = dataAttuale.plusDays(7);
 
+        if (dataRichiesta.isBefore(dataMassimaSupportata)) {
+            throw new BadRequestException("Le previsioni meteo sono disponibili solo da oggi ai prossimi 7 giorni");
+        }
+
+        double latitudineDouble;
+        double longitudineDouble;
+
+        try {
+            latitudineDouble = Double.parseDouble(latitudine);
+            longitudineDouble = Double.parseDouble(longitudine);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Latitudine o longitudine non valide: devono essere numeri.");
+        }
+
+        if (latitudineDouble < -90 || latitudineDouble > 90) {
+            throw new BadRequestException("Latitudine deve essere tra -90 e 90.");
+        }
+        if (longitudineDouble < -180 || longitudineDouble > 180) {
+            throw new BadRequestException("Longitudine deve essere tra -180 e 180.");
+        }
+
+        return meteoDao.ottieniPrevisioni(latitudineDouble, longitudineDouble, date);
     }
 
 }

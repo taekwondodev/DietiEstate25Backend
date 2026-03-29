@@ -5,6 +5,9 @@ import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.service.ImmobileService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,9 +27,9 @@ public class ImmobileController {
 
     @GetMapping("/cerca")
     public ResponseEntity<List<Immobile>> cercaImmobili(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam String comune,
+            @RequestParam(defaultValue = "0")@Min(value=0, message="Page non può essere negativa") int page,
+            @RequestParam(defaultValue = "5")@Positive(message="Size deve essere positivo") int size,
+            @RequestParam @NotBlank(message="Comune non può essere vuoto") String comune,
             @RequestParam(required = false) String tipologia,
             @RequestParam(required = false) Double prezzoMin,
             @RequestParam(required = false) Double prezzoMax,

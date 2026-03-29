@@ -38,14 +38,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
-          description: Credenziali non valide
+          description: Richiesta non valida (body malformato, campi mancanti, email non valida)
         '401':
           description: Email o password errata
+        '500':
+          description: Errore interno del server
 
   /auth/register:
     post:
       summary: Registra un nuovo cliente
-      description: Registra un nuovo cliente con email e password.
+      description: Registra un nuovo cliente con email e password. Solo per rolle Cliente.
       tags:
         - Autenticazione
       requestBody:
@@ -55,12 +57,14 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '200':
+        '201':
           description: Cliente registrato con successo
         '400':
-          description: Richiesta non valida
+          description: Richiesta non valida (email non valida, password vuota, role non è "Cliente")
         '409':
           description: Email già registrata
+        '500':
+          description: Errore interno del server
 
   /auth/register-staff:
     post:
@@ -75,14 +79,18 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '200':
+        '201':
           description: Gestore/Agente registrato con successo
         '400':
-          description: Richiesta non valida
+          description: Richiesta non valida (email non valida, role non valido, etc.)
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato o non autorizzato (solo Admin)
+        '404':
+          description: Admin non trovato o non associato ad agenzia
         '409':
           description: Email già registrata
+        '500':
+          description: Errore interno del server
 
   /immobile/cerca:
     get:
@@ -143,13 +151,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Immobile'
-        '404':
-          description: Nessun immobile trovato
+        '400':
+          description: Parametri di ricerca non validi (page negativo, size <= 0, prezzoMin > prezzoMax, etc.)
+        '500':
+          description: Errore interno del server
 
   /immobile/crea:
     post:
       summary: Crea un nuovo immobile
-      description: Crea un nuovo immobile. Richiede autenticazione da agente/gestore.
+      description: Crea un nuovo immobile. Richiede autenticazione da agente/gestore/admin.
       tags:
         - Immobili
       requestBody:
@@ -161,13 +171,17 @@ paths:
       responses:
         '201':
           description: Immobile creato con successo
+        '400':
+          description: Richiesta non valida (campi obbligatori mancanti, valori fuori range, indirizzo invalido, etc.)
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato o non autorizzato (solo AgenteImmobiliare/Gestore/Admin)
+        '500':
+          description: Errore interno del server
 
   /immobile/personali:
     get:
       summary: Ottieni immobili personali
-      description: Ottieni la lista degli immobili personali dell'utente. Richiede autenticazione da agente/gestore.
+      description: Ottieni la lista degli immobili personali dell'utente. Richiede autenticazione da agente/gestore/admin.
       tags:
         - Immobili
       responses:
@@ -181,10 +195,13 @@ paths:
                   $ref: '#/components/schemas/Immobile'
         '401':
           description: Non autenticato o non autorizzato
+        '500':
+          description: Errore interno del server
 
   /offerta/aggiungi:
     post:
       summary: Invia una nuova offerta
+      description: Invia una nuova offerta per un immobile. Richiede autenticazione.
       tags:
         - Offerte
       requestBody:
@@ -192,16 +209,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OffertaRequest'
+              $ref: '#/components/schemas/CreaOffertaRequest'
       responses:
         '201':
           description: Offerta inviata con successo
+        '400':
+          description: Richiesta non valida (importo negativo, ID immobile invalido, etc.)
         '401':
           description: Non autenticato
+        '404':
+          description: Immobile non trovato
+        '409':
+          description: Conflitto nei dati (ad es. cliente non trovato)
+        '500':
+          description: Errore interno del server
 
   /offerta/aggiorna:
     patch:
       summary: Aggiorna lo stato di un'offerta
+      description: Aggiorna lo stato di un'offerta (In sospeso → Accettata/Rifiutata). Richiede autorizzazione.
       tags:
         - Offerte
       requestBody:
@@ -209,14 +235,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OffertaRequest'
+              $ref: '#/components/schemas/AggiornaOffertaRequest'
       responses:
         '200':
-          description: Stato dell'offerta aggiornato
+          description: Stato dell'offerta aggiornato con successo
+        '400':
+          description: Richiesta non valida o transizione di stato non consentita
         '401':
-          description: Non autenticato
+          description: Non autenticato o non autorizzato
         '404':
           description: Offerta non trovata
+        '500':
+          description: Errore interno del server
 
   /offerta/riepilogoCliente:
     get:
@@ -233,8 +263,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Offerta'
+        '400':
+          description: Richiesta non valida
         '401':
           description: Non autenticato
+        '500':
+          description: Errore interno del server
 
   /offerta/riepilogoUtenteAgenzia:
     get:
@@ -251,12 +285,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Offerta'
+        '400':
+          description: Richiesta non valida
         '401':
           description: Non autenticato o non autorizzato
+        '500':
+          description: Errore interno del server
 
   /visita/prenota:
     post:
       summary: Invia una nuova richiesta di visita
+      description: Prenota una nuova visita per un immobile. Richiede autenticazione.
       tags:
         - Visite
       requestBody:
@@ -264,16 +303,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VisitaRequest'
+              $ref: '#/components/schemas/PrenotaVisitaRequest'
       responses:
         '201':
           description: Richiesta di visita inviata con successo
+        '400':
+          description: Richiesta non valida (data nel passato, ora fuori range, etc.)
         '401':
           description: Non autenticato
+        '404':
+          description: Immobile non trovato
+        '409':
+          description: Conflitto nei dati
+        '500':
+          description: Errore interno del server
 
   /visita/aggiorna:
     patch:
       summary: Aggiorna lo stato di una visita
+      description: Aggiorna lo stato di una visita (In sospeso → Confermata/Rifiutata). Richiede autorizzazione.
       tags:
         - Visite
       requestBody:
@@ -281,14 +329,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VisitaRequest'
+              $ref: '#/components/schemas/AggiornaVisitaRequest'
       responses:
         '200':
-          description: Stato della visita aggiornato
+          description: Stato della visita aggiornato con successo
+        '400':
+          description: Richiesta non valida o transizione di stato non consentita
         '401':
-          description: Non autenticato
+          description: Non autenticato o non autorizzato
         '404':
           description: Visita non trovata
+        '500':
+          description: Errore interno del server
 
   /visita/riepilogoCliente:
     get:
@@ -305,8 +357,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Visita'
+        '400':
+          description: Richiesta non valida
         '401':
           description: Non autenticato
+        '500':
+          description: Errore interno del server
 
   /visita/riepilogoUtenteAgenzia:
     get:
@@ -323,12 +379,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Visita'
+        '400':
+          description: Richiesta non valida
         '401':
           description: Non autenticato o non autorizzato
+        '500':
+          description: Errore interno del server
 
   /geodata:
     post:
       summary: Ottieni il conteggio dei punti di interesse
+      description: Ritorna il conteggio dei punti di interesse (parchi, trasporti, scuole, etc.) entro un raggio da coordinate geografiche.
       tags:
         - Servizi Esterni
       requestBody:
@@ -347,11 +408,16 @@ paths:
                 additionalProperties:
                   type: integer
         '400':
-          description: Richiesta non valida
+          description: Richiesta non valida (latitudine/longitudine fuori range, raggio invalido, categorie vuote, etc.)
+        '404':
+          description: Nessun dato trovato per le coordinate fornite
+        '500':
+          description: Errore durante la comunicazione con il servizio geografico
 
   /meteo:
     post:
       summary: Ottieni previsioni meteo
+      description: Ritorna le previsioni meteo per coordinate geografiche e data specifiche.
       tags:
         - Servizi Esterni
       requestBody:
@@ -367,99 +433,23 @@ paths:
             application/json:
               schema:
                 type: object
-                additionalProperties:
-                  type: object
+                properties:
+                  temperature_max:
+                    type: number
+                  temperature_min:
+                    type: number
+                  weather_description:
+                    type: string
         '400':
-          description: Richiesta non valida
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
+          description: Richiesta non valida (data nel passato, ora fuori range, formato errato, etc.)
+        '404':
+          description: Data non trovata nelle previsioni disponibili
         '500':
-          description: Errore interno del server
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
+          description: Errore durante la comunicazione con il servizio meteorologico
 
 components:
   schemas:
-    Immobile:
-      type: object
-      properties:
-        idImmobile:
-          type: integer
-        urlFoto:
-          type: string
-        descrizione:
-          type: string
-        prezzo:
-          type: number
-        dimensione:
-          type: number
-        nBagni:
-          type: integer
-        nStanze:
-          type: integer
-        tipologia:
-          type: string
-        latitudine:
-          type: number
-        longitudine:
-          type: number
-        indirizzo:
-          type: string
-        comune:
-          type: string
-        piano:
-          type: integer
-        hasAscensore:
-          type: boolean
-        hasBalcone:
-          type: boolean
-        idResponsabile:
-          type: string
-          format: uuid
-
-    OffertaRequest:
-      type: object
-      properties:
-        importo:
-          type: number
-        stato:
-          type: string
-        idCliente:
-          type: string
-          format: uuid
-        immobile:
-          $ref: '#/components/schemas/Immobile'
-
-    VisitaRequest:
-      type: object
-      properties:
-        dataRichiesta:
-          type: string
-          format: date
-        dataVisita:
-          type: string
-          format: date
-        oraVisita:
-          type: string
-          format: time
-        stato:
-          type: string
-        idCliente:
-          type: string
-          format: uuid
-        immobile:
-          $ref: '#/components/schemas/Immobile'
-
-components:
-  schemas:
+    # Auth Schemas
     LoginRequest:
       type: object
       required:
@@ -469,10 +459,10 @@ components:
         email:
           type: string
           format: email
-          description: Email dell'utente
+          description: Email dell'utente (max 254 caratteri, validato con @Email)
         password:
           type: string
-          description: Password dell'utente
+          description: Password dell'utente (max 255 caratteri)
 
     LoginResponse:
       type: object
@@ -483,15 +473,15 @@ components:
         sub:
           type: string
           format: uuid
-          description: UUID dell'utente Cognito
+          description: UUID dell'utente
         role:
           type: string
-          description: Ruolo dell'utente (CLIENTE, ADMIN, GESTORE, AGENTE)
+          description: Ruolo dell'utente
           enum:
-            - CLIENTE
-            - ADMIN
-            - GESTORE
-            - AGENTE
+            - Cliente
+            - Admin
+            - Gestore
+            - AgenteImmobiliare
 
     RegistrazioneRequest:
       type: object
@@ -503,42 +493,202 @@ components:
         email:
           type: string
           format: email
-          description: Email dell'utente
+          description: Email dell'utente (max 254 caratteri)
         password:
           type: string
-          description: Password dell'utente
+          description: Password dell'utente (1-255 caratteri)
         role:
           type: string
-          description: Ruolo dell'utente
+          description: Ruolo dell'utente. Per /register solo "Cliente", per /register-staff "AgenteImmobiliare" o "Gestore"
           enum:
-            - CLIENTE
-            - GESTORE
-            - AGENTE
+            - Cliente
+            - Gestore
+            - AgenteImmobiliare
 
-    ConteggioPuntiInteresseRequest:
+    # Immobile Schemas
+    Immobile:
       type: object
       properties:
-        latitudine:
-          type: number
-        longitudine:
-          type: number
-        raggio:
+        idImmobile:
           type: integer
-        categorie:
-          type: array
-          items:
-            type: string
+        urlFoto:
+          type: string
+          description: URL della foto (max 500 caratteri)
+        descrizione:
+          type: string
+          description: Descrizione dell'immobile (10-1000 caratteri)
+        prezzo:
+          type: number
+          description: Prezzo dell'immobile (positivo, max 9999999.99)
+        dimensione:
+          type: number
+          description: Dimensione in mq (positiva)
+        nBagni:
+          type: integer
+          description: Numero di bagni (1-50)
+        nStanze:
+          type: integer
+          description: Numero di stanze (1-50)
+        tipologia:
+          type: string
+          description: Tipologia di immobile
+          enum:
+            - Appartamento
+            - Casa
+            - Monolocale
+            - Bilocale
+            - Trilocale
+            - Villetta
+            - Penthouse
+            - Studio
+        latitudine:
+          type: number
+          description: Latitudine geografica (-90 a +90)
+        longitudine:
+          type: number
+          description: Longitudine geografica (-180 a +180)
+        indirizzo:
+          type: string
+          description: Indirizzo completo (5-255 caratteri)
+        comune:
+          type: string
+          description: Comune (2-100 caratteri)
+        piano:
+          type: integer
+          description: Piano (-1 per piano terra, 0-100 per altri)
+        hasAscensore:
+          type: boolean
+        hasBalcone:
+          type: boolean
+        idResponsabile:
+          type: string
+          format: uuid
+          description: UUID dell'agente responsabile
 
-    MeteoRequest:
+    CreaImmobileRequest:
+      type: object
+      required:
+        - descrizione
+        - urlFoto
+        - prezzo
+        - dimensione
+        - nBagni
+        - nStanze
+        - tipologia
+        - indirizzo
+        - comune
+        - piano
+        - hasAscensore
+        - hasBalcone
+      properties:
+        descrizione:
+          type: string
+          minLength: 10
+          maxLength: 1000
+        urlFoto:
+          type: string
+          maxLength: 500
+        prezzo:
+          type: number
+          minimum: 0
+          maximum: 9999999.99
+        dimensione:
+          type: number
+          minimum: 0
+        nBagni:
+          type: integer
+          minimum: 1
+          maximum: 50
+        nStanze:
+          type: integer
+          minimum: 1
+          maximum: 50
+        tipologia:
+          type: string
+          enum:
+            - Appartamento
+            - Casa
+            - Monolocale
+            - Bilocale
+            - Trilocale
+            - Villetta
+            - Penthouse
+            - Studio
+        indirizzo:
+          type: string
+          minLength: 5
+          maxLength: 255
+        comune:
+          type: string
+          minLength: 2
+          maxLength: 100
+        piano:
+          type: integer
+          minimum: -1
+          maximum: 100
+        hasAscensore:
+          type: boolean
+        hasBalcone:
+          type: boolean
+
+    # Offerta Schemas
+    Offerta:
       type: object
       properties:
-        latitudine:
+        idOfferta:
+          type: integer
+        importo:
+          type: number
+          description: Importo dell'offerta (positivo, max 999999999.99)
+        stato:
           type: string
-        longitudine:
+          description: Stato dell'offerta
+          enum:
+            - In sospeso
+            - Accettata
+            - Rifiutata
+        idCliente:
           type: string
-        date:
-          type: string
+          format: uuid
+        immobile:
+          $ref: '#/components/schemas/Immobile'
 
+    CreaOffertaRequest:
+      type: object
+      required:
+        - importo
+        - idImmobile
+      properties:
+        importo:
+          type: number
+          minimum: 0
+          maximum: 999999999.99
+          description: Importo dell'offerta
+        idImmobile:
+          type: integer
+          minimum: 1
+          maximum: 999999
+          description: ID dell'immobile
+
+    AggiornaOffertaRequest:
+      type: object
+      required:
+        - idOfferta
+        - stato
+      properties:
+        idOfferta:
+          type: integer
+          minimum: 1
+          description: ID dell'offerta da aggiornare
+        stato:
+          type: string
+          description: Nuovo stato dell'offerta
+          enum:
+            - In sospeso
+            - Accettata
+            - Rifiutata
+
+    # Visita Schemas
     Visita:
       type: object
       properties:
@@ -552,51 +702,106 @@ components:
           format: time
         stato:
           type: string
+          description: Stato della visita
+          enum:
+            - In sospeso
+            - Confermata
+            - Rifiutata
         idCliente:
           type: string
           format: uuid
         immobile:
           $ref: '#/components/schemas/Immobile'
 
-    Offerta:
+    PrenotaVisitaRequest:
       type: object
+      required:
+        - idImmobile
+        - dataVisita
+        - oraVisita
       properties:
-        idOfferta:
+        idImmobile:
           type: integer
-        importo:
-            type: number
-        stato:
-            type: string
-        idCliente:
-            type: string
-            format: uuid
-        immobile:
-            $ref: '#/components/schemas/Immobile'
+          minimum: 1
+          maximum: 999999
+          description: ID dell'immobile
+        dataVisita:
+          type: string
+          format: date
+          description: Data della visita (oggi o nel futuro)
+        oraVisita:
+          type: string
+          format: time
+          description: Ora della visita (08:00 - 18:00)
 
-    CreaImmobileRequest:
-        type: object
-        properties:
-          descrizione:
+    AggiornaVisitaRequest:
+      type: object
+      required:
+        - idVisita
+        - stato
+      properties:
+        idVisita:
+          type: integer
+          minimum: 1
+          description: ID della visita da aggiornare
+        stato:
+          type: string
+          description: Nuovo stato della visita
+          enum:
+            - In sospeso
+            - Confermata
+            - Rifiutata
+
+    # GeoData Schemas
+    ConteggioPuntiInteresseRequest:
+      type: object
+      required:
+        - latitudine
+        - longitudine
+        - raggio
+        - categorie
+      properties:
+        latitudine:
+          type: number
+          minimum: -90
+          maximum: 90
+          description: Latitudine geografica
+        longitudine:
+          type: number
+          minimum: -180
+          maximum: 180
+          description: Longitudine geografica
+        raggio:
+          type: integer
+          minimum: 1
+          maximum: 50000
+          description: Raggio di ricerca in metri
+        categorie:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
             type: string
-          urlFoto:
-            type: string
-          prezzo:
-            type: number
-          dimensione:
-            type: number
-          nBagni:
-            type: integer
-          nStanze:
-            type: integer
-          tipologia:
-            type: string
-          indirizzo:
-            type: string
-          comune:
-            type: string
-          piano:
-            type: integer
-          hasAscensore:
-            type: boolean
-          hasBalcone:
-            type: boolean
+          description: Categorie di punti di interesse (es. parco, trasporto, scuola)
+
+    # Meteo Schemas
+    MeteoRequest:
+      type: object
+      required:
+        - latitudine
+        - longitudine
+        - date
+      properties:
+        latitudine:
+          type: string
+          pattern: '^-?[0-9]{1,2}(\.[0-9]+)?$'
+          description: Latitudine geografica come stringa numerica (-90 a +90)
+        longitudine:
+          type: string
+          pattern: '^-?[0-9]{1,3}(\.[0-9]+)?$'
+          description: Longitudine geografica come stringa numerica (-180 a +180)
+        date:
+          type: string
+          format: date
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Data nel formato YYYY-MM-DD (da oggi ai prossimi 7 giorni)

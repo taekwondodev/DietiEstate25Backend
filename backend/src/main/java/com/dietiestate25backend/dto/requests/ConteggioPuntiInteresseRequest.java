@@ -1,45 +1,58 @@
 package com.dietiestate25backend.dto.requests;
 
+import jakarta.validation.constraints.*;
 import java.util.List;
 
 public class ConteggioPuntiInteresseRequest {
-    private double latitudine;
-    private double longitudine;
-    private int raggio;
+    @NotNull(message = "Latitudine non può essere null")
+    @DecimalMin(value = "-90.0", message = "Latitudine deve essere >= -90")
+    @DecimalMax(value = "90.0", message = "Latitudine deve essere <= 90")
+    private Double latitudine;
 
-    // La lista di categorie arriva sotto forma di lista di stringhe, così da generalizzare per qualsiasi Front-End
+    @NotNull(message = "Longitudine non può essere null")
+    @DecimalMin(value = "-180.0", message = "Longitudine deve essere >= -180")
+    @DecimalMax(value = "180.0", message = "Longitudine deve essere <= 180")
+    private Double longitudine;
+
+    @Positive(message = "Raggio deve essere positivo")
+    @Max(value = 50000, message = "Raggio non può superare 50000 metri")
+    private Integer raggio;
+
+    @NotNull(message = "Categorie non può essere null")
+    @NotEmpty(message = "Categorie non può essere vuota")
+    @Size(min = 1, max = 10, message = "Categorie deve contenere tra 1 e 10 elementi")
     private List<String> categorie;
 
     public ConteggioPuntiInteresseRequest() {}
 
-    public ConteggioPuntiInteresseRequest(double latitudine, double longitudine, int raggio, List<String> categorie) {
+    public ConteggioPuntiInteresseRequest(Double latitudine, Double longitudine, Integer raggio, List<String> categorie) {
         this.latitudine = latitudine;
         this.longitudine = longitudine;
         this.raggio = raggio;
         this.categorie = categorie;
     }
 
-    public double getLatitudine() {
+    public Double getLatitudine() {
         return latitudine;
     }
 
-    public void setLatitudine(double latitudine) {
+    public void setLatitudine(Double latitudine) {
         this.latitudine = latitudine;
     }
 
-    public double getLongitudine() {
+    public Double getLongitudine() {
         return longitudine;
     }
 
-    public void setLongitudine(double longitudine) {
+    public void setLongitudine(Double longitudine) {
         this.longitudine = longitudine;
     }
 
-    public int getRaggio() {
+    public Integer getRaggio() {
         return raggio;
     }
 
-    public void setRaggio(int raggio) {
+    public void setRaggio(Integer raggio) {
         this.raggio = raggio;
     }
 

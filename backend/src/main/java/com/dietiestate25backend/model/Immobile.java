@@ -1,7 +1,5 @@
 package com.dietiestate25backend.model;
 
-import java.util.UUID;
-
 public class Immobile {
     private int idImmobile;
     private final String urlFoto;

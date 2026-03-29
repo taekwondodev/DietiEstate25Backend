@@ -15,10 +15,9 @@ Questo branch è dedicato al refactoring della sicurezza del sistema, con la rim
 5. [Schema del Database](#5-schema-del-database)
 6. [Prerequisiti e Installazione](#6-prerequisiti-e-installazione)
 7. [Configurazione](#7-configurazione)
-8. [API Endpoints](#8-api-endpoints)
-9. [Testing](#9-testing)
-10. [Pipeline CI/CD](#10-pipeline-cicd)
-11. [Qualità del Codice](#11-qualità-del-codice)
+8. [Testing](#8-testing)
+9. [Pipeline CI/CD](#9-pipeline-cicd)
+10. [Qualità del Codice](#10-qualità-del-codice)
 
 ---
 
@@ -64,13 +63,13 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 
 ### 2.2 Ruoli
 
-| Ruolo | Descrizione                                                   |
-|-------|---------------------------------------------------------------|
-| **Unauthenticated** | Utente non autenticato — accesso pubblico limitato            |
-| **Admin** | Amministratore di agenzia — gestione staff e immobili agenzia |
-| **Gestore** | Responsabile operativo agenzia — gestione operativa           |
-| **AgenteImmobiliare** | Agente di commercializzazione — gestione immobili propri      |
-| **Cliente** | Utente finale — ricerca immobili, visite ed offerte           |
+| Ruolo | Descrizione                                                |
+|-------|------------------------------------------------------------|
+| **Unauthenticated** | Utente non autenticato           |
+| **Admin** | Amministratore di agenzia |
+| **Gestore** | Responsabile operativo agenzia    |
+| **AgenteImmobiliare** | Agente di commercializzazione  |
+| **Cliente** | Utente finale   |
 
 **Nota**: Per la matrice completa e dettagliata dei permessi per ogni endpoint, consultare la sezione [2.3](#23-matrice-di-accesso-endpoint).
 
@@ -80,9 +79,9 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 |----------|-----------------|-------|---------|--------|---------|
 | `POST /auth/login` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `POST /auth/register` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `POST /auth/register-staff` | ✗ | ✓ | ✗ | ✗ | ✗ |
+| `POST /auth/register-staff` | ✗ | ✓ | ✓ | ✗ | ✗ |
 | `GET /immobile/cerca` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `POST /immobile/crea` | ✗ | ✓ | ✗ | ✓ | ✗ |
+| `POST /immobile/crea` | ✗ | ✓ | ✓ | ✓ | ✗ |
 | `GET /immobile/personali` | ✗ | ✓ | ✓ | ✓ | ✗ |
 | `POST /geodata` | ✗ | ✓ | ✓ | ✓ | ✓ |
 | `POST /meteo` | ✗ | ✓ | ✓ | ✓ | ✓ |
@@ -350,16 +349,16 @@ Il database viene inizializzato automaticamente tramite lo script SQL nella cart
 
 ---
 
-## 7. Prerequisiti ed Installazione
+## 6. Prerequisiti ed Installazione
 
-### 7.1 Prerequisiti
+### 6.1 Prerequisiti
 
 - **Java 21+** (SDK)
 - **Maven 3.8+**
 - **Docker** e **Docker Compose**
 - **OpenSSL** (per generare JWT secret)
 
-### 7.2 Setup Iniziale
+### 6.2 Setup Iniziale
 
 #### Passo 1: Clonare il Repository
 
@@ -405,7 +404,7 @@ GEO_KEY=<TUA_GEOAPIFY_API_KEY>
 - Per Gmail, generare una [App Password](https://myaccount.google.com/apppasswords) se 2FA abilitato
 - Per altri provider, consultare la documentazione SMTP
 
-### 7.3 Avvio con Docker Compose
+### 6.3 Avvio con Docker Compose
 
 ```bash
 docker compose up --build -d
@@ -417,9 +416,9 @@ docker compose up --build -d
 
 ---
 
-## 8. Configurazione
+## 7. Configurazione
 
-### 8.1 File di Configurazione
+### 7.1 File di Configurazione
 
 #### `application.properties`
 
@@ -462,7 +461,7 @@ services:
 
 ```
 
-### 8.2 Fail-Fast Configuration
+### 7.2 Fail-Fast Configuration
 
 In caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup:
 
@@ -473,60 +472,121 @@ In caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup:
 
 ---
 
-## 9. Testing
+## 8. Testing
 
-```bash
-docker build -t test-runner -f Dockerfile.test .
-```
+### 8.1 Focus e Strategia
 
-```bash
-podman compose -f compose.test.yaml up --build --abort-on-container-exit
-```
+Il testing è **incentrato sulla sicurezza**, non sulla correttezza funzionale. L'obiettivo è verificare che il sistema sia **resistente ad attacchi e a input malevoli**, non che la business logic funzioni.
 
-### 9.1 Stato Attuale
+La strategia di test segue i principi di **OWASP Testing Guide** e **Security Testing Checklist**, concentrandosi su:
 
-🚧 **Work in progress** — La suite di test sarà implementata nella fase successiva con focus su:
+- **Input Validation & Boundary Testing** — Rifiuto di payload malformati, valori out-of-range
+- **Authorization & Access Control** — RBAC, tenant isolation, boundary checks
+- **Data Protection** — Hashing password, JWT validation, token tampering
+- **Exception Handling** — Nessuna information leakage in caso di errori
 
-- **Security Tests** (Unit) — Autorizzazione, validazione JWT, boundary checks
-- **Integration Tests** — DAO layer, Service layer, database transactions
-- **End-to-End Tests** — Flussi completi di autenticazione e creazione immobili
+### 8.2 Fase Attuale: Input Validation Testing
 
-### 9.2 Strategie di Testing Pianificate
+#### 8.2.1 MalformedPayloadTests (`security/validation/`)
 
-#### Test di Sicurezza (Mandatory)
+Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
-Concentrato su:
-- Validazione JWT (scadenza, tampering, secret mismatch)
-- RBAC (Role-Based Access Control)
-- Tenant isolation (isolamento dati multi-tenant)
-- Password hashing (BCrypt verification)
-- Rejection di payload malformati
+##### Categoria 1: JSON Parsing
+- `testMalformedJson_InvalidSyntax_ShouldReturn400` — JSON syntax non valida
+- `testEmptyBody_PostWithEmptyBody_ShouldReturn400` — Body vuoto
+- `testEmptyObject_PostWithEmptyJsonObject_ShouldReturn400` — Oggetto JSON vuoto `{}`
+- `testNullJson_SendingNullAsBody_ShouldReturn400` — Payload `null`
+- `testArrayInsteadOfObject_ShouldReturn400` — Array `[]` invece di object
 
-#### Test di Integrazione
+**Outcome**: Implementazione di `GlobalExceptionHandler` con handler per:
+- `HttpMessageNotReadableException` → 400 Bad Request
 
-- DAO layer con transazioni PostgreSQL
-- Service layer logic
-- End-to-end flow (Login → Crea Immobile → Prenota Visita)
+##### Categoria 2: Content Negotiation
+- `testWrongContentType_TextPlainShouldNotBeAccepted` — Content-Type `text/plain` non accettato
+
+**Outcome**: Spring Security valida Content-Type automaticamente
+
+##### Categoria 3: Buffer Overflow & Payload Size
+- `testHugePayload_ExtremelyLargeShouldBeRejected` — Payload da 100,000 caratteri
+
+**Outcome**: Implementazione di limiti di validazione nei DTO (`@Size`, `@DecimalMax`)
+
+##### Categoria 4: Type Mismatch
+- `testNegativeIntegerParameters_ShouldBeHandled` — Parametri numerici negativi
+- `testNonIntegerParameters_ShouldBeRejected` — Parametri non-numerici per campi interi
+- `testDoubleParameters_InvalidFormatShouldBeRejected` — Parametri Double malformati
+
+**Outcome**: Implementazione di `MethodArgumentTypeMismatchException` handler
+
+##### Categoria 5: Injection & Special Characters
+- `testSpecialCharactersInString_ShouldNotCauseInjection` — SQL injection attempt: `'; DROP TABLE--`
+
+**Outcome**: `@Email` validator rifiuta pattern sospetti. Parametrized queries in JDBC protegono ulteriormente
+
+- `testUnicodeCharacters_ValidUnicodeShouldBeAccepted` — Unicode valido accettato
+
+**Outcome**: Conferma che l'app supporta caratteri internazionali senza vulnerabilità
+
+#### 8.2.2 Miglioramenti Implementati
+
+| Area | Prima | Dopo | Impact |
+|------|-------|------|--------|
+| **Exception Handling** | Generic 500 errors | Typed 400/401/404 responses | Information hiding ✅ |
+| **Input Validation** | `@NotNull` generic | `@NotBlank`, `@Size`, `@Pattern`, `@Min`/`@Max` | Boundary protection ✅ |
+| **Error Messages** | Implementazione-specific | Business-friendly, no tech leakage | Security by obscurity ✅ |
+| **DAO Error Mapping** | `RuntimeException` uncaught | `DataIntegrityViolationException` → `ConflictException` | Constraint violation handling ✅ |
+| **Query Parameters** | No validation | `@Min`, `@Positive`, `@NotBlank` | Parameter tampering prevention ✅ |
+
+#### 8.2.3 Endpoint Coperto dalla Suite
+
+| Endpoint | Test Cases | Status |
+|----------|-----------|--------|
+| `POST /auth/login` | 10 | ✅ Passing |
+| `GET /immobile/cerca` | 3 | ✅ Passing |
+
+### 8.3 Prossime Fasi (Roadmap)
+
+#### Fase 2: Authorization & Access Control Tests
+- [ ] RBAC validation (Cliente vs Agente vs Admin)
+- [ ] Tenant isolation (utente non può accedere risorse di altri)
+- [ ] Boundary checks (verifica che i check di autorizzazione siano in place)
+
+#### Fase 3: JWT & Cryptography Tests
+- [ ] Token tampering — Modifica payload/signature
+- [ ] Token expiration — Token scaduto rifiutato
+- [ ] Secret mismatch — Token firmato con secret errato
+- [ ] BCrypt verification — Password hashing non compromesso
+
+#### Fase 4: Business Logic Security Tests
+- [ ] State transition validation (offerta: solo In Sospeso → Accettata/Rifiutata)
+- [ ] Data ownership checks (cliente può modificare solo sue offerte)
+- [ ] Cascade delete protection (eliminating immobile → cascata corretta)
+
+#### Fase 5: Integration Tests
+- [ ] End-to-end security flow (login → crea immobile → prenota visita)
+- [ ] Database constraint validation
+- [ ] Concurrent access handling
 
 ---
 
-## 10. Pipeline CI/CD
+## 9. Pipeline CI/CD
 
 🚧 **Work in progress** — La pipeline verrà configurata nelle prossime fasi.
 
-### 10.1 Pianificazione
+### 9.1 Pianificazione
 
 La pipeline avrà i seguenti stage:
 
 1. **Build** — `mvn clean package`
-2. **Test** — `mvn test` (con coverage SonarQube)
-3. **Security Scan** — SAST (Static Application Security Testing)
-4. **Docker Build** — Build immagine container
-5. **Deploy to Staging** — Deployment test environment
-6. **E2E Tests** — Test funzionali finali
-7. **Deploy to Production** — Rilascio in prod (manual approval)
+2. **Security Tests** — `mvn test -Dgroups=security` (JUnit 5 tags)
+3. **Integration Tests** — `mvn test -Dgroups=integration`
+4. **Security Scan** — SAST (Static Application Security Testing)
+5. **Docker Build** — Build immagine container
+6. **Deploy to Staging** — Deployment test environment
+7. **E2E Tests** — Test funzionali finali
+8. **Deploy to Production** — Rilascio in prod (manual approval)
 
-### 10.2 Trigger
+### 9.2 Trigger
 
 - Ogni push su `security` branch
 - Merge request / Pull request
@@ -534,9 +594,9 @@ La pipeline avrà i seguenti stage:
 
 ---
 
-## 11. Qualità del Codice
+## 10. Qualità del Codice
 
-### 11.1 Principi di Progettazione
+### 10.1 Principi di Progettazione
 
 #### Type-Driven Design (TyDD)
 
@@ -567,7 +627,7 @@ public void registraGestoreOrAgente(String uidAdmin, RegistrazioneRequest reques
 }
 ```
 
-### 11.2 SonarCloud Integration
+### 10.2 SonarCloud Integration
 
 Report attuale:
 
@@ -578,7 +638,7 @@ Report attuale:
 | **Maintainability** | A | < 15 code smells |
 | **Code Duplication** | 1.9% | ~2.3k LOC |
 
-### 11.3 Refactoring Fearless
+### 10.3 Refactoring Fearless
 
 Non viene mantenuta backward compatibility per:
 - Cambiamenti di entità (model)

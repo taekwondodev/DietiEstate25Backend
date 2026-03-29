@@ -1,5 +1,7 @@
 package com.dietiestate25backend.controller;
 
+import com.dietiestate25backend.dto.requests.AggiornaVisitaRequest;
+import com.dietiestate25backend.dto.requests.PrenotaVisitaRequest;
 import com.dietiestate25backend.model.Visita;
 import com.dietiestate25backend.service.VisitaService;
 import com.dietiestate25backend.utils.TokenUtils;
@@ -21,20 +23,16 @@ public class VisitaController {
     }
 
     @PostMapping("/prenota")
-    public ResponseEntity<Void> prenotaVisita(@Valid @RequestBody Visita request) {
+    public ResponseEntity<Void> prenotaVisita(@Valid @RequestBody PrenotaVisitaRequest request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(uidCliente);
-
-        visitaService.prenotaVisita(request);
+        visitaService.prenotaVisita(request, uidCliente);
         return ResponseEntity.status(201).build();
     }
 
     @PatchMapping("/aggiorna")
-    public ResponseEntity<Void> aggiornaStatoVisita(@Valid @RequestBody Visita request) {
+    public ResponseEntity<Void> aggiornaStatoVisita(@Valid @RequestBody AggiornaVisitaRequest request) {
         String uidCliente = TokenUtils.getUserSub();
-        request.setIdCliente(uidCliente);
-
-        visitaService.aggiornaStatoVisita(request);
+        visitaService.aggiornaStatoVisita(request, uidCliente);
         return ResponseEntity.ok().build();
     }
 

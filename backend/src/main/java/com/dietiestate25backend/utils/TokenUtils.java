@@ -57,6 +57,14 @@ public class TokenUtils {
         }
     }
 
+    public static void checkIfAdminOrGestore() {
+        String role = getRole();
+
+        if (isNotAdmin(role) || isNotGestore(role)) {
+            throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
+        }
+    }
+
     public static void checkIfUtenteAgenzia() {
         String role = getRole();
 
@@ -67,6 +75,10 @@ public class TokenUtils {
 
     private static boolean isNotAdmin(String role) {
         return role == null || !role.equals("Admin");
+    }
+
+    private static boolean isNotGestore(String role) {
+        return role == null || !role.equals("Gestore");
     }
 
     private static boolean hasValidAgencyRole(String role) {

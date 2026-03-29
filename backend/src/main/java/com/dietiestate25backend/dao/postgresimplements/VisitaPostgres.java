@@ -7,8 +7,10 @@ import com.dietiestate25backend.model.Visita;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,13 +23,11 @@ public class VisitaPostgres implements VisitaDao {
     }
 
     @Override
-    public boolean salva(Visita visita) {
+    public boolean salva(Date data, Time time, StatoVisita stato, String uidCliente, int idImmobile) {
         String sql = "INSERT INTO visita (data, orario, stato, idCliente, idImmobile) VALUES (?, ?, ?, ?, ?)";
 
         int result = jdbcTemplate.update(sql,
-                visita.getDataVisita(), visita.getOraVisita(),
-                visita.getStato().getStatoString(), visita.getIdCliente(),
-                visita.getImmobile().getIdImmobile()
+                data, time, stato.getStatoString(), uidCliente, idImmobile
         );
         return result > 0;
     }
@@ -41,6 +41,27 @@ public class VisitaPostgres implements VisitaDao {
                 visita.getIdVisita()
         );
         return result > 0;
+    }
+
+    @Override
+    public Visita getVisitaById(int id) {
+        String sql = "SELECT v.*, i.* " +
+                "FROM visita v " +
+                "JOIN immobile i ON v.idImmobile = i.idImmobile " +
+                "WHERE v.idVisita = ?";
+
+        return jdbcTemplate.queryForObject(sql, (resultSet, i) -> {
+            Immobile immobile = buildImmobile(resultSet);
+
+            return new Visita(
+                    resultSet.getInt("idVisita"),
+                    resultSet.getDate("data"),
+                    resultSet.getTime("orario"),
+                    StatoVisita.fromString(resultSet.getString("stato")),
+                    resultSet.getString("idCliente"),
+                    immobile
+            );
+        }, id);
     }
 
     @Override

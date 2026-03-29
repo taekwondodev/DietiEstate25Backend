@@ -20,15 +20,32 @@ public class OffertaPostgres implements OffertaDao {
     }
 
     @Override
-    public boolean salvaOfferta(Offerta offerta) {
+    public boolean salvaOfferta(double importo, StatoOfferta stato, String uidCliente, int idImmobile) {
         String sql = "INSERT INTO offerta (importo, stato, idCliente, idImmobile) VALUES (?, ?, ?, ?)";
         int result = jdbcTemplate.update(sql,
-                offerta.getImporto(),
-                offerta.getStato().toString(),
-                offerta.getIdCliente(),
-                offerta.getImmobile().getIdImmobile()
+                importo, stato.getStatoString(), uidCliente, idImmobile
         );
         return result > 0;
+    }
+
+    @Override
+    public Offerta getOffertaById(int idOfferta) {
+        String sql = "SELECT o.*, i.* " +
+                "FROM offerta o " +
+                "JOIN immobile i ON o.idImmobile = i.idImmobile " +
+                "WHERE o.idOfferta = ?";
+
+        return jdbcTemplate.queryForObject(sql, (resultSet, i) -> {
+            Immobile immobile = buildImmobile(resultSet);
+
+            return new Offerta(
+                    resultSet.getInt("idOfferta"),
+                    resultSet.getDouble("importo"),
+                    StatoOfferta.fromString(resultSet.getString("stato")),
+                    resultSet.getString("idCliente"),
+                    immobile
+            );
+        }, idOfferta);
     }
 
     @Override
