@@ -485,13 +485,13 @@ La strategia di test segue i principi di **OWASP Testing Guide** e **Security Te
 - **Data Protection** — Hashing password, JWT validation, token tampering
 - **Exception Handling** — Nessuna information leakage in caso di errori
 
-### 8.2 Fase Attuale: Input Validation Testing
+### 8.2 Input Validation Testing
 
 #### 8.2.1 MalformedPayloadTests (`security/validation/`)
 
 Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
-##### Categoria 1: JSON Parsing
+##### JSON Parsing
 - `testMalformedJson_InvalidSyntax_ShouldReturn400` — JSON syntax non valida
 - `testEmptyBody_PostWithEmptyBody_ShouldReturn400` — Body vuoto
 - `testEmptyObject_PostWithEmptyJsonObject_ShouldReturn400` — Oggetto JSON vuoto `{}`
@@ -501,24 +501,24 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 **Outcome**: Implementazione di `GlobalExceptionHandler` con handler per:
 - `HttpMessageNotReadableException` → 400 Bad Request
 
-##### Categoria 2: Content Negotiation
+##### Content Negotiation
 - `testWrongContentType_TextPlainShouldNotBeAccepted` — Content-Type `text/plain` non accettato
 
 **Outcome**: Spring Security valida Content-Type automaticamente
 
-##### Categoria 3: Buffer Overflow & Payload Size
+##### Buffer Overflow & Payload Size
 - `testHugePayload_ExtremelyLargeShouldBeRejected` — Payload da 100,000 caratteri
 
 **Outcome**: Implementazione di limiti di validazione nei DTO (`@Size`, `@DecimalMax`)
 
-##### Categoria 4: Type Mismatch
+##### Type Mismatch
 - `testNegativeIntegerParameters_ShouldBeHandled` — Parametri numerici negativi
 - `testNonIntegerParameters_ShouldBeRejected` — Parametri non-numerici per campi interi
 - `testDoubleParameters_InvalidFormatShouldBeRejected` — Parametri Double malformati
 
 **Outcome**: Implementazione di `MethodArgumentTypeMismatchException` handler
 
-##### Categoria 5: Injection & Special Characters
+##### Injection & Special Characters
 - `testSpecialCharactersInString_ShouldNotCauseInjection` — SQL injection attempt: `'; DROP TABLE--`
 
 **Outcome**: `@Email` validator rifiuta pattern sospetti. Parametrized queries in JDBC protegono ulteriormente
@@ -527,29 +527,219 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
 **Outcome**: Conferma che l'app supporta caratteri internazionali senza vulnerabilità
 
-#### 8.2.2 Miglioramenti Implementati
+#### 8.2.2 LoginRequestValidationTests (`security/validation/`)
+
+Suite di **10 test** che verificano la validazione specifica del DTO `LoginRequest`:
+
+##### Field Presence & Nullability
+- `testLoginRequest_MissingEmail_ShouldReturn400` — Campo `email` assente
+- `testLoginRequest_MissingPassword_ShouldReturn400` — Campo `password` assente
+- `testLoginRequest_NullEmail_ShouldReturn400` — Email `null`
+- `testLoginRequest_NullPassword_ShouldReturn400` — Password `null`
+
+**Outcome**: Annotazioni `@NotNull` e `@NotBlank` su `LoginRequest`
+
+##### Field Content Validation
+- `testLoginRequest_EmptyEmail_ShouldReturn400` — Email stringa vuota `""`
+- `testLoginRequest_EmptyPassword_ShouldReturn400` — Password stringa vuota `""`
+- `testLoginRequest_MalformedEmail_ShouldReturn400` — Email senza `@` domain (es. `not-an-email`)
+- `testLoginRequest_EmailWithSpecialChars_ShouldReturn400` — Email con XSS payload: `user<script>alert('xss')</script>@example.com`
+- `testLoginRequest_WhitespaceOnlyEmail_ShouldReturn400` — Email solo spazi: `"   "`
+- `testLoginRequest_WhitespaceOnlyPassword_ShouldReturn400` — Password solo spazi: `"   "`
+
+**Outcome**: Annotazioni `@Email` (RFC 5322), `@NotBlank`, trimming automatico
+
+##### Attack Prevention
+- `testLoginRequest_SqlInjectionInEmail_ShouldBeRejected` — SQL injection attempt: `'; DROP TABLE utenti; --` rifiutato dalla validazione email
+
+**Outcome**: Validazione email + parametrized queries proteggono
+
+- `testLoginRequest_ExtraFields_ShouldBeIgnored` — Campo extra `role: "Admin"` nella request ignorato (non injection)
+
+**Outcome**: Jackson deserializer ignora automaticamente i campi non mappati
+
+#### 8.2.3 RegistrazioneRequestValidationTests (`security/validation/`)
+
+Suite di **10 test** che verificano la validazione specifica del DTO `RegistrazioneRequest`:
+
+##### Field Presence & Nullability
+- `testRegistrazioneRequest_MissingEmail_ShouldReturn400` — Campo `email` assente
+- `testRegistrazioneRequest_MissingPassword_ShouldReturn400` — Campo `password` assente
+- `testRegistrazioneRequest_MissingRole_ShouldReturn400` — Campo `role` assente
+
+**Outcome**: Annotazioni `@NotNull` su `RegistrazioneRequest`
+
+##### Field Content Validation
+- `testRegistrazioneRequest_EmptyEmail_ShouldReturn400` — Email stringa vuota
+- `testRegistrazioneRequest_EmptyPassword_ShouldReturn400` — Password stringa vuota
+- `testRegistrazioneRequest_EmptyRole_ShouldReturn400` — Role stringa vuota
+- `testRegistrazioneRequest_MalformedEmail_ShouldReturn400` — Email senza dominio
+- `testRegistrazioneRequest_EmailWithXssAttempt_ShouldBeRejected` — Email con `<script>alert('xss')</script>@example.com`
+- `testRegistrazioneRequest_WhitespaceOnlyEmail_ShouldReturn400` — Email solo spazi
+- `testRegistrazioneRequest_WhitespaceOnlyPassword_ShouldReturn400` — Password solo spazi
+
+**Outcome**: Annotazioni `@Email`, `@NotBlank` sul DTO
+
+##### Attack Prevention & Edge Cases
+- `testRegistrazioneRequest_SqlInjectionAttempt_ShouldBeRejected` — SQL injection in email rifiutato
+
+**Outcome**: `@Email` validator + parametrized queries
+
+- `testRegistrazioneRequest_ExtraFields_ShouldBeIgnored` — Campo extra `admin: true` nella request ignorato
+
+**Outcome**: Jackson ignora campi non mappati
+
+- `testRegistrazioneRequest_PasswordWithOnlyNumbers_ShouldBeAccepted` — Password numerica accettata (nessun requisito di complessità)
+
+**Outcome**: Conferma che il sistema non ha validazione di password strength
+
+#### 8.2.4 Miglioramenti Implementati
 
 | Area | Prima | Dopo | Impact |
 |------|-------|------|--------|
-| **Exception Handling** | Generic 500 errors | Typed 400/401/404 responses | Information hiding ✅ |
-| **Input Validation** | `@NotNull` generic | `@NotBlank`, `@Size`, `@Pattern`, `@Min`/`@Max` | Boundary protection ✅ |
-| **Error Messages** | Implementazione-specific | Business-friendly, no tech leakage | Security by obscurity ✅ |
-| **DAO Error Mapping** | `RuntimeException` uncaught | `DataIntegrityViolationException` → `ConflictException` | Constraint violation handling ✅ |
-| **Query Parameters** | No validation | `@Min`, `@Positive`, `@NotBlank` | Parameter tampering prevention ✅ |
+| **Exception Handling** | Generic 500 errors | Typed 400/401/404 responses | Information hiding |
+| **Input Validation - DTO** | `@NotNull` generic | `@NotBlank`, `@Size`, `@Pattern`, `@Email`, `@Min`/`@Max`, `@Positive` | Boundary protection |
+| **Input Validation - Query Params** | Nessuna validazione | `@Min`, `@Positive`, `@NotBlank` su `@RequestParam` | Parameter tampering prevention |
+| **Error Messages** | Implementazione-specific | Business-friendly, no tech leakage | Security by obscurity |
+| **DAO Error Mapping** | `RuntimeException` uncaught | `DataIntegrityViolationException` → `ConflictException` | Constraint violation handling |
+| **Type Coercion Safety** | No validation | `@MethodArgumentTypeMismatchException` handler | Type safety |
 
 #### 8.2.3 Endpoint Coperto dalla Suite
 
-| Endpoint | Test Cases | Status |
-|----------|-----------|--------|
-| `POST /auth/login` | 10 | ✅ Passing |
-| `GET /immobile/cerca` | 3 | ✅ Passing |
+| Endpoint              | Test Cases | Status |
+|-----------------------|------------|--------|
+| `POST /auth/login`    | 13         | ✅ Passing |
+| `POST /auth/register` | 13         | ✅ Passing |
+| `GET /immobile/cerca` | 5          | ✅ Passing |
 
-### 8.3 Prossime Fasi (Roadmap)
+### 8.3 Authorization & Access Control Testing
 
-#### Fase 2: Authorization & Access Control Tests
-- [ ] RBAC validation (Cliente vs Agente vs Admin)
-- [ ] Tenant isolation (utente non può accedere risorse di altri)
-- [ ] Boundary checks (verifica che i check di autorizzazione siano in place)
+#### 8.3.1 PublicEndpointTests (`security/authorization/`)
+
+Suite di **7 test** che verifica quali endpoint siano pubblici (non autenticati) e quali protetti:
+
+##### Pubblici (con validazione ma senza JWT)
+- `testLoginEndpoint_ShouldBePublic` — Non richiede JWT
+- `testRegisterEndpoint_ShouldBePublic` — Non richiede JWT
+- `testCercaImmobiliEndpoint_ShouldBePublic` — Non richiede JWT
+
+**Outcome**: Configurazione `SecurityFilterChain` con `permitAll()` esplicito per endpoint pubblici
+
+##### Protetti (richiedono JWT e autenticazione)
+- `testRegisterStaffEndpoint_ShouldNotBePublic` — Richiede JWT
+- `testImmobiliPersonaliEndpoint_ShouldNotBePublic` — Richiede JWT
+- `testCreaImmobileEndpoint_ShouldNotBePublic` — Richiede JWT
+- `testPrenotaVisitaEndpoint_ShouldNotBePublic` — Richiede JWT
+- `testAggiungiOffertaEndpoint_ShouldNotBePublic` — Richiede JWT
+
+**Outcome**: Fallback di Spring Security `anyRequest().authenticated()` funzionante correttamente
+
+#### 8.3.2 AdminBoundaryTests (`security/authorization/`)
+
+Suite di **6 test** che verifica che solo **Admin** (e Gestore) possano registrare nuovo staff:
+
+- `testRegisterStaff_WithClienteRole_ShouldReturn401` — Cliente bloccato
+- `testRegisterStaff_WithAgenteRole_ShouldReturn401` — AgenteImmobiliare bloccato
+- `testRegisterStaff_WithGestoreRole_ShouldReturn200` — **Gestore piò registrare staff**
+- `testRegisterStaff_WithAdminRole_ShouldReturn200` — **Admin può registrare staff**
+- `testRegisterStaff_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testRegisterStaff_WithInvalidRole_ShouldThrowException` — Role sconosciuto bloccato
+
+**Outcome**: Implementazione di `TokenUtils.checkIfAdminOrGestore()` in `AuthController.registraGestoreOrAgente()`.
+
+#### 8.3.3 UtenteAgenziaBoundaryTests (`security/authorization/`)
+
+Suite di **10 test** che verifica che **solo UtenteAgenzia** (Admin, Gestore, AgenteImmobiliare) possano:
+1. Creare immobili
+2. Visualizzare i propri immobili
+
+- `testCreateImmobile_WithClienteRole_ShouldReturn403` — Cliente **non può creare** immobili
+- `testCreateImmobile_WithAdminRole_ShouldReturn201` — Admin **può creare**
+- `testCreateImmobile_WithGestoreRole_ShouldReturn201` — Gestore **può creare**
+- `testCreateImmobile_WithAgenteRole_ShouldReturn201` — AgenteImmobiliare **può creare**
+- `testCreateImmobile_WithoutAuthentication_ShouldReturn401` — Unauthenticated rimandato
+- `testImmobiliPersonali_WithClienteRole_ShouldReturn403` — Cliente **non può visualizzare**
+- `testImmobiliPersonali_WithAdminRole_ShouldReturn200` — Admin **può visualizzare**
+- `testImmobiliPersonali_WithGestoreRole_ShouldReturn200` — Gestore **può visualizzare**
+- `testImmobiliPersonali_WithAgenteRole_ShouldReturn200` — AgenteImmobiliare **può visualizzare**
+- `testImmobiliPersonali_WithoutAuthentication_ShouldReturn401` — Unauthenticated rimandato
+
+**Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in:
+- `ImmobileController.creaImmobile()`
+- `ImmobileController.immobiliPersonali()`
+- `OffertaController.riepilogoOfferteUtenteAgenzia()`
+- `VisitaController.riepilogoVisitaUtenteAgenzia()`
+
+#### 8.3.4 Data Isolation Tests (`security/dataisolation/`)
+
+Suite di **3 categorie di test** che verificano che gli endpoint "riepilogo UtenteAgenzia" siano **accessibili solo a UtenteAgenzia**.
+
+##### ImmobileOwnershipTests (5 test)
+
+Verifica che:
+- Agente vede **solo i suoi immobili** nella lista personale
+- Cliente **non può** accedere a `/immobile/personali` (403)
+- Gestore e Admin **possono** accedere
+- Ricerca pubblica (`/immobile/cerca`) è accessibile a tutti
+
+**Outcome**: `checkIfUtenteAgenzia()` blocca Cliente da accesso
+
+##### OffertaPrivacyTests (7 test)
+
+Verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
+
+- `testRiepilogoOfferteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue offerte**
+- `testRiepilogoOfferteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
+
+**Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in endpoint `/offerta/riepilogoUtenteAgenzia`
+
+**Nota di Sicurezza**: Precedentemente questo endpoint era **accessibile anche ai Cliente**, permettendo la fuga di dati riservati. **Fixato con aggiunta della guardia di autorizzazione**.
+
+- `testRiepilogoOfferteUtenteAgenzia_WithAdminRole_ShouldReturn200` — Admin accede
+- `testRiepilogoOfferteUtenteAgenzia_WithGestoreRole_ShouldReturn200` — Gestore accede
+- `testRiepilogoOfferteUtenteAgenzia_WithAgenteRole_ShouldReturn200` — Agente accede
+- `testRiepilogoOfferteUtenteAgenzia_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+
+##### VisitaPrivacyTests (6 test)
+
+Verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
+
+- `testRiepilogoVisiteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue visite**
+- `testRiepilogoVisiteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
+- `testRiepilogoVisiteUtenteAgenzia_WithAdminRole_ShouldReturn200` — Admin accede
+- `testRiepilogoVisiteUtenteAgenzia_WithGestoreRole_ShouldReturn200` — Gestore accede
+- `testRiepilogoVisiteUtenteAgenzia_WithAgenteRole_ShouldReturn200` — Agente accede
+- `testRiepilogoVisiteUtenteAgenzia_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+
+**Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in `/visita/riepilogoUtenteAgenzia`
+
+#### 8.3.5 Miglioramenti Implementati
+
+| Area | Prima | Dopo | Impact |
+|------|-------|------|--------|
+| **RBAC** | Nessun controllo di ruolo | `checkIfAdmin()`, `checkIfAdminOrGestore()`, `checkIfUtenteAgenzia()` | Authorization enforcement |
+| **Public vs Protected** | Incoerente | Esplicitamente definito in `SecurityConfig` | Clear security model |
+| **Endpoint Guarding** | Assente | Guardie in ogni endpoint sensibile | Access control |
+| **Data Isolation** | Cliente poteva accedere riepilogoUtenteAgenzia | Bloccato con `checkIfUtenteAgenzia()` | Privacy protection |
+
+#### 8.3.6 Endpoint Coperto dalla Suite (Fase 1 + Fase 2)
+
+| Endpoint | Test Cases | Fase 1 | Fase 2 | Status |
+|----------|------------|--------|--------|--------|
+| `POST /auth/login` | 13         | ✅ | - | ✅ Passing |
+| `POST /auth/register` | 13         | ✅ | - | ✅ Passing |
+| `POST /auth/register-staff` | 6          | - | ✅ | ✅ Passing |
+| `GET /immobile/cerca` | 5          | ✅ | ✅ | ✅ Passing |
+| `POST /immobile/crea` | 5          | - | ✅ | ✅ Passing |
+| `GET /immobile/personali` | 5          | - | ✅ | ✅ Passing |
+| `GET /offerta/riepilogoCliente` | 1          | - | ✅ | ✅ Passing |
+| `GET /offerta/riepilogoUtenteAgenzia` | 6          | - | ✅ | ✅ Passing |
+| `GET /visita/riepilogoCliente` | 1          | - | ✅ | ✅ Passing |
+| `GET /visita/riepilogoUtenteAgenzia` | 6          | - | ✅ | ✅ Passing |
+
+---
+
+### 8.4 Prossime Fasi (Roadmap)
 
 #### Fase 3: JWT & Cryptography Tests
 - [ ] Token tampering — Modifica payload/signature

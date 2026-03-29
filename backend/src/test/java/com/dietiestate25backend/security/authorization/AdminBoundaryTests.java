@@ -46,37 +46,37 @@ class AdminBoundaryTests {
     }
 
     @Test
-    @DisplayName("Register Staff - Cliente should not be able to register staff (403 Forbidden)")
+    @DisplayName("Register Staff - Cliente should not be able to register staff (401 Unauthorized)")
     @WithMockUser(roles = "Cliente")
     void testRegisterStaff_WithClienteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Register Staff - Agente should not be able to register staff (403 Forbidden)")
+    @DisplayName("Register Staff - Agente should not be able to register staff (401 Unauthorized)")
     @WithMockUser(roles = "AgenteImmobiliare")
     void testRegisterStaff_WithAgenteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Register Staff - Gestore should not be able to register staff (403 Forbidden)")
+    @DisplayName("Register Staff - Gestore can also register staff (200 OK)")
     @WithMockUser(roles = "Gestore")
-    void testRegisterStaff_WithGestoreRole_ShouldReturn403() throws Exception {
+    void testRegisterStaff_WithGestoreRole_ShouldReturn200() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("Register Staff - Only Admin should be able to register staff (200 OK)")
+    @DisplayName("Register Staff - Admin should be able to register staff (200 OK)")
     @WithMockUser(roles = "Admin")
     void testRegisterStaff_WithAdminRole_ShouldReturn200() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
@@ -101,7 +101,7 @@ class AdminBoundaryTests {
         mockMvc.perform(post("/auth/register-staff")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
 

@@ -60,7 +60,7 @@ public class TokenUtils {
     public static void checkIfAdminOrGestore() {
         String role = getRole();
 
-        if (isNotAdmin(role) || isNotGestore(role)) {
+        if (isNotAdmin(role) && isNotGestore(role)) {
             throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
         }
     }
