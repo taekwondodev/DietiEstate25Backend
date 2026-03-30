@@ -769,7 +769,7 @@ Suite di **8 test** che verifica password hashing con BCrypt:
 - BCrypt è resistant a timing attacks per natura
 - Error messages **non differenziano** tra email inesistente e password errata
 
-#### 8.4.4 Miglioramenti Implementati
+#### 8.4.3 Miglioramenti Implementati
 
 | Area | Prima | Dopo | Impact |
 |------|-------|------|--------|
@@ -780,14 +780,176 @@ Suite di **8 test** che verifica password hashing con BCrypt:
 | **Error Messages** | Specifici per email/password | Generic "Email o password non corrette" | User enumeration prevention |
 | **Token Expiration** | Non implementato | 1 ora (3600s) con `expiresAt` | Session timeout |
 
+### 8.5 Business Logic Security Tests
+
+Suite di **47** test che verifica la sicurezza della logica di business, in particolare la validazione delle transizioni di stato e l'handling sicuro delle eccezioni.
+
+#### 8.5.1 State Transition Validation Tests (`security/business/`)
+
+##### Offerta State Machine
+
+Una offerta segue una state machine ristretta:
+- IN_SOSPESO ──→ ACCETTATA (terminale) ──→ RIFIUTATA (terminale)
+- ACCETTATA ──X (nessuna transizione permessa)
+- RIFIUTATA ──X (nessuna transizione permessa)
+
+Suite di **6 test** in `OffertaStateTransitionTests`:
+
+- `testInSospeso_ToAccettata_ShouldBeValid` — Transizione permessa ✓
+- `testInSospeso_ToRifiutata_ShouldBeValid` — Transizione permessa ✓
+- `testInSospeso_ToInSospeso_ShouldBeInvalid` — Transizione a stesso stato rifiutata
+- `testAccettata_ToRifiutata_ShouldBeInvalid` — Stato terminale non può transizionare
+- `testAccettata_ToAccettata_ShouldBeInvalid` — Stato terminale non può transizionare
+- `testRifiutata_ToAccettata_ShouldBeInvalid` — Stato terminale non può transizionare
+
+**Outcome**: Implementazione di `OffertaService.isTransazioneValida()` che valida transizioni secondo la state machine.
+
+##### Visita State Machine
+
+Una visita segue una state machine identica a quella delle offerte:
+- IN_SOSPESO ──→ CONFERMATA (terminale) ──→ RIFIUTATA (terminale)
+- CONFERMATA ──X (nessuna transizione permessa)
+- RIFIUTATA ──X (nessuna transizione permessa)
+
+Suite di **6 test** in `VisitaStateTransitionTests`:
+
+- `testInSospeso_ToConfermata_ShouldBeValid` — Transizione permessa ✓
+- `testInSospeso_ToRifiutata_ShouldBeValid` — Transizione permessa ✓
+- `testInSospeso_ToInSospeso_ShouldBeInvalid` — Transizione a stesso stato rifiutata
+- `testConfermata_ToRifiutata_ShouldBeInvalid` — Stato terminale non può transizionare
+- `testConfermata_ToConfermata_ShouldBeInvalid` — Stato terminale non può transizionare
+- `testRifiutata_ToConfermata_ShouldBeInvalid` — Stato terminale non può transizionare
+
+**Outcome**: Implementazione di `VisitaService.isTransizioneValidaVisita()` che valida transizioni secondo la state machine.
+
+#### 8.5.2 Exception Handling Tests (`security/business/`)
+
+##### Offerta Exception Handling Tests
+
+Suite di **5 test** in `OffertaExceptionHandlingTests`:
+
+**Authorization Checks**
+- `testClienteModificaOffertaAltrui_ShouldThrowUnauthorizedException` — Client1 tenta di modificare offerta di Client2 → `UnauthorizedException` con messaggio generico "Utente non autorizzato"
+- `testAgenteModificaOffertaCollega_ShouldThrowUnauthorizedException` — Agente1 tenta di modificare offerta su immobile di Agente2 → `UnauthorizedException`
+
+**Resource Not Found**
+- `testClienteModificaOffertaInesistente_ShouldThrowNotFoundException` — Offerta inesistente → `NotFoundException` con messaggio "Offerta non trovato"
+
+**Exception Wrapping**
+- `testDAOThrowsException_ShouldBeWrappedInGenericException` — Se DAO lancia `RuntimeException` → `InternalServerErrorException` con messaggio generico "Errore interno del server" (stack trace non incluso)
+
+**Guard Ordering**
+- `testOwnershipCheckBeforeStateValidation_ShouldThrowUnauthorizedException` — Se Client1 tenta di modificare offerta Client2 con stato invalido, riceve `UnauthorizedException` (non `BadRequestException`). Questo garantisce che l'attaccante non possa scoprire lo stato interno.
+
+**Outcome**:
+- Messaggi di errore generici che non rivelano dettagli
+- Stack trace non propagato al client
+- Ownership check eseguito **prima** della validazione di stato
+
+##### Visita Exception Handling Tests
+
+Suite di **5 test** in `VisitaExceptionHandlingTests` con stessa struttura di `OffertaExceptionHandlingTests`:
+
+- `testClienteModificaVisitaAltrui_ShouldThrowUnauthorizedException`
+- `testAgenteModificaVisitaCollega_ShouldThrowUnauthorizedException`
+- `testClienteModificaVisitaInesistente_ShouldThrowNotFoundException`
+- `testDAOThrowsException_ShouldBeWrappedInGenericException`
+- `testOwnershipCheckBeforeStateValidation_ShouldThrowUnauthorizedException`
+
+##### Immobile Exception Handling Tests
+
+Suite di **5 test** in `ImmobileExceptionHandlingTests`:
+
+**Data Access Error Handling**
+- `testCercaImmobili_DAOThrowsDataAccessException_ShouldWrapWithoutLeaking` — Se DAO lancia `DataAccessException` → `InternalServerErrorException` generico
+- `testImmobiliPersonali_DAOThrowsDataAccessException_ShouldWrapWithoutLeaking` — Stessa protezione per endpoint personali
+
+**Geographic Service Validation**
+- `testCreaImmobile_GeoServiceReturnsNull_ShouldThrowBadRequest` — Se GeoData service non trova coordinate → `BadRequestException` (input non valido)
+
+**Constraint Violation Handling**
+- `testCreaImmobile_DAOConstraintViolation_ShouldThrowConflict` — Se DAO lancia `DataIntegrityViolationException` → `ConflictException` (non 500 error)
+
+**Database Error Wrapping**
+- `testCreaImmobile_DAOThrowsDataAccessException_ShouldWrapWithoutLeaking` — Se DAO lancia `DataAccessException` → `InternalServerErrorException` generico
+
+**Outcome**: Errori database wrappati in eccezioni di business, stack trace non leakato.
+
+##### Geoapify GeoData Exception Handling Tests
+
+Suite di **5 test** in `GeoapifyGeoDataExceptionHandlingTests`:
+
+**API Response Validation**
+- `testOttieniCoordinate_InvalidResponse_ShouldThrowBadRequest` — Se API non ritorna "features" → `BadRequestException`
+- `testOttieniCoordinate_EmptyFeatures_ShouldThrowBadRequest` — Se "features" array è vuoto → `BadRequestException`
+- `testOttieniConteggioPuntiInteresse_NoFeatures_ShouldThrowNotFound` — Se API non trova features per categoria → `NotFoundException`
+
+**Network Error Handling**
+- `testOttieniCoordinate_APIUnreachable_ShouldWrapWithoutLeaking` — Se API esterna non raggiungibile (RestClientException) → `InternalServerErrorException` generico (non rivela dettagli di rete)
+
+**Input Validation**
+- `testOttieniConteggioPuntiInteresse_UnsupportedCategory_ShouldThrowBadRequest` — Se categoria non supportata → `BadRequestException`
+
+**Outcome**: Errori di API esterne non leakano dettagli di rete, messaggi generici per client.
+
+##### Open Meteo Weather Exception Handling Tests
+
+Suite di **5 test** in `OpenMeteoExceptionHandlingTests`:
+
+**API Response Validation**
+- `testOttieniPrevisioni_InvalidResponse_ShouldThrowInternalError` — Se API non ritorna "daily" → `InternalServerErrorException`
+- `testOttieniPrevisioni_DateNotFound_ShouldThrowBadRequest` — Se data non trovata nei dati → `BadRequestException`
+- `testOttieniPrevisioni_DailyIsNull_ShouldHandleGracefully` — Se "daily" è null → `InternalServerErrorException`
+
+**Network Error Handling**
+- `testOttieniPrevisioni_APIUnreachable_ShouldWrapWithoutLeaking` — Se API non raggiungibile → `InternalServerErrorException` generico
+
+**Outcome**: Errori meteo non leakano architettura di API esterne.
+
+##### AuthService Exception Handling Tests
+
+Suite di **5 test** in `AuthServiceExceptionHandlingTests`:
+
+**User Enumeration Prevention**
+- `testLogin_EmailNotFound_ShouldThrowNotFound` — Email inesistente → `NotFoundException` con messaggio generico "Email o password non corrette"
+- `testLogin_IncorrectPassword_ShouldThrowNotFound` — Password errata → Stesso `NotFoundException` (attaccante non può distinguere tra email inesistente e password errata)
+
+**Registration Conflict Handling**
+- `testRegistraCliente_EmailAlreadyExists_ShouldThrowConflict` — Email già usata → `ConflictException`
+
+**Database Error Wrapping**
+- `testRegistraCliente_DAOThrowsDataAccessException_ShouldWrapWithoutLeaking` — Se DAO lancia exception → `InternalServerErrorException` generico
+- `testLogin_DAOThrowsDataAccessException_ShouldWrapAsNotFound` — Errori database durante login wrappati come `NotFoundException` per coerenza
+
+**Outcome**: Impossibile fare user enumeration (email scanning). Messaggi di errore identici per email inesistente e password errata.
+
+##### JWT Service Exception Handling Tests
+
+Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
+
+**Token Validation Consistency**
+- `testValidateAndDecodeToken_MalformedToken_ShouldThrowUnauthorized` — Token malformato → `UnauthorizedException` con messaggio "Token non valido o scaduto"
+- `testValidateAndDecodeToken_ExpiredToken_ShouldThrowUnauthorized` — Token scaduto → **Stesso messaggio** (attaccante non può distinguere tra malformato e scaduto)
+- `testValidateAndDecodeToken_InvalidSignature_ShouldThrowUnauthorized` — Firma modificata → **Stesso messaggio**
+
+**Claim Extraction**
+- `testExtractSubject_InvalidToken_ShouldThrowUnauthorized` — Se token non valido durante estrazione claims → `UnauthorizedException`
+- `testExtractRole_InvalidToken_ShouldThrowUnauthorized` — Stessa protezione per role extraction
+
+**Outcome**: Impossibile determinare il motivo della validazione fallita dal messaggio di errore. Token tampering rilevato e rifiutato senza rivelare il tipo di errore.
+
+#### 8.5.4 Miglioramenti Implementati
+
+| Area | Prima | Dopo | Impact |
+|------|-------|------|--------|
+| **State Transition** | Nessuna validazione transizioni | State machine validation in service (`isTransazioneValida`, `isTransizioneValidaVisita`) | Business logic integrity |
+| **Exception Leakage - Stack Trace** | `"Errore interno: " + e.getMessage()` espone dettagli di database | `"Errore interno del server"` messaggio generico | Information disclosure prevention |
+| **Guard Ordering** | Validazione di stato PRIMA di ownership check | Ownership check PRIMA di validazione stato | Information hiding on unauthorized access |
+| **API External Errors** | Stack trace di API Geoapify/OpenMeteo leakato | Generic `InternalServerErrorException` | External service details protection |
+
 ---
 
-### 8.5 Prossime Fasi (Roadmap)
-
-#### Fase 4: Business Logic Security Tests
-- [ ] State transition validation (offerta: solo In Sospeso → Accettata/Rifiutata)
-- [ ] Data ownership checks (cliente può modificare solo sue offerte)
-- [ ] Cascade delete protection (eliminating immobile → cascata corretta)
+### 8.6 Prossime Fasi (Roadmap)
 
 #### Fase 5: Integration Tests
 - [ ] End-to-end security flow (login → crea immobile → prenota visita)

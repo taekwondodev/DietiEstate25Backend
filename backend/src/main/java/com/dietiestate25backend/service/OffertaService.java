@@ -38,7 +38,7 @@ public class OffertaService {
         } catch (InternalServerErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server: " + e);
+            throw new InternalServerErrorException("Errore interno del server");
         }
     }
 
@@ -63,11 +63,11 @@ public class OffertaService {
 
             if (ruoloUtente.equals("Cliente")) {
                 if (!offertaAttuale.getIdCliente().equals(uidUtente)) {
-                    throw new UnauthorizedException("Il cliente non è autorizzato ad aggiornare questa offerta");
+                    throw new UnauthorizedException("Utente non autorizzato");
                 }
             } else {
                 if (!offertaAttuale.getImmobile().getIdResponsabile().equals(uidUtente)) {
-                    throw new UnauthorizedException("Il responsabile dell'agenzia non è autorizzato ad aggiornare questa offerta");
+                    throw new UnauthorizedException("Utente non autorizzato");
                 }
             }
 
@@ -87,7 +87,7 @@ public class OffertaService {
             throw e;
         }
         catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server: " + e);
+            throw new InternalServerErrorException("Errore interno del server");
         }
     }
 

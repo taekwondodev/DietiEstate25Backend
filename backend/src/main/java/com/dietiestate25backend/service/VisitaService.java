@@ -65,7 +65,7 @@ public class VisitaService {
         } catch (BadRequestException | NotFoundException | ConflictException | DatabaseErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server: " + e.getMessage());
+            throw new InternalServerErrorException("Errore interno del server");
         }
     }
 
@@ -83,18 +83,18 @@ public class VisitaService {
         try {
             Visita visitaAttuale = visitaDao.getVisitaById(request.getIdVisita());
             if (visitaAttuale == null) {
-                throw new NotFoundException("Visita non trovato");
+                throw new NotFoundException("Oggetto non trovato");
             }
 
             String ruoloUtente = TokenUtils.getRole();
 
             if(ruoloUtente.equals("Cliente")) {
                 if(!visitaAttuale.getIdCliente().equals(uidUtente)) {
-                    throw new UnauthorizedException("Non hai i permessi per aggiornare questa visita");
+                    throw new UnauthorizedException("Utente non autorizzato");
                 }
             } else {
                 if(!visitaAttuale.getImmobile().getIdResponsabile().equals(uidUtente)) {
-                    throw new UnauthorizedException("Non hai i permessi per aggiornare questa visita");
+                    throw new UnauthorizedException("Utente non autorizzato");
                 }
             }
 
@@ -112,12 +112,12 @@ public class VisitaService {
                 throw new DatabaseErrorException("Visita non trovata nel database");
             }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Visita non trovato");
+            throw new NotFoundException("Oggetto non trovato");
         }
         catch (BadRequestException | NotFoundException | UnauthorizedException | DatabaseErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server: " + e.getMessage());
+            throw new InternalServerErrorException("Errore interno del server");
         }
     }
 
