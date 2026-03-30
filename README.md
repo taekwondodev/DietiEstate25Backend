@@ -604,15 +604,7 @@ Suite di **10 test** che verificano la validazione specifica del DTO `Registrazi
 | **DAO Error Mapping** | `RuntimeException` uncaught | `DataIntegrityViolationException` → `ConflictException` | Constraint violation handling |
 | **Type Coercion Safety** | No validation | `@MethodArgumentTypeMismatchException` handler | Type safety |
 
-#### 8.2.3 Endpoint Coperto dalla Suite
-
-| Endpoint              | Test Cases | Status |
-|-----------------------|------------|--------|
-| `POST /auth/login`    | 13         | ✅ Passing |
-| `POST /auth/register` | 13         | ✅ Passing |
-| `GET /immobile/cerca` | 5          | ✅ Passing |
-
-### 8.3 Authorization & Access Control Testing
+### 8.3 Authorization & Access Control
 
 #### 8.3.1 PublicEndpointTests (`security/authorization/`)
 
@@ -674,9 +666,9 @@ Suite di **10 test** che verifica che **solo UtenteAgenzia** (Admin, Gestore, Ag
 
 Suite di **3 categorie di test** che verificano che gli endpoint "riepilogo UtenteAgenzia" siano **accessibili solo a UtenteAgenzia**.
 
-##### ImmobileOwnershipTests (5 test)
+##### ImmobileOwnershipTests
 
-Verifica che:
+Suite di **5 test** che verifica che:
 - Agente vede **solo i suoi immobili** nella lista personale
 - Cliente **non può** accedere a `/immobile/personali` (403)
 - Gestore e Admin **possono** accedere
@@ -684,9 +676,9 @@ Verifica che:
 
 **Outcome**: `checkIfUtenteAgenzia()` blocca Cliente da accesso
 
-##### OffertaPrivacyTests (7 test)
+##### OffertaPrivacyTests
 
-Verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
+Suite di **7 test** che verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
 
 - `testRiepilogoOfferteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue offerte**
 - `testRiepilogoOfferteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
@@ -700,9 +692,9 @@ Verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
 - `testRiepilogoOfferteUtenteAgenzia_WithAgenteRole_ShouldReturn200` — Agente accede
 - `testRiepilogoOfferteUtenteAgenzia_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
 
-##### VisitaPrivacyTests (6 test)
+##### VisitaPrivacyTests
 
-Verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
+Suite di **6 test** che verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
 
 - `testRiepilogoVisiteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue visite**
 - `testRiepilogoVisiteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
@@ -722,30 +714,75 @@ Verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
 | **Endpoint Guarding** | Assente | Guardie in ogni endpoint sensibile | Access control |
 | **Data Isolation** | Cliente poteva accedere riepilogoUtenteAgenzia | Bloccato con `checkIfUtenteAgenzia()` | Privacy protection |
 
-#### 8.3.6 Endpoint Coperto dalla Suite (Fase 1 + Fase 2)
+### 8.4 Data Protection
 
-| Endpoint | Test Cases | Fase 1 | Fase 2 | Status |
-|----------|------------|--------|--------|--------|
-| `POST /auth/login` | 13         | ✅ | - | ✅ Passing |
-| `POST /auth/register` | 13         | ✅ | - | ✅ Passing |
-| `POST /auth/register-staff` | 6          | - | ✅ | ✅ Passing |
-| `GET /immobile/cerca` | 5          | ✅ | ✅ | ✅ Passing |
-| `POST /immobile/crea` | 5          | - | ✅ | ✅ Passing |
-| `GET /immobile/personali` | 5          | - | ✅ | ✅ Passing |
-| `GET /offerta/riepilogoCliente` | 1          | - | ✅ | ✅ Passing |
-| `GET /offerta/riepilogoUtenteAgenzia` | 6          | - | ✅ | ✅ Passing |
-| `GET /visita/riepilogoCliente` | 1          | - | ✅ | ✅ Passing |
-| `GET /visita/riepilogoUtenteAgenzia` | 6          | - | ✅ | ✅ Passing |
+Suite di **32 test** che verifica token JWT integrity, password hashing, e validazione crittografica.
+
+#### 8.4.1 JwtServiceSecurityTests (`security/auth/`)
+
+Suite di **18 test** che verifica il ciclo di vita completo dei token JWT:
+
+**Token Generation & Claims**
+- `testTokenGeneration_ShouldCreateValidToken` — JWT generato con claims corretti
+- `testTokenGeneration_ShouldIncludeAllRequiredClaims` — Token contiene `sub`, `role`, `email`
+
+**Token Validation & Expiration**
+- `testTokenValidation_ValidTokenShouldBeAccepted` — Token valido decodificato correttamente
+- `testTokenExpiration_ShouldRejectExpiredToken` — Token scaduto rifiutato con `UnauthorizedException`
+- `testTokenClaimsIntegrity_ExpiredTokenClaimsShouldNotBeExtractable` — Impossibile estrarre claims da token scaduto
+
+**Security Boundaries**
+- `testTokenTampering_ShouldRejectTamperedToken` — Firma modificata causa rigetto
+- `testTokenSignatureVerification_DifferentSecretShouldRejectToken` — Secret diverso causa rigetto
+- `testMalformedToken_ShouldRejectInvalidFormat` — Formato invalido causa `UnauthorizedException`
+
+**Claim Extraction**
+- `testSubjectExtraction_ShouldExtractCorrectSubject` — Estrazione corretta di `sub` claim
+- `testRoleExtraction_ShouldExtractCorrectRole` — Estrazione corretta di `role` claim
+
+**Outcome**: Implementazione di `JwtService` con:
+- Generazione token con `JwtEncoder` e claims `sub`, `role`, `email`
+- Decodifica sicura con `JwtDecoder`
+- Exception handling: `JwtException` → `UnauthorizedException`
+- Metodi di estrazione claim: `extractSubject()`, `extractRole()`
+
+**Nota di Sicurezza**: Token signature è validata via Spring Security RSA/HMAC, impedendo tampering payload.
+
+#### 8.4.2 AuthServiceSecurityTests (`security/auth/`)
+
+Suite di **8 test** che verifica password hashing con BCrypt:
+
+**Password Hashing Security**
+- `testPasswordHashingNotPlaintext` — Password hash **non** è plaintext
+- `testPasswordHashingUniqueness` — Stessa password genera **diversi hash** (salt diverso)
+- `testRegistrationHashesPasswordBeforeSave` — Password hashata prima di persistere
+
+**Login Security**
+- `testLoginWithWrongPassword_ShouldThrowUnauthorizedException` — Password errata → `UnauthorizedException`
+- `testLoginWithWrongPasswordDoesNotRevealEmailExistence` — Error message **non rivela** se email esiste (Information Hiding)
+- `testPasswordMatching_WithCorrectPassword_ShouldPass` — Password corretta verifica e ritorna JWT
+
+**Timing Attack Resistance**
+- `testTimingAttackResistance` — BCrypt mantiene tempo consistente per password errata
+
+**Nota di Sicurezza**:
+- BCrypt è resistant a timing attacks per natura
+- Error messages **non differenziano** tra email inesistente e password errata
+
+#### 8.4.4 Miglioramenti Implementati
+
+| Area | Prima | Dopo | Impact |
+|------|-------|------|--------|
+| **JWT Generation** | Assente | Token con `sub`, `role`, `email` claims | Token integrity |
+| **JWT Validation** | Nessuna | Spring Security + `JwtDecoder` | Attack prevention |
+| **Password Storage** | Plaintext risk | BCrypt con salt random | Credential protection |
+| **Password Verification** | Nessuna | BCrypt `matches()` timing-safe | Timing attack resistance |
+| **Error Messages** | Specifici per email/password | Generic "Email o password non corrette" | User enumeration prevention |
+| **Token Expiration** | Non implementato | 1 ora (3600s) con `expiresAt` | Session timeout |
 
 ---
 
-### 8.4 Prossime Fasi (Roadmap)
-
-#### Fase 3: JWT & Cryptography Tests
-- [ ] Token tampering — Modifica payload/signature
-- [ ] Token expiration — Token scaduto rifiutato
-- [ ] Secret mismatch — Token firmato con secret errato
-- [ ] BCrypt verification — Password hashing non compromesso
+### 8.5 Prossime Fasi (Roadmap)
 
 #### Fase 4: Business Logic Security Tests
 - [ ] State transition validation (offerta: solo In Sospeso → Accettata/Rifiutata)

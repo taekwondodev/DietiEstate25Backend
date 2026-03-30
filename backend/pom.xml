@@ -15,6 +15,7 @@
     <description>DietiEstate25Backend</description>
     <properties>
         <java.version>21</java.version>
+        <sonar.organization>taekwondodev</sonar.organization>
     </properties>
     <dependencies>
         <dependency>

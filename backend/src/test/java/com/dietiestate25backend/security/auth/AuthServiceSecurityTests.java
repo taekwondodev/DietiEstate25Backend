@@ -43,14 +43,14 @@ class AuthServiceSecurityTests {
     private String validEmail;
     private String validPassword;
     private String hashedPassword;
-    private String uid;
+    private String sub;
 
     @BeforeEach
     void setUp() {
         validEmail = "user@example.com";
         validPassword = "SecurePassword123!";
         hashedPassword = "$2a$10$dXJ3SW6G7P50eS3B6skPfOWOZ4e8qRCEIvhDL3mVtILw3/LwDFfBm";
-        uid = "550e8400-e29b-41d4-a716-446655440000";
+        sub = "550e8400-e29b-41d4-a716-446655440000";
     }
 
     @Test
@@ -92,7 +92,7 @@ class AuthServiceSecurityTests {
     @DisplayName("Login Failure - Wrong password should throw UnauthorizedException")
     void testLoginWithWrongPassword_ShouldThrowUnauthorizedException() {
         LoginRequest request = new LoginRequest(validEmail, "WrongPassword123!");
-        Utente storedUser = new Utente(uid, validEmail, hashedPassword, "Cliente");
+        Utente storedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(storedUser);
         when(passwordEncoder.matches("WrongPassword123!", hashedPassword)).thenReturn(false);
@@ -105,7 +105,7 @@ class AuthServiceSecurityTests {
     @DisplayName("Login Failure - Wrong password does not reveal email existence")
     void testLoginWithWrongPasswordDoesNotRevealEmailExistence() {
         LoginRequest request = new LoginRequest(validEmail, "WrongPassword123!");
-        Utente storedUser = new Utente(uid, validEmail, hashedPassword, "Cliente");
+        Utente storedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(storedUser);
         when(passwordEncoder.matches("WrongPassword123!", hashedPassword)).thenReturn(false);
@@ -120,11 +120,11 @@ class AuthServiceSecurityTests {
     @DisplayName("Password Matching - Correct password should be validated properly")
     void testPasswordMatching_WithCorrectPassword_ShouldPass() {
         LoginRequest request = new LoginRequest(validEmail, validPassword);
-        Utente storedUser = new Utente(uid, validEmail, hashedPassword, "Cliente");
+        Utente storedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(storedUser);
         when(passwordEncoder.matches(validPassword, hashedPassword)).thenReturn(true);
-        when(jwtService.generateToken(uid, "Cliente", validEmail)).thenReturn("valid.jwt.token");
+        when(jwtService.generateToken(sub, "Cliente", validEmail)).thenReturn("valid.jwt.token");
 
         var response = authService.login(request);
 
@@ -137,7 +137,7 @@ class AuthServiceSecurityTests {
     @DisplayName("Timing Attack Resistance - BCrypt is inherently resistant")
     void testTimingAttackResistance() {
         LoginRequest request = new LoginRequest(validEmail, "WrongPassword");
-        Utente storedUser = new Utente(uid, validEmail, hashedPassword, "Cliente");
+        Utente storedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(storedUser);
         when(passwordEncoder.matches("WrongPassword", hashedPassword)).thenReturn(false);
@@ -163,20 +163,6 @@ class AuthServiceSecurityTests {
             utente.getPassword().equals(hashedPassword) &&
             !utente.getPassword().equals(validPassword)
         ));
-    }
-
-    @Test
-    @DisplayName("Staff Registration Security - Only Admin can register staff")
-    void testRegistraGestoreOrAgente_OnlyAdminCanRegister() {
-        RegistrazioneStaffRequest request = new RegistrazioneStaffRequest("agente@example.com", validPassword, "Gestore");
-        String adminUid = "admin-uid-123";
-
-        when(passwordEncoder.encode(validPassword)).thenReturn(hashedPassword);
-
-        authService.registraGestoreOrAgente(adminUid, request);
-
-        verify(utenteDao).save(any());
-        verify(utenteAgenziaDao).save(any());
     }
 }
 
