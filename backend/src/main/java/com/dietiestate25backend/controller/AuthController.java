@@ -8,12 +8,10 @@ import com.dietiestate25backend.service.AuthService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@Validated
 public class AuthController {
     private final AuthService authService;
 

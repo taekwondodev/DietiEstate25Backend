@@ -4,14 +4,12 @@ import com.dietiestate25backend.dto.requests.MeteoRequest;
 import com.dietiestate25backend.service.MeteoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/meteo")
-@Validated
 public class MeteoController {
     private final MeteoService meteoService;
 

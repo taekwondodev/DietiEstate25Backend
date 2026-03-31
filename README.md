@@ -523,9 +523,7 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
 **Outcome**: `@Email` validator rifiuta pattern sospetti. Parametrized queries in JDBC protegono ulteriormente
 
-- `testUnicodeCharacters_ValidUnicodeShouldBeAccepted` — Unicode valido accettato
-
-**Outcome**: Conferma che l'app supporta caratteri internazionali senza vulnerabilità
+- `testUnicodeCharacters_UnicodeShouldBeRejected` — Unicode rifiutato
 
 #### 8.2.2 LoginRequestValidationTests (`security/validation/`)
 
@@ -589,7 +587,7 @@ Suite di **10 test** che verificano la validazione specifica del DTO `Registrazi
 
 **Outcome**: Jackson ignora campi non mappati
 
-- `testRegistrazioneRequest_PasswordWithOnlyNumbers_ShouldBeAccepted` — Password numerica accettata (nessun requisito di complessità)
+- `testRegistrazioneRequest_PasswordWithOnlyNumbers_ShouldBeRejected` — Password numerica rifiutata
 
 **Outcome**: Conferma che il sistema non ha validazione di password strength
 

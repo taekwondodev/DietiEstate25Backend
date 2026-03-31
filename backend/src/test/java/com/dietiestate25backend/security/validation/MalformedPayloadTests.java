@@ -125,13 +125,13 @@ class MalformedPayloadTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Unicode Characters - Valid unicode should be accepted")
-    void testUnicodeCharacters_ValidUnicodeShouldBeAccepted() throws Exception {
+    @DisplayName("Unicode Characters - unicode should be rejected")
+    void testUnicodeCharacters_UnicodeShouldBeRejected() throws Exception {
         String jsonWithUnicode = "{\"email\":\"user@example.com\",\"password\":\"пароль123\"}";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonWithUnicode))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
     }
 }

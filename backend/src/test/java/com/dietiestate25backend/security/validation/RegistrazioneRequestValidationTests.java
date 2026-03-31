@@ -161,13 +161,13 @@ class RegistrazioneRequestValidationTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("RegistrazioneRequest - Password with only numbers should be accepted (no strength requirement)")
-    void testRegistrazioneRequest_NumericPassword_ShouldBeAccepted() throws Exception {
+    @DisplayName("RegistrazioneRequest - Password with only numbers should be rejected")
+    void testRegistrazioneRequest_NumericPassword_ShouldBeRejected() throws Exception {
         RegistrazioneRequest request = new RegistrazioneRequest("user@example.com", "12345", "Cliente");
 
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
     }
 }

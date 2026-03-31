@@ -1,6 +1,7 @@
 package com.dietiestate25backend.error;
 
 import com.dietiestate25backend.error.exception.*;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -76,5 +77,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.dao.DataAccessException.class)
     public ResponseEntity<String> handleDataAccessException(org.springframework.dao.DataAccessException e) {
         return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore interno del server");
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<String> handleConstraintViolationException(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .map(error -> error.getPropertyPath() + ": " + error.getMessage())
+                .reduce((msg1, msg2) -> msg1 + "; " + msg2)
+                .orElse("Dati di input non validi");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<String> handleHttpMediaTypeNotSupportedException(org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        String message = "Content-Type non supportato: " + e.getContentType();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
     }
 }

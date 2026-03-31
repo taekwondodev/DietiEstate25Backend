@@ -4,14 +4,12 @@ import com.dietiestate25backend.dto.requests.ConteggioPuntiInteresseRequest;
 import com.dietiestate25backend.service.GeoDataService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/geodata")
-@Validated
 public class GeoDataController {
     private final GeoDataService geoDataService;
 

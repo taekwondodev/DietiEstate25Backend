@@ -7,14 +7,12 @@ import com.dietiestate25backend.service.OffertaService;
 import com.dietiestate25backend.utils.TokenUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/offerta")
-@Validated
 public class OffertaController {
     private final OffertaService offertaService;
 
