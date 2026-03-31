@@ -4,10 +4,10 @@ import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
-import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
+import com.dietiestate25backend.service.EmailService;
 import com.dietiestate25backend.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +36,9 @@ class AuthServiceSecurityTests {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthService authService;

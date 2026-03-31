@@ -1,31 +1,17 @@
 package com.dietiestate25backend.security.dataisolation;
 
+import com.dietiestate25backend.BaseMvcTest;
+import com.dietiestate25backend.service.ImmobileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-import com.dietiestate25backend.service.ImmobileService;
-import com.dietiestate25backend.TestConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("Immobile Ownership Tests - Data Isolation")
-class ImmobileOwnershipTests {
-
-    @Autowired
-    private MockMvc mockMvc;
+class ImmobileOwnershipTests extends BaseMvcTest {
 
     @MockitoBean
     private ImmobileService immobileService;
@@ -87,5 +73,3 @@ class ImmobileOwnershipTests {
                 .andExpect(status().isOk());
     }
 }
-
-

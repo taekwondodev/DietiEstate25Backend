@@ -4,6 +4,7 @@ import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.service.AuthService;
+import com.dietiestate25backend.service.EmailService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,9 @@ class PasswordPolicySecurityTests {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthService authService;

@@ -1,6 +1,6 @@
 package com.dietiestate25backend.security.business;
 
-import com.dietiestate25backend.TestConfiguration;
+import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
 import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
@@ -14,32 +14,22 @@ import com.dietiestate25backend.service.JwtService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 /**
- * AuthService Exception Handling Tests
- *
- * Business Logic Security - Phase 4
+ * AuthService Exception Handling Tests - Business Logic Security
  *
  * Verifica che il service non leaki informazioni sul fatto che un email esista
  * durante login o registrazione. Tutte le eccezioni devono essere generiche.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("AuthService Exception Handling Tests - Business Logic Security")
-class AuthServiceExceptionHandlingTests {
+class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired
     private AuthService authService;
@@ -56,13 +46,6 @@ class AuthServiceExceptionHandlingTests {
     @MockitoBean
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * Email non trovata durante login.
-     *
-     * Precondizione: utenteDao.findByEmail() lancia EmptyResultDataAccessException
-     * Azione: login() è chiamato con email inesistente
-     * Aspettativa: NotFoundException lanciato con messaggio generico
-     */
     @Test
     @DisplayName("Login with non-existent email - SHOULD throw NotFoundException")
     void testLogin_EmailNotFound_ShouldThrowNotFound() {
@@ -73,18 +56,10 @@ class AuthServiceExceptionHandlingTests {
 
         assertThrows(
                 NotFoundException.class,
-                () -> authService.login(request),
-                "Non-existent email dovrebbe lanciare NotFoundException"
+                () -> authService.login(request)
         );
     }
 
-    /**
-     * Password non corretta durante login.
-     *
-     * Precondizione: Utente trovato ma password non corretta
-     * Azione: login() è chiamato con password sbagliata
-     * Aspettativa: NotFoundException lanciato (non differenziare tra email e password)
-     */
     @Test
     @DisplayName("Login with incorrect password - SHOULD throw NotFoundException")
     void testLogin_IncorrectPassword_ShouldThrowNotFound() {
@@ -96,18 +71,10 @@ class AuthServiceExceptionHandlingTests {
 
         assertThrows(
                 NotFoundException.class,
-                () -> authService.login(request),
-                "Incorrect password dovrebbe lanciare NotFoundException"
+                () -> authService.login(request)
         );
     }
 
-    /**
-     * Email già registrata durante registrazione.
-     *
-     * Precondizione: utenteDao.save() lancia DataIntegrityViolationException
-     * Azione: registraCliente() è chiamato con email già usata
-     * Aspettativa: ConflictException lanciato
-     */
     @Test
     @DisplayName("Register with existing email - SHOULD throw ConflictException")
     void testRegistraCliente_EmailAlreadyExists_ShouldThrowConflict() {
@@ -118,18 +85,10 @@ class AuthServiceExceptionHandlingTests {
 
         assertThrows(
                 ConflictException.class,
-                () -> authService.registraCliente(request),
-                "Duplicate email dovrebbe lanciare ConflictException"
+                () -> authService.registraCliente(request)
         );
     }
 
-    /**
-     * DAO lancia DataAccessException durante registrazione.
-     *
-     * Precondizione: utenteDao.save() lancia DataAccessException
-     * Azione: registraCliente() è chiamato
-     * Aspettativa: InternalServerErrorException lanciato senza leakage
-     */
     @Test
     @DisplayName("Register - DAO throws DataAccessException - SHOULD wrap without leaking")
     void testRegistraCliente_DAOThrowsDataAccessException_ShouldWrapGeneric() {
@@ -140,18 +99,10 @@ class AuthServiceExceptionHandlingTests {
 
         assertThrows(
                 InternalServerErrorException.class,
-                () -> authService.registraCliente(request),
-                "DataAccessException dovrebbe essere wrapped generically"
+                () -> authService.registraCliente(request)
         );
     }
 
-    /**
-     * DAO lancia DataAccessException durante login.
-     *
-     * Precondizione: utenteDao.findByEmail() lancia DataAccessException
-     * Azione: login() è chiamato
-     * Aspettativa: NotFoundException lanciato (mantiene coerenza con EmptyResultDataAccessException)
-     */
     @Test
     @DisplayName("Login - DAO throws DataAccessException - SHOULD wrap appropriately")
     void testLogin_DAOThrowsDataAccessException_ShouldWrapAsNotFound() {
@@ -162,8 +113,7 @@ class AuthServiceExceptionHandlingTests {
 
         assertThrows(
                 NotFoundException.class,
-                () -> authService.login(request),
-                "Database error during login dovrebbe lanciare NotFoundException per coerenza"
+                () -> authService.login(request)
         );
     }
 }
