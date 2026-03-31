@@ -5,6 +5,7 @@ import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
+import com.dietiestate25backend.service.EmailService;
 import com.dietiestate25backend.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,9 @@ class BruteForceAndAccountLockoutTests {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthService authService;
@@ -72,7 +76,6 @@ class BruteForceAndAccountLockoutTests {
         assertThrows(UnauthorizedException.class, () -> authService.login(request));
 
         verify(utenteDao).findByEmail(validEmail);
-        // Verify that failed attempt was recorded (implementation detail)
     }
 
     @Test
@@ -83,12 +86,10 @@ class BruteForceAndAccountLockoutTests {
         when(utenteDao.findByEmail(validEmail)).thenReturn(testUser);
         when(passwordEncoder.matches(wrongPassword, hashedPassword)).thenReturn(false);
 
-        // Simulate 3 consecutive failed attempts
         for (int i = 0; i < 3; i++) {
             assertThrows(UnauthorizedException.class, () -> authService.login(request));
         }
 
-        // After 3 attempts, account should still accept attempts but track them
         verify(utenteDao, times(3)).findByEmail(validEmail);
     }
 
@@ -100,13 +101,10 @@ class BruteForceAndAccountLockoutTests {
         when(utenteDao.findByEmail(validEmail)).thenReturn(testUser);
         when(passwordEncoder.matches(wrongPassword, hashedPassword)).thenReturn(false);
 
-        // Simulate 5 consecutive failed attempts
         for (int i = 0; i < 5; i++) {
             assertThrows(UnauthorizedException.class, () -> authService.login(request));
         }
 
-        // After 5 failed attempts, next login should indicate account is locked
-        // (This test assumes implementation will lock account on 5th attempt)
         Exception exception = assertThrows(UnauthorizedException.class, () -> authService.login(request));
         assertTrue(
                 exception.getMessage().toLowerCase().contains("bloccato") ||
@@ -123,13 +121,10 @@ class BruteForceAndAccountLockoutTests {
     void testLockedAccount_ShouldRejectAllLoginAttempts() {
         LoginRequest correctPasswordRequest = new LoginRequest(validEmail, validPassword);
 
-        // Create a locked user (implementation detail: isLocked flag or lockoutUntil timestamp)
         Utente lockedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
-        // In real implementation: lockedUser.setLocked(true) or lockedUser.setLockedUntil(futureTime)
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(lockedUser);
 
-        // Even with correct password, locked account should be rejected
         UnauthorizedException exception = assertThrows(
                 UnauthorizedException.class,
                 () -> authService.login(correctPasswordRequest)
@@ -144,13 +139,9 @@ class BruteForceAndAccountLockoutTests {
     @Test
     @DisplayName("Account Lockout - Lockout duration should be sufficient (15+ minutes)")
     void testAccountLockout_DurationShouldBeFifteenMinutesOrMore() {
-        // This test verifies that lockout duration is at least 15 minutes (OWASP recommendation)
-        // Implementation: Check that lockedUntil timestamp is set to current_time + 15 minutes
-
         Instant now = Instant.now();
         Instant lockoutExpiry = now.plus(15, ChronoUnit.MINUTES);
 
-        // After 5 failed attempts, account should be locked until lockoutExpiry
         assertTrue(
                 lockoutExpiry.isAfter(now.plus(14, ChronoUnit.MINUTES)),
                 "Lockout duration should be at least 15 minutes"
@@ -163,7 +154,6 @@ class BruteForceAndAccountLockoutTests {
         LoginRequest request = new LoginRequest(validEmail, validPassword);
 
         Utente userAfterLockoutExpiry = new Utente(sub, validEmail, hashedPassword, "Cliente");
-        // After lockout period expires, isLocked = false or lockedUntil is in the past
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(userAfterLockoutExpiry);
         when(passwordEncoder.matches(validPassword, hashedPassword)).thenReturn(true);
@@ -183,23 +173,17 @@ class BruteForceAndAccountLockoutTests {
         LoginRequest correctPasswordRequest = new LoginRequest(validEmail, validPassword);
 
         Utente userWithAttempts = new Utente(sub, validEmail, hashedPassword, "Cliente");
-        // Simulate user with 2 failed attempts
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(userWithAttempts);
         when(passwordEncoder.matches(wrongPassword, hashedPassword)).thenReturn(false);
 
-        // Fail twice
         assertThrows(UnauthorizedException.class, () -> authService.login(wrongPasswordRequest));
         assertThrows(UnauthorizedException.class, () -> authService.login(wrongPasswordRequest));
 
-        // Now login with correct password
         when(passwordEncoder.matches(validPassword, hashedPassword)).thenReturn(true);
         when(jwtService.generateToken(sub, "Cliente", validEmail)).thenReturn("valid.jwt.token");
 
         authService.login(correctPasswordRequest);
-
-        // Counter should be reset to 0
-        // (Verification would require checking that failedAttempts = 0 in database)
     }
 
     // -------- Account Enumeration Prevention --------
@@ -219,8 +203,6 @@ class BruteForceAndAccountLockoutTests {
 
         String message = exception.getMessage().toLowerCase();
 
-        // Message should NOT say "account is locked" specifically
-        // It should use generic message like "Email o password non corrette"
         assertFalse(message.contains("account") || message.contains("utente non trovato"),
                 "Error message should not reveal whether account is locked or non-existent"
         );
@@ -231,18 +213,11 @@ class BruteForceAndAccountLockoutTests {
     @Test
     @DisplayName("Account Lockout - User should be notified when account is locked")
     void testAccountLockout_ShouldNotifyUserViaEmail() {
-        // When account is locked after 5 failed attempts,
-        // user should receive email notification with:
-        // - Lockout reason
-        // - Lockout duration
-        // - Instructions to unlock (contact admin or wait for automatic unlock)
-
         LoginRequest request = new LoginRequest(validEmail, wrongPassword);
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(testUser);
         when(passwordEncoder.matches(wrongPassword, hashedPassword)).thenReturn(false);
 
-        // Simulate 5 failed attempts to trigger lockout
         for (int i = 0; i < 5; i++) {
             try {
                 authService.login(request);
@@ -251,8 +226,6 @@ class BruteForceAndAccountLockoutTests {
             }
         }
 
-        // Email notification should have been triggered
-        // (Verification would require mocking EmailService)
+        verify(emailService, atLeastOnce()).inviaEmail(eq(validEmail), anyString(), anyString());
     }
-
 }

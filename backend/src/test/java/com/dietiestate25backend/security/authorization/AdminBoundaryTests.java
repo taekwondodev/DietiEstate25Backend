@@ -1,42 +1,23 @@
 package com.dietiestate25backend.security.authorization;
 
+import com.dietiestate25backend.BaseMvcTest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.dietiestate25backend.TestConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("Admin Boundary Tests - Register Staff Permission")
-class AdminBoundaryTests {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+class AdminBoundaryTests extends BaseMvcTest {
 
     @MockitoBean
     private AuthService authService;
-
 
     private RegistrazioneRequest staffRegistrationRequest;
 
@@ -104,5 +85,3 @@ class AdminBoundaryTests {
                 .andExpect(status().isUnauthorized());
     }
 }
-
-

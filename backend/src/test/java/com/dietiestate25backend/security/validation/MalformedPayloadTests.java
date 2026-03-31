@@ -1,35 +1,21 @@
 package com.dietiestate25backend.security.validation;
 
+import com.dietiestate25backend.BaseMvcTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import com.dietiestate25backend.TestConfiguration;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("Malformed Payload Tests - Request Integrity")
-class MalformedPayloadTests {
-
-    @Autowired
-    private MockMvc mockMvc;
+class MalformedPayloadTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Malformed JSON - Invalid JSON syntax should return 400 Bad Request")
     void testMalformedJson_InvalidSyntax_ShouldReturn400() throws Exception {
-        String invalidJson = "{email: 'user@example.com', password: 'password'}"; // Missing quotes
+        String invalidJson = "{email: 'user@example.com', password: 'password'}";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -69,11 +55,8 @@ class MalformedPayloadTests {
     @Test
     @DisplayName("Huge Payload - Extremely large JSON should be rejected")
     void testHugePayload_ExtremelyLargeShouldBeRejected() throws Exception {
-        StringBuilder largeString = new StringBuilder();
-        for (int i = 0; i < 100000; i++) {
-            largeString.append("x");
-        }
-        String hugeJson = "{\"email\":\"" + largeString.toString() + "@example.com\",\"password\":\"password\"}";
+        String largeString = "x".repeat(100000);
+        String hugeJson = "{\"email\":\"" + largeString + "@example.com\",\"password\":\"password\"}";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +121,7 @@ class MalformedPayloadTests {
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonWithSpecialChars))
-                .andExpect(status().isBadRequest()); // Invalid email format
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -149,7 +132,6 @@ class MalformedPayloadTests {
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonWithUnicode))
-                .andExpect(status().isUnauthorized()); // Not a validation error
+                .andExpect(status().isUnauthorized());
     }
 }
-

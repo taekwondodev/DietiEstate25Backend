@@ -1,17 +1,13 @@
 package com.dietiestate25backend.security.business;
 
-import com.dietiestate25backend.TestConfiguration;
+import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.externalimplements.OpenMeteoDao;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,19 +20,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
- * Open Meteo Weather Exception Handling Tests
- *
- * Business Logic Security - Phase 4
+ * Open Meteo Weather Exception Handling Tests - Business Logic Security
  *
  * Verifica che il DAO lanci eccezioni appropriate quando chiama API meteo
  * senza leakare informazioni sulla struttura della richiesta o errori di rete.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("Open Meteo Exception Handling Tests - Business Logic Security")
-class OpenMeteoExceptionHandlingTests {
+class OpenMeteoExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired
     private OpenMeteoDao openMeteoDao;
@@ -44,38 +34,22 @@ class OpenMeteoExceptionHandlingTests {
     @MockitoBean(name = "restTemplate")
     private RestTemplate restTemplate;
 
-    /**
-     * Open Meteo API ritorna risposta senza "daily".
-     *
-     * Precondizione: API risponde ma manca il campo "daily"
-     * Azione: ottieniPrevisioni() è chiamato
-     * Aspettativa: InternalServerErrorException lanciato
-     */
     @Test
     @DisplayName("Open Meteo returns invalid response - SHOULD throw InternalServerErrorException")
     @WithMockUser(username = "user1", roles = "Cliente")
     void testOttieniPrevisioni_InvalidResponse_ShouldThrowInternalError() {
         Map<String, Object> invalidResponse = new HashMap<>();
         invalidResponse.put("latitude", 43.7);
-        // Manca "daily"
 
         when(restTemplate.getForObject(anyString(), org.mockito.ArgumentMatchers.eq(Map.class)))
                 .thenReturn(invalidResponse);
 
         assertThrows(
                 InternalServerErrorException.class,
-                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10"),
-                "Invalid response dovrebbe lanciare InternalServerErrorException"
+                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10")
         );
     }
 
-    /**
-     * Open Meteo API ritorna "daily" ma la data non è trovata.
-     *
-     * Precondizione: "daily" esiste ma la data richiesta non è nelle liste
-     * Azione: ottieniPrevisioni() è chiamato
-     * Aspettativa: BadRequestException lanciato
-     */
     @Test
     @DisplayName("Open Meteo date not found - SHOULD throw BadRequestException")
     @WithMockUser(username = "user1", roles = "Cliente")
@@ -93,18 +67,10 @@ class OpenMeteoExceptionHandlingTests {
 
         assertThrows(
                 BadRequestException.class,
-                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-15"),
-                "Date not found dovrebbe lanciare BadRequestException"
+                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-15")
         );
     }
 
-    /**
-     * Open Meteo API non è raggiungibile.
-     *
-     * Precondizione: RestTemplate lancia RestClientException
-     * Azione: ottieniPrevisioni() è chiamato
-     * Aspettativa: InternalServerErrorException lanciato senza leakage
-     */
     @Test
     @DisplayName("Open Meteo API unreachable - SHOULD wrap without leaking")
     @WithMockUser(username = "user1", roles = "Cliente")
@@ -114,18 +80,10 @@ class OpenMeteoExceptionHandlingTests {
 
         assertThrows(
                 InternalServerErrorException.class,
-                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10"),
-                "Network error dovrebbe essere wrapped generically"
+                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10")
         );
     }
 
-    /**
-     * Open Meteo API risponde ma lista "daily" è null.
-     *
-     * Precondizione: API risponde con null nel campo daily
-     * Azione: ottieniPrevisioni() è chiamato
-     * Aspettativa: Exception catturato e wrappato genericamente
-     */
     @Test
     @DisplayName("Open Meteo daily is null - SHOULD handle gracefully")
     @WithMockUser(username = "user1", roles = "Cliente")
@@ -138,8 +96,7 @@ class OpenMeteoExceptionHandlingTests {
 
         assertThrows(
                 InternalServerErrorException.class,
-                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10"),
-                "Null daily dovrebbe essere handled generically"
+                () -> openMeteoDao.ottieniPrevisioni(43.7, 10.4, "2026-04-10")
         );
     }
 }

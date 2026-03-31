@@ -1,36 +1,21 @@
 package com.dietiestate25backend.security.authorization;
 
+import com.dietiestate25backend.BaseMvcTest;
+import com.dietiestate25backend.service.AuthService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import com.dietiestate25backend.service.AuthService;
-import com.dietiestate25backend.TestConfiguration;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfiguration.class)
-@ActiveProfiles("test")
 @DisplayName("Public Endpoint Tests - Access Control")
-class PublicEndpointTests {
-
-    @Autowired
-    private MockMvc mockMvc;
+class PublicEndpointTests extends BaseMvcTest {
 
     @MockitoBean
     private AuthService authService;
-
 
     @Test
     @DisplayName("Login endpoint - Should be publicly accessible (no authentication required)")
@@ -40,7 +25,7 @@ class PublicEndpointTests {
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(status().isBadRequest()); // Bad request, but not 401/403
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -51,7 +36,7 @@ class PublicEndpointTests {
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(status().isBadRequest()); // Bad request, but not 401/403
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -61,7 +46,7 @@ class PublicEndpointTests {
                 .param("comune", "Napoli")
                 .param("page", "0")
                 .param("size", "5"))
-                .andExpect(status().isOk()); // Should be accessible without token
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -115,4 +100,3 @@ class PublicEndpointTests {
                 .andExpect(status().isUnauthorized());
     }
 }
-
