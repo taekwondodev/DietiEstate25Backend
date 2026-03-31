@@ -6,16 +6,14 @@ import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.dto.response.LoginResponse;
-import com.dietiestate25backend.error.exception.BadRequestException;
-import com.dietiestate25backend.error.exception.ConflictException;
-import com.dietiestate25backend.error.exception.InternalServerErrorException;
-import com.dietiestate25backend.error.exception.NotFoundException;
+import com.dietiestate25backend.error.exception.*;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.model.UtenteAgenzia;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -24,12 +22,14 @@ public class AuthService {
     private final UtenteDao utenteDao;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
-    public AuthService(UtenteDao utenteDao, UtenteAgenziaDao utenteAgenziaDao, JwtService jwtService, PasswordEncoder passwordEncoder) {
+    public AuthService(UtenteDao utenteDao, UtenteAgenziaDao utenteAgenziaDao, JwtService jwtService, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.utenteDao = utenteDao;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.utenteAgenziaDao = utenteAgenziaDao;
+        this.emailService = emailService;
     }
 
     /**
@@ -39,16 +39,31 @@ public class AuthService {
         Utente utente;
         try {
             utente = utenteDao.findByEmail(request.getEmail());
+
+            if (utente.isLocked()){
+                throw new UnauthorizedException("Account bloccato. Contatta l'amministratore.");
+            }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             throw new NotFoundException("Email o password non corrette");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {
+            utente.setFailedLoginAttempts(utente.getFailedLoginAttempts() + 1);
+
+            // Lock account after 5 failed attempts
+            if (utente.getFailedLoginAttempts() >= 5) {
+                utente.setLockedUntil(Instant.now().plus(15, java.time.temporal.ChronoUnit.MINUTES)); // Blocca per 15 minuti
+                inviaEmailDiNotifica(utente.getEmail());
+            }
+            utenteDao.updateLoginAttempts(utente);
             throw new NotFoundException("Email o password non corrette");
         }
 
-        String token = jwtService.generateToken(utente.getUid(), utente.getRole(), utente.getEmail());
+        utente.setFailedLoginAttempts(0);
+        utente.setLockedUntil(null);
+        utenteDao.updateLoginAttempts(utente);
 
+        String token = jwtService.generateToken(utente.getUid(), utente.getRole(), utente.getEmail());
         return new LoginResponse(token, utente.getUid(), utente.getRole());
     }
 
@@ -119,6 +134,13 @@ public class AuthService {
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             throw new NotFoundException("Email non trovata per l'utente");
         }
+    }
+
+    private void inviaEmailDiNotifica(String destinatario){
+        String oggetto = "Account Bloccato";
+        String testo = "Il tuo account è stato bloccato per 15 min sulla piattaforma DietiEstates25 per troppi tentativi falliti d'accesso";
+
+        emailService.inviaEmail(destinatario, oggetto, testo);
     }
 
 }

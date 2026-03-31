@@ -6,6 +6,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Timestamp;
+
 @Repository
 public class UtentePostgres implements UtenteDao {
     private final JdbcTemplate jdbcTemplate;
@@ -22,6 +24,14 @@ public class UtentePostgres implements UtenteDao {
     }
 
     @Override
+    public void updateLoginAttempts(Utente u) {
+        String sql = "UPDATE utenti SET failed_login_attempts = ?, locked_until = ? WHERE uid = ?";
+
+        Timestamp lockedUntilTimestamp = u.getLockedUntil() != null ? Timestamp.from(u.getLockedUntil()) : null;
+        jdbcTemplate.update(sql, u.getFailedLoginAttempts(), lockedUntilTimestamp, u.getUid());
+    }
+
+    @Override
     public Utente findByEmail(String email) {
         String sql = "SELECT uid, email, password, role FROM utenti WHERE email = ?";
         return jdbcTemplate.queryForObject(sql, utenteRowMapper(), email);
@@ -34,11 +44,22 @@ public class UtentePostgres implements UtenteDao {
     }
 
     private RowMapper<Utente> utenteRowMapper() {
-        return (rs, rowNum) -> new Utente(
-                rs.getString("uid"),
-                rs.getString("email"),
-                rs.getString("password"),
-                rs.getString("role")
-        );
+        return (rs, rowNum) -> {
+            Utente u = new Utente(
+                    rs.getString("uid"),
+                    rs.getString("email"),
+                    rs.getString("password"),
+                    rs.getString("role")
+            );
+
+            u.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
+            Timestamp lockedUntilTimestamp = rs.getTimestamp("locked_until");
+            if (lockedUntilTimestamp != null) {
+                u.setLockedUntil(lockedUntilTimestamp.toInstant());
+            }
+
+            return u;
+        };
     }
+
 }
