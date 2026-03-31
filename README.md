@@ -730,7 +730,7 @@ Suite di **9 test** che verifica la protezione contro brute force attacks e il m
 **User Notification**
 - `testAccountLockout_ShouldNotifyUserViaEmail` — Utente notificato via email quando account viene bloccato
 
-**Implementazione Richiesta**:
+**Implementazione**:
 
 Model `Utente`:
 ```java

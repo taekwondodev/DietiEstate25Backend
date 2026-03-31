@@ -62,10 +62,12 @@ ALTER TABLE ONLY public.agenzia ALTER COLUMN idagenzia SET DEFAULT nextval('publ
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE public.utenti (
-                               uid   character varying(255)      NOT NULL,
-                               email character varying(255)      NOT NULL,
-                               password character varying(255)   NOT NULL,
-                               role  character varying(50)       NOT NULL
+                               uid                   character varying(255)      NOT NULL,
+                               email                 character varying(255)      NOT NULL,
+                               password              character varying(255)      NOT NULL,
+                               role                  character varying(50)       NOT NULL,
+                               failedloginattempts   integer                     DEFAULT 0,
+                               lockeduntil           timestamp with time zone
 );
 
 
