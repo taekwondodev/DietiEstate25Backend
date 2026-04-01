@@ -110,7 +110,7 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
         } catch (RestClientException e){
             throw new InternalServerErrorException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
         } catch(Exception e) {
-            throw new InternalServerErrorException(ErrorCode.EXTERNAL_SERVICE_ERROR, e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 }
