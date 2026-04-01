@@ -6,13 +6,13 @@ FROM maven:3.9-eclipse-temurin-21
 WORKDIR /app
 
 # Copia il file pom.xml
-COPY backend/pom.xml .
+COPY pom.xml .
 
 # Scarica le dipendenze Maven
 RUN mvn dependency:go-offline
 
 # Copia il codice sorgente
-COPY backend/src ./src
+COPY src ./src
 
 # Comando di default per eseguire i test
 # Può essere overridato da docker-compose o da CLI
@@ -22,4 +22,3 @@ COPY backend/src ./src
 # - Solo test specifico: mvn clean test -Dtest='NomeTest'
 
 CMD ["mvn", "clean", "test"]
-
