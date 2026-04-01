@@ -1,6 +1,7 @@
 package com.dietiestate25backend.dao.postgresimplements;
 
 import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.UtenteAgenzia;
@@ -38,20 +39,18 @@ public class UtenteAgenziaPostgres implements UtenteAgenziaDao {
                             rs.getObject("idAgenzia", Integer.class)
                     ), uuid);
 
-            // Verifica che sia Admin (null-safe con Objects.equals)
             if (!Objects.equals(adminInfo.role(), "Admin")) {
-                throw new UnauthorizedException("L'utente non è un Admin");
+                throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PERMISSIONS);
             }
 
-            // Verifica che l'Admin sia associato a un'agenzia
             if (adminInfo.idAgenzia() == null) {
-                throw new NotFoundException("Admin non associato a nessuna agenzia");
+                throw new NotFoundException(ErrorCode.RESOURCE_NOT_FOUND);
             }
 
             return adminInfo.idAgenzia();
 
         } catch (NullPointerException | org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Admin non trovato");
+            throw new NotFoundException(ErrorCode.ADMIN_NOT_FOUND);
         }
 
     }

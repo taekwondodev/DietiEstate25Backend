@@ -8,6 +8,7 @@ import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.error.exception.ConflictException;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
+import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
 import com.dietiestate25backend.service.JwtService;
@@ -47,22 +48,22 @@ class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
     private PasswordEncoder passwordEncoder;
 
     @Test
-    @DisplayName("Login with non-existent email - SHOULD throw NotFoundException")
-    void testLogin_EmailNotFound_ShouldThrowNotFound() {
+    @DisplayName("Login with non-existent email - SHOULD throw UnauthorizedException")
+    void testLogin_EmailNotFound_ShouldThrowUnauthorized() {
         LoginRequest request = new LoginRequest("nonexistent@example.com", "password123");
 
         when(utenteDao.findByEmail("nonexistent@example.com"))
                 .thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
 
         assertThrows(
-                NotFoundException.class,
+                UnauthorizedException.class,
                 () -> authService.login(request)
         );
     }
 
     @Test
-    @DisplayName("Login with incorrect password - SHOULD throw NotFoundException")
-    void testLogin_IncorrectPassword_ShouldThrowNotFound() {
+    @DisplayName("Login with incorrect password - SHOULD throw UnauthorizedException")
+    void testLogin_IncorrectPassword_ShouldThrowUnauthorized() {
         LoginRequest request = new LoginRequest("user@example.com", "wrongpassword");
 
         Utente utente = new Utente("uid123", "user@example.com", "hashedPassword", "Cliente");
@@ -70,7 +71,7 @@ class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
         when(passwordEncoder.matches("wrongpassword", "hashedPassword")).thenReturn(false);
 
         assertThrows(
-                NotFoundException.class,
+                UnauthorizedException.class,
                 () -> authService.login(request)
         );
     }

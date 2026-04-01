@@ -3,6 +3,7 @@ package com.dietiestate25backend.security.business;
 import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.OffertaDao;
 import com.dietiestate25backend.dto.requests.AggiornaOffertaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
@@ -61,7 +62,7 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(1, "Accettata"), "client1-uid")
         );
 
-        assertEquals("Utente non autorizzato", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test
@@ -78,7 +79,7 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(2, "Rifiutata"), "agente1-uid")
         );
 
-        assertEquals("Utente non autorizzato", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test
@@ -92,7 +93,7 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(9999, "Accettata"), "client1")
         );
 
-        assertEquals("Offerta non trovato", exception.getMessage());
+        assertEquals(ErrorCode.OFFERTA_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
@@ -121,6 +122,6 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(5, "Rifiutata"), "client1")
         );
 
-        assertEquals("Utente non autorizzato", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 }

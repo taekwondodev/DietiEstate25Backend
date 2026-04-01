@@ -6,6 +6,7 @@ import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneStaffRequest;
 import com.dietiestate25backend.dto.response.LoginResponse;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.*;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.model.UtenteAgenzia;
@@ -41,22 +42,21 @@ public class AuthService {
             utente = utenteDao.findByEmail(request.getEmail());
 
             if (utente.isLocked()){
-                throw new UnauthorizedException("Account bloccato. Contatta l'amministratore.");
+                throw new UnauthorizedException(ErrorCode.ACCOUNT_LOCKED);
             }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Email o password non corrette");
+            throw new UnauthorizedException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {
             utente.setFailedLoginAttempts(utente.getFailedLoginAttempts() + 1);
 
-            // Lock account after 5 failed attempts
             if (utente.getFailedLoginAttempts() >= 5) {
-                utente.setLockedUntil(Instant.now().plus(15, java.time.temporal.ChronoUnit.MINUTES)); // Blocca per 15 minuti
+                utente.setLockedUntil(Instant.now().plus(15, java.time.temporal.ChronoUnit.MINUTES));
                 inviaEmailDiNotifica(utente.getEmail());
             }
             utenteDao.updateLoginAttempts(utente);
-            throw new NotFoundException("Email o password non corrette");
+            throw new UnauthorizedException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         utente.setFailedLoginAttempts(0);
@@ -72,7 +72,7 @@ public class AuthService {
      */
     public void registraCliente(RegistrazioneRequest request) {
         if (!request.getRole().equals("Cliente")){
-            throw new BadRequestException("Solo i clienti possono registrarsi attraverso questo endpoint");
+            throw new BadRequestException(ErrorCode.INVALID_REGISTRATION_ROLE);
         }
         String uid = UUID.randomUUID().toString();
         String hashedPassword = passwordEncoder.encode(request.getPassword());
@@ -81,9 +81,9 @@ public class AuthService {
         try {
             utenteDao.save(utente);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            throw new ConflictException("Email già in uso");
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_IN_USE);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante la registrazione del cliente:", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
@@ -94,13 +94,13 @@ public class AuthService {
     @Transactional
     public void registraGestoreOrAgente(String uidAdmin, RegistrazioneStaffRequest request) {
         if  (!request.getRole().equals("Gestore") && !request.getRole().equals("AgenteImmobiliare")){
-            throw new BadRequestException("Il ruolo deve essere 'Gestore' o 'AgenteImmobiliare'");
+            throw new BadRequestException(ErrorCode.INVALID_STAFF_ROLE);
         }
         int idAgenzia;
         try {
             idAgenzia = utenteAgenziaDao.getIdAgenzia(uidAdmin);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante il recupero dell'id agenzia:", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
 
         String uid = UUID.randomUUID().toString();
@@ -111,17 +111,16 @@ public class AuthService {
         try {
             utenteDao.save(utente);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante la registrazione dell'utente:", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
 
-        // Associa l'utente all'agenzia tramite UtenteAgenzia
         UtenteAgenzia utenteAgenzia = new UtenteAgenzia(idAgenzia, uid);
         try {
             utenteAgenziaDao.save(utenteAgenzia);
         } catch (org.springframework.dao.DataIntegrityViolationException e){
-            throw new ConflictException("Utente è gia associato ad un'altra agenzia");
+            throw new ConflictException(ErrorCode.USER_ALREADY_ASSOCIATED);
         } catch (org.springframework.dao.DataAccessException e){
-            throw new InternalServerErrorException("Errore durante l'associazione dell'utente all'agenzia:", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
@@ -132,7 +131,7 @@ public class AuthService {
         try {
             return utenteDao.findEmailByUid(uid);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Email non trovata per l'utente");
+            throw new NotFoundException(ErrorCode.EMAIL_NOT_FOUND);
         }
     }
 

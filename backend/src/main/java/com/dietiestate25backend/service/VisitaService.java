@@ -4,6 +4,7 @@ import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dao.modelinterface.VisitaDao;
 import com.dietiestate25backend.dto.requests.AggiornaVisitaRequest;
 import com.dietiestate25backend.dto.requests.PrenotaVisitaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.*;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoVisita;
@@ -32,75 +33,73 @@ public class VisitaService {
 
     public void prenotaVisita(PrenotaVisitaRequest request, String uidCliente) {
         if (uidCliente == null || uidCliente.trim().isEmpty()) {
-            throw new BadRequestException("Id Cliente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_CLIENT_ID);
         }
 
-        // visita deve essere tra 08:00 e 18:00
         LocalTime oraInizio = LocalTime.of(8, 0);
         LocalTime oraFine = LocalTime.of(18, 0);
         if (request.getOraVisita().isBefore(oraInizio) || request.getOraVisita().isAfter(oraFine)) {
-            throw new BadRequestException("L'orario della visita deve essere tra le 08:00 e le 18:00");
+            throw new BadRequestException(ErrorCode.INVALID_VISIT_TIME);
         }
         try {
             java.sql.Date sqlDate = java.sql.Date.valueOf(request.getDataVisita());
             java.sql.Time sqlTime = Time.valueOf(request.getOraVisita());
 
             if (!visitaDao.salva(sqlDate, sqlTime, StatoVisita.IN_SOSPESO, uidCliente, request.getIdImmobile())) {
-                throw new DatabaseErrorException("Visita non salvata nel database");
+                throw new DatabaseErrorException(ErrorCode.DATABASE_WRITE_ERROR);
             }
 
             try {
                 inviaEmail(request.getIdImmobile());
             } catch (Exception e) {
-                // Log dell'errore ma non bloccare il processo di prenotazione
                 System.err.println("Errore durante l'invio dell'email: " + e.getMessage());
             }
         } catch(DataIntegrityViolationException e) {
             if (e.getMessage() != null && e.getMessage().contains("immobile")) {
-                throw new NotFoundException("Immobile non trovato");
+                throw new NotFoundException(ErrorCode.IMMOBILE_NOT_FOUND);
             }
             if (e.getMessage() != null && e.getMessage().contains("idcliente")) {
-                throw new NotFoundException("Cliente non trovato");
+                throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND);
             }
         } catch (BadRequestException | NotFoundException | ConflictException | DatabaseErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server");
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     public void aggiornaStatoVisita(AggiornaVisitaRequest request, String uidUtente) {
         if (uidUtente == null || uidUtente.trim().isEmpty()) {
-            throw new BadRequestException("Uid utente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_USER_ID);
         }
         StatoVisita nuovoStato;
         try {
             nuovoStato = StatoVisita.fromString(request.getStato());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Stato non valido");
+            throw new BadRequestException(ErrorCode.INVALID_STATUS);
         }
 
         try {
             Visita visitaAttuale = visitaDao.getVisitaById(request.getIdVisita());
             if (visitaAttuale == null) {
-                throw new NotFoundException("Oggetto non trovato");
+                throw new NotFoundException(ErrorCode.RESOURCE_NOT_FOUND);
             }
 
             String ruoloUtente = TokenUtils.getRole();
 
             if(ruoloUtente.equals("Cliente")) {
                 if(!visitaAttuale.getIdCliente().equals(uidUtente)) {
-                    throw new UnauthorizedException("Utente non autorizzato");
+                    throw new UnauthorizedException(ErrorCode.UNAUTHORIZED);
                 }
             } else {
                 if(!visitaAttuale.getImmobile().getIdResponsabile().equals(uidUtente)) {
-                    throw new UnauthorizedException("Utente non autorizzato");
+                    throw new UnauthorizedException(ErrorCode.UNAUTHORIZED);
                 }
             }
 
             StatoVisita statoAttuale = visitaAttuale.getStato();
             if (!isTransizioneValidaVisita(statoAttuale, nuovoStato)) {
-                throw new BadRequestException("Stato non valido");
+                throw new BadRequestException(ErrorCode.INVALID_STATUS);
             }
 
             Visita visita = new Visita(
@@ -109,28 +108,28 @@ public class VisitaService {
                     visitaAttuale.getIdCliente(), visitaAttuale.getImmobile()
             );
             if (!visitaDao.aggiornaStato(visita)) {
-                throw new DatabaseErrorException("Visita non trovata nel database");
+                throw new DatabaseErrorException(ErrorCode.DATABASE_READ_ERROR);
             }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Oggetto non trovato");
+            throw new NotFoundException(ErrorCode.RESOURCE_NOT_FOUND);
         }
         catch (BadRequestException | NotFoundException | UnauthorizedException | DatabaseErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server");
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     public List<Visita> riepilogoVisiteCliente(String idCliente) {
         if  (idCliente == null || idCliente.trim().isEmpty()) {
-            throw new BadRequestException("Uid Cliente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_CLIENT_ID);
         }
         return visitaDao.riepilogoVisiteCliente(idCliente);
     }
 
     public List<Visita> riepilogoVisiteUtenteAgenzia(String idAgente) {
         if (idAgente == null || idAgente.trim().isEmpty()) {
-            throw new BadRequestException("Uid utente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_USER_ID);
         }
         return visitaDao.riepilogoVisiteUtenteAgenzia(idAgente);
     }

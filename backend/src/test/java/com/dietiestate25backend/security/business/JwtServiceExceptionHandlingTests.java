@@ -1,6 +1,7 @@
 package com.dietiestate25backend.security.business;
 
 import com.dietiestate25backend.BaseIntegrationTest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.service.JwtService;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +41,7 @@ class JwtServiceExceptionHandlingTests extends BaseIntegrationTest {
                 () -> jwtService.validateAndDecodeToken(malformedToken)
         );
 
-        assert exception.getMessage().equals("Token non valido o scaduto");
+        assert exception.getErrorCode() == ErrorCode.INVALID_TOKEN;
     }
 
     @Test
@@ -56,7 +57,7 @@ class JwtServiceExceptionHandlingTests extends BaseIntegrationTest {
                 () -> jwtService.validateAndDecodeToken(expiredToken)
         );
 
-        assert exception.getMessage().equals("Token non valido o scaduto");
+        assert exception.getErrorCode() == ErrorCode.INVALID_TOKEN;
     }
 
     @Test
@@ -72,7 +73,7 @@ class JwtServiceExceptionHandlingTests extends BaseIntegrationTest {
                 () -> jwtService.validateAndDecodeToken(invalidSignatureToken)
         );
 
-        assert exception.getMessage().equals("Token non valido o scaduto");
+        assert exception.getErrorCode() == ErrorCode.INVALID_TOKEN;
     }
 
     @Test

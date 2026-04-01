@@ -3,6 +3,7 @@ package com.dietiestate25backend.security.business;
 import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.OffertaDao;
 import com.dietiestate25backend.dto.requests.AggiornaOffertaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Offerta;
@@ -95,7 +96,7 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(3, "In sospeso"), "client1")
         );
 
-        assert exception.getMessage().equals("Stato Offerta non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
     }
 
     @Test
@@ -112,7 +113,7 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(4, "Rifiutata"), "agente1")
         );
 
-        assert exception.getMessage().equals("Stato Offerta non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
     }
 
     @Test
@@ -129,7 +130,7 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(5, "Accettata"), "client1")
         );
 
-        assert exception.getMessage().equals("Stato Offerta non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
     }
 
     @Test
@@ -146,6 +147,6 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
                 () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(6, "Accettata"), "agente1")
         );
 
-        assert exception.getMessage().equals("Stato Offerta non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
     }
 }

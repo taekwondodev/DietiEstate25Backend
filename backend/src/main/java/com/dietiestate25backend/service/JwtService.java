@@ -1,5 +1,6 @@
 package com.dietiestate25backend.service;
 
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -47,7 +48,7 @@ public class JwtService {
         try {
             return jwtDecoder.decode(token);
         } catch (Exception e) {
-            throw new UnauthorizedException("Token non valido o scaduto");
+            throw new UnauthorizedException(ErrorCode.INVALID_TOKEN);
         }
     }
 
