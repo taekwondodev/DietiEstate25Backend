@@ -3,6 +3,7 @@ package com.dietiestate25backend.security.business;
 import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.VisitaDao;
 import com.dietiestate25backend.dto.requests.AggiornaVisitaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoVisita;
@@ -103,7 +104,7 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(3, "In sospeso"), "client1")
         );
 
-        assert exception.getMessage().equals("Stato non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
     }
 
     @Test
@@ -121,7 +122,7 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(4, "Rifiutata"), "agente1")
         );
 
-        assert exception.getMessage().equals("Stato non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
     }
 
     @Test
@@ -139,7 +140,7 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(5, "Confermata"), "client1")
         );
 
-        assert exception.getMessage().equals("Stato non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
     }
 
     @Test
@@ -157,6 +158,6 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(6, "Confermata"), "agente1")
         );
 
-        assert exception.getMessage().equals("Stato non valido");
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
     }
 }

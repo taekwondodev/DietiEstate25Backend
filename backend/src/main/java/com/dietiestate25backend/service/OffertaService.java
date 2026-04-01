@@ -3,6 +3,7 @@ package com.dietiestate25backend.service;
 import com.dietiestate25backend.dao.modelinterface.OffertaDao;
 import com.dietiestate25backend.dto.requests.AggiornaOffertaRequest;
 import com.dietiestate25backend.dto.requests.CreaOffertaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.*;
 import com.dietiestate25backend.model.Offerta;
 import com.dietiestate25backend.model.StatoOfferta;
@@ -22,78 +23,78 @@ public class OffertaService {
 
     public void aggiungiOfferta(CreaOffertaRequest request, String uidCliente){
         if (uidCliente == null || uidCliente.trim().isEmpty()) {
-            throw new BadRequestException("Uid cliente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_CLIENT_ID);
         }
         try {
             if (!offertaDao.salvaOfferta(request.getImporto(), StatoOfferta.IN_SOSPESO, uidCliente, request.getIdImmobile())) {
-                throw new InternalServerErrorException("Offerta non salvata nel database");
+                throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR);
             }
         } catch (DataIntegrityViolationException e) {
             if (e.getMessage() != null && e.getMessage().contains("idimmobile")){
-                throw new NotFoundException("Immobile non trovato");
+                throw new NotFoundException(ErrorCode.IMMOBILE_NOT_FOUND);
             }
             if (e.getMessage() != null && e.getMessage().contains("idcliente")) {
-                throw new NotFoundException("Cliente non trovato");
+                throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND);
             }
         } catch (InternalServerErrorException e) {
             throw e;
         } catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server");
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     public void aggiornaStatoOfferta(AggiornaOffertaRequest request, String uidUtente){
         if (uidUtente == null || uidUtente.trim().isEmpty()) {
-            throw new BadRequestException("Uid utente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_USER_ID);
         }
         StatoOfferta nuovoStato;
         try {
             nuovoStato = StatoOfferta.fromString(request.getStato());
         }  catch (IllegalArgumentException e) {
-            throw new BadRequestException("Stato non valido");
+            throw new BadRequestException(ErrorCode.INVALID_STATUS);
         }
         try {
             Offerta offertaAttuale = offertaDao.getOffertaById(request.getIdOfferta());
 
             if (offertaAttuale == null) {
-                throw new NotFoundException("Offerta non trovato");
+                throw new NotFoundException(ErrorCode.OFFERTA_NOT_FOUND);
             }
 
             String ruoloUtente = TokenUtils.getRole();
 
             if (ruoloUtente.equals("Cliente")) {
                 if (!offertaAttuale.getIdCliente().equals(uidUtente)) {
-                    throw new UnauthorizedException("Utente non autorizzato");
+                    throw new UnauthorizedException(ErrorCode.UNAUTHORIZED);
                 }
             } else {
                 if (!offertaAttuale.getImmobile().getIdResponsabile().equals(uidUtente)) {
-                    throw new UnauthorizedException("Utente non autorizzato");
+                    throw new UnauthorizedException(ErrorCode.UNAUTHORIZED);
                 }
             }
 
             StatoOfferta statoAttuale = offertaAttuale.getStato();
             if (!isTransazioneValida(statoAttuale, nuovoStato)) {
-                throw new BadRequestException("Stato Offerta non valido");
+                throw new BadRequestException(ErrorCode.INVALID_OFFERTA_STATUS);
             }
 
             Offerta offerta = new Offerta(request.getIdOfferta(), offertaAttuale.getImporto(), nuovoStato, offertaAttuale.getIdCliente(), offertaAttuale.getImmobile());
             if (!offertaDao.aggiornaStatoOfferta(offerta)) {
-                throw new DatabaseErrorException("Offerta non trovata nel database");
+                throw new DatabaseErrorException(ErrorCode.DATABASE_READ_ERROR);
             }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            throw new NotFoundException("Offerta non trovata");
+            throw new NotFoundException(ErrorCode.OFFERTA_NOT_FOUND);
         }
         catch(BadRequestException | NotFoundException | DatabaseErrorException | UnauthorizedException e){
             throw e;
         }
         catch (Exception e) {
-            throw new InternalServerErrorException("Errore interno del server");
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     public List<Offerta> riepilogoOfferteCliente(String idCliente){
         if (idCliente == null || idCliente.trim().isEmpty()) {
-            throw new BadRequestException("Uid cliente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_CLIENT_ID);
         }
 
         return offertaDao.riepilogoOfferteCliente(idCliente);
@@ -101,7 +102,7 @@ public class OffertaService {
 
     public List<Offerta> riepilogoOfferteUtenteAgenzia(String idAgente){
         if (idAgente == null || idAgente.trim().isEmpty()) {
-            throw new BadRequestException("Uid utente non valido");
+            throw new BadRequestException(ErrorCode.INVALID_USER_ID);
         }
 
         return offertaDao.riepilogoOfferteUteneAgenzia(idAgente);

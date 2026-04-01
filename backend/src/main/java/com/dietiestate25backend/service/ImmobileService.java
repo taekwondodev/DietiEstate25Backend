@@ -2,6 +2,7 @@ package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.dao.modelinterface.ImmobileDao;
 import com.dietiestate25backend.dto.requests.CreaImmobileRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.ConflictException;
 import com.dietiestate25backend.error.exception.DatabaseErrorException;
@@ -32,32 +33,27 @@ public class ImmobileService {
             Double dimensione, Integer nBagni,
             int page, int size
     ) {
-        // Limite massimo per evitare buffer overflow
         if (size > 100) {
-            throw new BadRequestException("Size non può superare 100");
+            throw new BadRequestException(ErrorCode.INVALID_PAGE_SIZE);
         }
 
-        // Validazione: prezzoMin e prezzoMax coerenti
         if (prezzoMin != null && prezzoMax != null) {
             if (prezzoMin < 0 || prezzoMax < 0) {
-                throw new BadRequestException("Prezzi non possono essere negativi");
+                throw new BadRequestException(ErrorCode.INVALID_PRICE);
             }
             if (prezzoMin > prezzoMax) {
-                throw new BadRequestException("PrezzoMin non può essere maggiore di PrezzoMax");
+                throw new BadRequestException(ErrorCode.INVALID_PRICE_RANGE);
             }
         }
 
-        // Validazione: dimensione non negativa
         if (dimensione != null && dimensione < 0) {
-            throw new BadRequestException("Dimensione non può essere negativa");
+            throw new BadRequestException(ErrorCode.INVALID_DIMENSION);
         }
 
-        // Validazione: nBagni non negativo
         if (nBagni != null && nBagni < 0) {
-            throw new BadRequestException("nBagni non può essere negativo");
+            throw new BadRequestException(ErrorCode.INVALID_BATHROOMS);
         }
 
-        // Creiamo i filters
         Map<String, Object> filters = new HashMap<>();
         filters.put("comune", comune.trim());
 
@@ -81,14 +77,14 @@ public class ImmobileService {
         try {
             return immobileDao.cercaImmobiliConFiltri(filters, page, size);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante la ricerca", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
 
     public void creaImmobile(CreaImmobileRequest request, String uidResponsabile) {
         if (uidResponsabile == null || uidResponsabile.trim().isEmpty()) {
-            throw new BadRequestException("Responsabile non valido");
+            throw new BadRequestException(ErrorCode.INVALID_RESPONSABILE);
         }
         Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo(), request.getComune());
 
@@ -112,33 +108,31 @@ public class ImmobileService {
 
         try {
             if (!immobileDao.creaImmobile(immobile)) {
-                throw new DatabaseErrorException("Impossibile creare l'immobile");
+                throw new DatabaseErrorException(ErrorCode.DATABASE_WRITE_ERROR);
             }
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            throw new ConflictException("Attributi di immobile non validi");
+            throw new ConflictException(ErrorCode.INVALID_IMMOBILE_ATTRIBUTES);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante la creazione dell'immobile", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     public List<Immobile> immobiliPersonali(String uidResponsabile) {
         if (uidResponsabile == null || uidResponsabile.trim().isEmpty()) {
-            throw new BadRequestException("Responsabile non valido");
+            throw new BadRequestException(ErrorCode.INVALID_RESPONSABILE);
         }
         try {
             return immobileDao.immobiliPersonali(uidResponsabile);
         } catch (org.springframework.dao.DataAccessException e) {
-            throw new InternalServerErrorException("Errore durante il recupero degli immobili personali", e);
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
     }
 
     private Map<String, Double> ottieniCoordinate(String indirizzo, String comune) {
-        // Otteniamo le coordinate dall'indirizzo e inseriamole in una Map
         Map<String, Double> coordinate = geoDataService.ottieniCoordinate(indirizzo, comune);
 
-        // Verifichiamo che le coordinate siano valide
         if (coordinate == null || !coordinate.containsKey(LATITUDINE) || !coordinate.containsKey(LONGITUDINE)) {
-            throw new BadRequestException("Impossibile ottenere le coordinate per l'indirizzo fornito.");
+            throw new BadRequestException(ErrorCode.INVALID_ADDRESS);
         }
 
         return coordinate;

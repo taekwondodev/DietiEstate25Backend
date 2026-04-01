@@ -4,7 +4,6 @@ import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.externalimplements.GeoapifyGeoDataDao;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
-import com.dietiestate25backend.error.exception.NotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +35,9 @@ class GeoapifyGeoDataExceptionHandlingTests extends BaseIntegrationTest {
     private RestTemplate restTemplate;
 
     @Test
-    @DisplayName("Geoapify returns invalid response - SHOULD throw BadRequestException")
+    @DisplayName("Geoapify returns invalid response - SHOULD throw InternalServerErrorException")
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
-    void testOttieniCoordinate_InvalidResponse_ShouldThrowBadRequest() {
+    void testOttieniCoordinate_InvalidResponse_ShouldThrowInternalError() {
         Map<String, Object> invalidResponse = new HashMap<>();
         invalidResponse.put("status", "OK");
 
@@ -46,7 +45,7 @@ class GeoapifyGeoDataExceptionHandlingTests extends BaseIntegrationTest {
                 .thenReturn(invalidResponse);
 
         assertThrows(
-                BadRequestException.class,
+                InternalServerErrorException.class,
                 () -> geoDataDao.ottieniCoordinate("Indirizzo non trovato")
         );
     }
@@ -91,9 +90,9 @@ class GeoapifyGeoDataExceptionHandlingTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Geoapify returns no features for category - SHOULD throw NotFoundException")
+    @DisplayName("Geoapify returns no features for category - SHOULD throw InternalServerErrorException")
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
-    void testOttieniConteggioPuntiInteresse_NoFeatures_ShouldThrowNotFound() {
+    void testOttieniConteggioPuntiInteresse_NoFeatures_ShouldThrowInternalError() {
         Map<String, Object> invalidResponse = new HashMap<>();
         invalidResponse.put("status", "OK");
 
@@ -101,7 +100,7 @@ class GeoapifyGeoDataExceptionHandlingTests extends BaseIntegrationTest {
                 .thenReturn(invalidResponse);
 
         assertThrows(
-                NotFoundException.class,
+                InternalServerErrorException.class,
                 () -> geoDataDao.ottieniConteggioPuntiInteresse(43.7, 10.4, 500, List.of("parco"))
         );
     }

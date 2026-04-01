@@ -1,6 +1,7 @@
 package com.dietiestate25backend.service;
 
 import com.dietiestate25backend.dao.modelinterface.MeteoDao;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 
@@ -21,14 +22,14 @@ public class MeteoService {
         try {
             dataRichiesta = LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw new BadRequestException("La data fornita non è in un formato valido. Utilizzare il formato YYYY-MM-DD.");
+            throw new BadRequestException(ErrorCode.INVALID_DATE_FORMAT);
         }
 
         LocalDate dataAttuale = LocalDate.now();
         LocalDate dataMassimaSupportata = dataAttuale.plusDays(7);
 
         if (dataRichiesta.isBefore(dataMassimaSupportata)) {
-            throw new BadRequestException("Le previsioni meteo sono disponibili solo da oggi ai prossimi 7 giorni");
+            throw new BadRequestException(ErrorCode.INVALID_DATE_RANGE);
         }
 
         double latitudineDouble;
@@ -38,14 +39,14 @@ public class MeteoService {
             latitudineDouble = Double.parseDouble(latitudine);
             longitudineDouble = Double.parseDouble(longitudine);
         } catch (NumberFormatException e) {
-            throw new BadRequestException("Latitudine o longitudine non valide: devono essere numeri.");
+            throw new BadRequestException(ErrorCode.INVALID_COORDINATES);
         }
 
         if (latitudineDouble < -90 || latitudineDouble > 90) {
-            throw new BadRequestException("Latitudine deve essere tra -90 e 90.");
+            throw new BadRequestException(ErrorCode.INVALID_LATITUDE);
         }
         if (longitudineDouble < -180 || longitudineDouble > 180) {
-            throw new BadRequestException("Longitudine deve essere tra -180 e 180.");
+            throw new BadRequestException(ErrorCode.INVALID_LONGITUDE);
         }
 
         return meteoDao.ottieniPrevisioni(latitudineDouble, longitudineDouble, date);

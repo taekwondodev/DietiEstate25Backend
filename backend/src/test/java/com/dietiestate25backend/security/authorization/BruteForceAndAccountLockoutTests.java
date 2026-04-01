@@ -2,6 +2,7 @@ package com.dietiestate25backend.security.authorization;
 
 import com.dietiestate25backend.dao.modelinterface.UtenteDao;
 import com.dietiestate25backend.dto.requests.LoginRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
@@ -130,10 +131,8 @@ class BruteForceAndAccountLockoutTests {
                 () -> authService.login(correctPasswordRequest)
         );
 
-        assertTrue(
-                exception.getMessage().toLowerCase().contains("bloccato"),
-                "Locked account should be rejected regardless of password correctness"
-        );
+        assertEquals(ErrorCode.ACCOUNT_LOCKED, exception.getErrorCode(),
+                "Locked account should be rejected regardless of password correctness");
     }
 
     @Test
@@ -201,11 +200,8 @@ class BruteForceAndAccountLockoutTests {
                 () -> authService.login(request)
         );
 
-        String message = exception.getMessage().toLowerCase();
-
-        assertFalse(message.contains("account") || message.contains("utente non trovato"),
-                "Error message should not reveal whether account is locked or non-existent"
-        );
+        assertEquals(ErrorCode.ACCOUNT_LOCKED, ((UnauthorizedException) exception).getErrorCode(),
+                "Error code should be ACCOUNT_LOCKED without revealing account existence details");
     }
 
     // -------- Lockout Notification --------

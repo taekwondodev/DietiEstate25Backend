@@ -1,5 +1,6 @@
 package com.dietiestate25backend.utils;
 
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -28,7 +29,7 @@ public class TokenUtils {
     public static String getUserSub() {
         return getJwt()
                 .map(jwt -> jwt.getClaimAsString("sub"))
-                .orElseThrow(() -> new UnauthorizedException("Sub dell'Utente non trovato"));
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.INVALID_TOKEN));
     }
 
     /**
@@ -37,7 +38,7 @@ public class TokenUtils {
     public static String getEmail() {
         return getJwt()
                 .map(jwt -> jwt.getClaimAsString("email"))
-                .orElseThrow(() -> new UnauthorizedException("Email dell'Utente non trovata"));
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.INVALID_TOKEN));
     }
 
     /**
@@ -46,14 +47,14 @@ public class TokenUtils {
     public static String getRole() {
         return getJwt()
                 .map(jwt -> jwt.getClaimAsString("role"))
-                .orElseThrow(() -> new UnauthorizedException("Role dell'Utente non trovato"));
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.INVALID_TOKEN));
     }
 
     public static void checkIfAdmin() {
         String role = getRole();
 
         if (isNotAdmin(role)) {
-            throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
+            throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PERMISSIONS);
         }
     }
 
@@ -61,7 +62,7 @@ public class TokenUtils {
         String role = getRole();
 
         if (isNotAdmin(role) && isNotGestore(role)) {
-            throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
+            throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PERMISSIONS);
         }
     }
 
@@ -69,7 +70,7 @@ public class TokenUtils {
         String role = getRole();
 
         if (!hasValidAgencyRole(role)) {
-            throw new UnauthorizedException("Non hai i permessi per eseguire questa operazione");
+            throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PERMISSIONS);
         }
     }
 

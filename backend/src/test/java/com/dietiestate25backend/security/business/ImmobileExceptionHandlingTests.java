@@ -110,6 +110,8 @@ class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
     }
 
     @Test
+
+
     @DisplayName("Get personal immobili - DAO throws DataAccessException - SHOULD wrap without leaking")
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testImmobiliPersonali_DAOThrowsDataAccessException_ShouldWrapGeneric() {

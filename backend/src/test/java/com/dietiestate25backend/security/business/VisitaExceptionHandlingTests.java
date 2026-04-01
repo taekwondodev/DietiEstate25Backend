@@ -3,6 +3,7 @@ package com.dietiestate25backend.security.business;
 import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.VisitaDao;
 import com.dietiestate25backend.dto.requests.AggiornaVisitaRequest;
+import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
@@ -66,7 +67,7 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(1, "Confermata"), "client1-uid")
         );
 
-        assertEquals("Non hai i permessi per aggiornare questa visita", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test
@@ -84,7 +85,7 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(2, "Confermata"), "agente1-uid")
         );
 
-        assertEquals("Non hai i permessi per aggiornare questa visita", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 
     @Test
@@ -98,7 +99,7 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(9999, "Confermata"), "client1")
         );
 
-        assertEquals("Visita non trovato", exception.getMessage());
+        assertEquals(ErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
@@ -128,6 +129,6 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
                 () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(5, "Rifiutata"), "client1")
         );
 
-        assertEquals("Non hai i permessi per aggiornare questa visita", exception.getMessage());
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
     }
 }
