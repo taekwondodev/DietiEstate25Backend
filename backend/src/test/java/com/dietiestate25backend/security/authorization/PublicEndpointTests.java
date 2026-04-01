@@ -2,6 +2,7 @@ package com.dietiestate25backend.security.authorization;
 
 import com.dietiestate25backend.BaseMvcTest;
 import com.dietiestate25backend.service.AuthService;
+import com.dietiestate25backend.service.ImmobileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -17,10 +18,13 @@ class PublicEndpointTests extends BaseMvcTest {
     @MockitoBean
     private AuthService authService;
 
+    @MockitoBean
+    private ImmobileService immobileService;
+
     @Test
     @DisplayName("Login endpoint - Should be publicly accessible (no authentication required)")
     void testLoginEndpoint_ShouldBePublic() throws Exception {
-        String jsonRequest = "{\"email\":\"user@example.com\",\"password\":\"password\"}";
+        String jsonRequest = "{\"email\":\"user@example.com\",\"password\":\"\"}";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)

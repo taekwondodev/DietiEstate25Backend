@@ -2,6 +2,7 @@ package com.dietiestate25backend.dto.requests;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class LoginRequest {
@@ -12,6 +13,7 @@ public class LoginRequest {
 
     @NotBlank(message = "Password non può essere vuota")
     @Size(min=1, max=255, message="Password non valida")
+    @Pattern(regexp = "^[\\x20-\\x7E]+$", message = "La password contiene caratteri non validi")
     private String password;
 
     public LoginRequest() {}

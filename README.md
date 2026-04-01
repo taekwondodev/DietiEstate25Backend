@@ -502,9 +502,9 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 - `HttpMessageNotReadableException` → 400 Bad Request
 
 ##### Content Negotiation
-- `testWrongContentType_TextPlainShouldNotBeAccepted` — Content-Type `text/plain` non accettato
+- `testWrongContentType_FormUrlencodedShouldReturn415` — Content-Type `application/x-www-form-urlencoded` non accettato (→ 415 Unsupported Media Type)
 
-**Outcome**: Spring Security valida Content-Type automaticamente
+**Outcome**: Spring ritorna 415 quando il Content-Type non è `application/json`
 
 ##### Buffer Overflow & Payload Size
 - `testHugePayload_ExtremelyLargeShouldBeRejected` — Payload da 100,000 caratteri
@@ -523,7 +523,9 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
 **Outcome**: `@Email` validator rifiuta pattern sospetti. Parametrized queries in JDBC protegono ulteriormente
 
-- `testUnicodeCharacters_UnicodeShouldBeRejected` — Unicode rifiutato
+- `testUnicodeCharacters_UnicodeShouldBeRejected` — Unicode rifiutato (→ 400 Bad Request)
+
+**Outcome**: `@Pattern(regexp = "^[\\x20-\\x7E]+$")` su `LoginRequest.password` rifiuta caratteri non-ASCII
 
 #### 8.2.2 LoginRequestValidationTests (`security/validation/`)
 
@@ -552,9 +554,9 @@ Suite di **10 test** che verificano la validazione specifica del DTO `LoginReque
 
 **Outcome**: Validazione email + parametrized queries proteggono
 
-- `testLoginRequest_ExtraFields_ShouldBeIgnored` — Campo extra `role: "Admin"` nella request ignorato (non injection)
+- `testLoginRequest_ExtraFields_ShouldReturn400` — Campo extra `role: "Admin"` nella request rifiutato (→ 400 Bad Request)
 
-**Outcome**: Jackson deserializer ignora automaticamente i campi non mappati
+**Outcome**: Jackson configurato con `FAIL_ON_UNKNOWN_PROPERTIES=true` rifiuta campi non mappati
 
 #### 8.2.3 RegistrazioneRequestValidationTests (`security/validation/`)
 
@@ -583,9 +585,9 @@ Suite di **10 test** che verificano la validazione specifica del DTO `Registrazi
 
 **Outcome**: `@Email` validator + parametrized queries
 
-- `testRegistrazioneRequest_ExtraFields_ShouldBeIgnored` — Campo extra `admin: true` nella request ignorato
+- `testRegistrazioneRequest_ExtraFields_ShouldReturn400` — Campo extra `admin: true` nella request rifiutato (→ 400 Bad Request)
 
-**Outcome**: Jackson ignora campi non mappati
+**Outcome**: Jackson configurato con `FAIL_ON_UNKNOWN_PROPERTIES=true` rifiuta campi non mappati
 
 - `testRegistrazioneRequest_PasswordWithOnlyNumbers_ShouldBeRejected` — Password numerica rifiutata
 

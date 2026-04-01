@@ -40,6 +40,7 @@ public class GlobalExceptionHandler {
         MESSAGES.put(ErrorCode.INVALID_CATEGORY,          "Categoria non supportata");
         MESSAGES.put(ErrorCode.INVALID_REGISTRATION_ROLE, "Solo i clienti possono registrarsi attraverso questo endpoint");
         MESSAGES.put(ErrorCode.INVALID_STAFF_ROLE,        "Il ruolo deve essere 'Gestore' o 'AgenteImmobiliare'");
+        MESSAGES.put(ErrorCode.INVALID_PASSWORD,          "La password non rispetta i requisiti di sicurezza");
         MESSAGES.put(ErrorCode.ADDRESS_NOT_FOUND,         "Nessuna coordinata trovata per l'indirizzo fornito");
         MESSAGES.put(ErrorCode.DATE_NOT_IN_FORECAST,      "Data non trovata nelle previsioni");
 

@@ -128,14 +128,14 @@ class LoginRequestValidationTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("LoginRequest - Extra fields should be ignored (no injection)")
-    void testLoginRequest_ExtraFields_ShouldBeIgnored() throws Exception {
+    @DisplayName("LoginRequest - Extra fields should return 400 Bad Request")
+    void testLoginRequest_ExtraFields_ShouldReturn400() throws Exception {
         String jsonRequest = "{\"email\":\"user@example.com\",\"password\":\"SecurePassword123!\",\"role\":\"Admin\"}";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -123,6 +123,7 @@ class BruteForceAndAccountLockoutTests {
         LoginRequest correctPasswordRequest = new LoginRequest(validEmail, validPassword);
 
         Utente lockedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
+        lockedUser.setLockedUntil(Instant.now().plus(15, ChronoUnit.MINUTES));
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(lockedUser);
 
@@ -193,6 +194,7 @@ class BruteForceAndAccountLockoutTests {
         LoginRequest request = new LoginRequest(validEmail, validPassword);
 
         Utente lockedUser = new Utente(sub, validEmail, hashedPassword, "Cliente");
+        lockedUser.setLockedUntil(Instant.now().plus(15, ChronoUnit.MINUTES));
 
         when(utenteDao.findByEmail(validEmail)).thenReturn(lockedUser);
 

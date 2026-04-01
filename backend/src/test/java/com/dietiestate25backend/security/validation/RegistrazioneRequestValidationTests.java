@@ -139,14 +139,14 @@ class RegistrazioneRequestValidationTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("RegistrazioneRequest - Extra fields should be ignored (no injection)")
-    void testRegistrazioneRequest_ExtraFields_ShouldBeIgnored() throws Exception {
+    @DisplayName("RegistrazioneRequest - Extra fields should return 400 Bad Request")
+    void testRegistrazioneRequest_ExtraFields_ShouldReturn400() throws Exception {
         String jsonRequest = "{\"email\":\"newuser@example.com\",\"password\":\"SecurePassword123!\",\"role\":\"Cliente\",\"admin\":true}";
 
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

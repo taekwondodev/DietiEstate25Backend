@@ -42,14 +42,14 @@ class MalformedPayloadTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Wrong Content Type - Text/plain should not be accepted for endpoints expecting JSON")
-    void testWrongContentType_TextPlainShouldNotBeAccepted() throws Exception {
+    @DisplayName("Wrong Content Type - Form-urlencoded should return 415 Unsupported Media Type")
+    void testWrongContentType_FormUrlencodedShouldReturn415() throws Exception {
         String payload = "email=user@example.com&password=password";
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .content(payload))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test

@@ -25,8 +25,8 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: test
-    command: mvn clean test -Dtest="com.dietiestate25backend.security.validation.**"
+    #command: mvn clean test -Dtest="com.dietiestate25backend.security.validation.**"
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.auth.**"
-    #command: mvn clean test -Dtest="com.dietiestate25backend.security.authorization.**"
+    command: mvn clean test -Dtest="com.dietiestate25backend.security.authorization.**"
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.business.**"
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.dataisolation.**"

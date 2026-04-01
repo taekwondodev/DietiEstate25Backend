@@ -7,9 +7,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,9 +28,9 @@ class AdminBoundaryTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Register Staff - Cliente should not be able to register staff (401 Unauthorized)")
-    @WithMockUser(roles = "Cliente")
     void testRegisterStaff_WithClienteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
+                .with(jwt().jwt(j -> j.claim("role", "Cliente").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
                 .andExpect(status().isUnauthorized());
@@ -38,9 +38,9 @@ class AdminBoundaryTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Register Staff - Agente should not be able to register staff (401 Unauthorized)")
-    @WithMockUser(roles = "AgenteImmobiliare")
     void testRegisterStaff_WithAgenteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
+                .with(jwt().jwt(j -> j.claim("role", "AgenteImmobiliare").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
                 .andExpect(status().isUnauthorized());
@@ -48,9 +48,9 @@ class AdminBoundaryTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Register Staff - Gestore can also register staff (200 OK)")
-    @WithMockUser(roles = "Gestore")
     void testRegisterStaff_WithGestoreRole_ShouldReturn200() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
+                .with(jwt().jwt(j -> j.claim("role", "Gestore").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
                 .andExpect(status().isOk());
@@ -58,9 +58,9 @@ class AdminBoundaryTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Register Staff - Admin should be able to register staff (200 OK)")
-    @WithMockUser(roles = "Admin")
     void testRegisterStaff_WithAdminRole_ShouldReturn200() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
+                .with(jwt().jwt(j -> j.claim("role", "Admin").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
                 .andExpect(status().isOk());
@@ -77,9 +77,9 @@ class AdminBoundaryTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Register Staff - Invalid role should throw exception")
-    @WithMockUser(username = "user", roles = "INVALID_ROLE")
     void testRegisterStaff_WithInvalidRole_ShouldThrowException() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
+                .with(jwt().jwt(j -> j.claim("role", "INVALID_ROLE").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
                 .andExpect(status().isUnauthorized());
