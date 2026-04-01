@@ -11,9 +11,13 @@ import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoVisita;
 import com.dietiestate25backend.model.Visita;
 import com.dietiestate25backend.service.VisitaService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -42,6 +46,20 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
     @MockitoBean
     private VisitaDao visitaDao;
 
+    private void mockJwtUser(String uid, String role) {
+        Jwt jwt = Jwt.withTokenValue("mock-token")
+                .header("alg", "none")
+                .claim("sub", uid)
+                .claim("role", role)
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     private Immobile buildTestImmobile(int id, String indirizzo, String idResponsabile) {
         return new Immobile.Builder()
                 .setIdImmobile(id).setIndirizzo(indirizzo)
@@ -54,8 +72,8 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Client1 modifica visita di Client2 - SHOULD throw UnauthorizedException")
-    @WithMockUser(username = "client1-uid", roles = "Cliente")
     void testClienteModificaVisitaAltrui_ShouldThrowUnauthorizedException() {
+        mockJwtUser("client1-uid", "Cliente");
         Immobile immobile = buildTestImmobile(1, "Via Roma", "agente1");
         Visita visitaClient2 = new Visita(1, Date.valueOf("2026-04-10"), Time.valueOf("14:00:00"),
                 StatoVisita.IN_SOSPESO, "client2-uid", immobile);
@@ -72,8 +90,8 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Agente1 modifica visita su immobile di Agente2 - SHOULD throw UnauthorizedException")
-    @WithMockUser(username = "agente1-uid", roles = "AgenteImmobiliare")
     void testAgenteModificaVisitaCollega_ShouldThrowUnauthorizedException() {
+        mockJwtUser("agente1-uid", "AgenteImmobiliare");
         Immobile immobileAgente2 = buildTestImmobile(2, "Via Milano", "agente2-uid");
         Visita visitaImmobileAgente2 = new Visita(2, Date.valueOf("2026-04-11"), Time.valueOf("15:00:00"),
                 StatoVisita.IN_SOSPESO, "client1", immobileAgente2);
@@ -116,8 +134,8 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Ownership check BEFORE state validation - SHOULD throw UnauthorizedException first")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testOwnershipCheckBeforeStateValidation() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(5, "Via Torino", "agente1");
         Visita visitaClient2Confermata = new Visita(5, Date.valueOf("2026-04-14"), Time.valueOf("18:00:00"),
                 StatoVisita.CONFERMATA, "client2-uid", immobile);

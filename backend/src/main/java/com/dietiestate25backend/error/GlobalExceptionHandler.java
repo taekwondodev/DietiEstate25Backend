@@ -92,6 +92,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<String> handleUnauthorizedException(UnauthorizedException e) {
+        if (e.getErrorCode() == ErrorCode.INSUFFICIENT_PERMISSIONS) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(getMessage(e.getErrorCode()));
+        }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(getMessage(e.getErrorCode()));
     }
 

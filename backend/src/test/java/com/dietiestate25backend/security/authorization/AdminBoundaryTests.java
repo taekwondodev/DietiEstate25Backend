@@ -27,23 +27,23 @@ class AdminBoundaryTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Register Staff - Cliente should not be able to register staff (401 Unauthorized)")
+    @DisplayName("Register Staff - Cliente should not be able to register staff (403 Forbidden)")
     void testRegisterStaff_WithClienteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .with(jwt().jwt(j -> j.claim("role", "Cliente").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("Register Staff - Agente should not be able to register staff (401 Unauthorized)")
+    @DisplayName("Register Staff - Agente should not be able to register staff (403 Forbidden)")
     void testRegisterStaff_WithAgenteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .with(jwt().jwt(j -> j.claim("role", "AgenteImmobiliare").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -76,12 +76,12 @@ class AdminBoundaryTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Register Staff - Invalid role should throw exception")
+    @DisplayName("Register Staff - Invalid role should return 403 Forbidden")
     void testRegisterStaff_WithInvalidRole_ShouldThrowException() throws Exception {
         mockMvc.perform(post("/auth/register-staff")
                 .with(jwt().jwt(j -> j.claim("role", "INVALID_ROLE").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(staffRegistrationRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 }

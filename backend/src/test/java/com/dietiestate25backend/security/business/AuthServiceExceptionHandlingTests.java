@@ -7,7 +7,6 @@ import com.dietiestate25backend.dto.requests.LoginRequest;
 import com.dietiestate25backend.dto.requests.RegistrazioneRequest;
 import com.dietiestate25backend.error.exception.ConflictException;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
-import com.dietiestate25backend.error.exception.NotFoundException;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.model.Utente;
 import com.dietiestate25backend.service.AuthService;
@@ -79,7 +78,7 @@ class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
     @Test
     @DisplayName("Register with existing email - SHOULD throw ConflictException")
     void testRegistraCliente_EmailAlreadyExists_ShouldThrowConflict() {
-        RegistrazioneRequest request = new RegistrazioneRequest("existing@example.com", "password123", "Cliente");
+        RegistrazioneRequest request = new RegistrazioneRequest("existing@example.com", "P@ssword123!", "Cliente");
 
         when(utenteDao.save(org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new DataIntegrityViolationException("Unique constraint violation"));
@@ -93,7 +92,7 @@ class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
     @Test
     @DisplayName("Register - DAO throws DataAccessException - SHOULD wrap without leaking")
     void testRegistraCliente_DAOThrowsDataAccessException_ShouldWrapGeneric() {
-        RegistrazioneRequest request = new RegistrazioneRequest("new@example.com", "password123", "Cliente");
+        RegistrazioneRequest request = new RegistrazioneRequest("new@example.com", "P@ssword123!", "Cliente");
 
         when(utenteDao.save(org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new DataAccessException("Database unavailable") {});
@@ -105,15 +104,15 @@ class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Login - DAO throws DataAccessException - SHOULD wrap appropriately")
-    void testLogin_DAOThrowsDataAccessException_ShouldWrapAsNotFound() {
+    @DisplayName("Login - DAO throws DataAccessException - SHOULD wrap as InternalServerError")
+    void testLogin_DAOThrowsDataAccessException_ShouldWrapAsInternalServerError() {
         LoginRequest request = new LoginRequest("user@example.com", "password123");
 
         when(utenteDao.findByEmail("user@example.com"))
                 .thenThrow(new DataAccessException("Connection lost") {});
 
         assertThrows(
-                NotFoundException.class,
+                InternalServerErrorException.class,
                 () -> authService.login(request)
         );
     }

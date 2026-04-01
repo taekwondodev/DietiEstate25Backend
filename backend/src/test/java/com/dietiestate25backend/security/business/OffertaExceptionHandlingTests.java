@@ -11,9 +11,13 @@ import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Offerta;
 import com.dietiestate25backend.model.StatoOfferta;
 import com.dietiestate25backend.service.OffertaService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -38,6 +42,20 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
     @MockitoBean
     private OffertaDao offertaDao;
 
+    private void mockJwtUser(String uid, String role) {
+        Jwt jwt = Jwt.withTokenValue("mock-token")
+                .header("alg", "none")
+                .claim("sub", uid)
+                .claim("role", role)
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     private Immobile buildTestImmobile(int id, String indirizzo, String idResponsabile) {
         return new Immobile.Builder()
                 .setIdImmobile(id).setIndirizzo(indirizzo)
@@ -50,8 +68,8 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Client1 modifica offerta di Client2 - SHOULD throw UnauthorizedException")
-    @WithMockUser(username = "client1-uid", roles = "Cliente")
     void testClienteModificaOffertaAltrui_ShouldThrowUnauthorizedException() {
+        mockJwtUser("client1-uid", "Cliente");
         Immobile immobile = buildTestImmobile(1, "Via Roma", "agente1");
         Offerta offertaClient2 = new Offerta(1, 50000.0, StatoOfferta.IN_SOSPESO, "client2-uid", immobile);
 
@@ -67,8 +85,8 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Agente1 modifica offerta su immobile di Agente2 - SHOULD throw UnauthorizedException")
-    @WithMockUser(username = "agente1-uid", roles = "AgenteImmobiliare")
     void testAgenteModificaOffertaCollega_ShouldThrowUnauthorizedException() {
+        mockJwtUser("agente1-uid", "AgenteImmobiliare");
         Immobile immobileAgente2 = buildTestImmobile(2, "Via Milano", "agente2-uid");
         Offerta offertaImmobileAgente2 = new Offerta(2, 60000.0, StatoOfferta.IN_SOSPESO, "client1", immobileAgente2);
 
@@ -110,8 +128,8 @@ class OffertaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Ownership check BEFORE state validation - SHOULD throw UnauthorizedException first")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testOwnershipCheckBeforeStateValidation() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(5, "Via Torino", "agente1");
         Offerta offertaClient2Accettata = new Offerta(5, 100000.0, StatoOfferta.ACCETTATA, "client2-uid", immobile);
 

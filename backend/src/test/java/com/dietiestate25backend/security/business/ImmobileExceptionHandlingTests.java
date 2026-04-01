@@ -78,7 +78,7 @@ class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
                 1, 1, "Monolocale", "Via Torino 20", "Torino", 5, false, false
         );
 
-        when(geoDataService.ottieniCoordinate("Via Milano 5", "Milano"))
+        when(geoDataService.ottieniCoordinate("Via Torino 20", "Torino"))
                 .thenReturn(java.util.Map.of("latitudine", 45.5, "longitudine", 9.2));
         when(immobileDao.creaImmobile(org.mockito.ArgumentMatchers.any()))
                 .thenThrow(new DataIntegrityViolationException("Foreign key constraint violated"));

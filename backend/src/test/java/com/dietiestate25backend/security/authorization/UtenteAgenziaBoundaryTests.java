@@ -41,13 +41,13 @@ class UtenteAgenziaBoundaryTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Create Immobile - Cliente should not be able to create immobile (401 Unauthorized)")
+    @DisplayName("Create Immobile - Cliente should not be able to create immobile (403 Forbidden)")
     void testCreateImmobile_WithClienteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(post("/immobile/crea")
                 .with(jwt().jwt(j -> j.claim("role", "Cliente").claim("sub", "test-uid")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(creaImmobileRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -90,11 +90,11 @@ class UtenteAgenziaBoundaryTests extends BaseMvcTest {
     }
 
     @Test
-    @DisplayName("Immobili Personali - Cliente should not access immobili personali (401 Unauthorized)")
+    @DisplayName("Immobili Personali - Cliente should not access immobili personali (403 Forbidden)")
     void testImmobiliPersonali_WithClienteRole_ShouldReturn403() throws Exception {
         mockMvc.perform(get("/immobile/personali")
                 .with(jwt().jwt(j -> j.claim("role", "Cliente").claim("sub", "test-uid"))))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -36,6 +36,7 @@ public class OffertaController {
 
     @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Offerta>> riepilogoOfferteCliente() {
+        TokenUtils.checkIfCliente();
         String uidCliente = TokenUtils.getUserSub();
         List<Offerta> offerte = offertaService.riepilogoOfferteCliente(uidCliente);
 

@@ -1,24 +1,34 @@
 package com.dietiestate25backend.security.auth;
 
+import com.dietiestate25backend.TestConfiguration;
 import com.dietiestate25backend.error.exception.UnauthorizedException;
 import com.dietiestate25backend.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JwtService Security Tests - Token Validation & Integrity")
@@ -195,6 +205,33 @@ class JwtServiceSecurityTests {
 
         assertNotNull(token);
         assertTrue(token.contains("."), "Token should be in JWT format");
+    }
+
+    @Nested
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    @Import(TestConfiguration.class)
+    @ActiveProfiles("test")
+    @DisplayName("Role Stealing Integration - JWT Forgery at HTTP Level")
+    class RoleStealingIntegrationTests {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        // Payload: {"sub":"attacker-user-id","role":"Admin","email":"attacker@example.com","exp":9999999999}
+        // Signature is wrong — simulates a Cliente forging Admin role
+        private static final String FORGED_ADMIN_TOKEN =
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
+                ".eyJzdWIiOiJhdHRhY2tlci11c2VyLWlkIiwicm9sZSI6IkFkbWluIiwiZW1haWwiOiJhdHRhY2tlckBleGFtcGxlLmNvbSIsImV4cCI6OTk5OTk5OTk5OX0" +
+                ".wrongsignature";
+
+        @Test
+        @DisplayName("Role Stealing - Cliente forges role=Admin in JWT: Spring Security should reject (401)")
+        void testRoleStealing_ClientForgesAdminRole_ShouldReturn401() throws Exception {
+            mockMvc.perform(get("/immobile/personali")
+                    .header("Authorization", "Bearer " + FORGED_ADMIN_TOKEN))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 }
 

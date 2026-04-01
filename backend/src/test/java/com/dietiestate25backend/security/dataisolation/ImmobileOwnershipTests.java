@@ -4,9 +4,9 @@ import com.dietiestate25backend.BaseMvcTest;
 import com.dietiestate25backend.service.ImmobileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,33 +18,33 @@ class ImmobileOwnershipTests extends BaseMvcTest {
 
     @Test
     @DisplayName("Immobili Personali - Agente should see only his own properties (200 OK)")
-    @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testImmobiliPersonali_WithAgenteRole_ShouldReturn200() throws Exception {
-        mockMvc.perform(get("/immobile/personali"))
+        mockMvc.perform(get("/immobile/personali")
+                .with(jwt().jwt(j -> j.subject("agente1").claim("role", "AgenteImmobiliare"))))
                 .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Immobili Personali - Cliente CANNOT access immobili personali (403 Forbidden)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testImmobiliPersonali_WithClienteRole_ShouldReturn403() throws Exception {
-        mockMvc.perform(get("/immobile/personali"))
+        mockMvc.perform(get("/immobile/personali")
+                .with(jwt().jwt(j -> j.subject("client1").claim("role", "Cliente"))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("Immobili Personali - Gestore can access (200 OK)")
-    @WithMockUser(username = "gestore1", roles = "Gestore")
     void testImmobiliPersonali_WithGestoreRole_ShouldReturn200() throws Exception {
-        mockMvc.perform(get("/immobile/personali"))
+        mockMvc.perform(get("/immobile/personali")
+                .with(jwt().jwt(j -> j.subject("gestore1").claim("role", "Gestore"))))
                 .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Immobili Personali - Admin can access (200 OK)")
-    @WithMockUser(username = "admin1", roles = "Admin")
     void testImmobiliPersonali_WithAdminRole_ShouldReturn200() throws Exception {
-        mockMvc.perform(get("/immobile/personali"))
+        mockMvc.perform(get("/immobile/personali")
+                .with(jwt().jwt(j -> j.subject("admin1").claim("role", "Admin"))))
                 .andExpect(status().isOk());
     }
 

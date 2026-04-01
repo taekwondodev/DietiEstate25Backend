@@ -36,6 +36,7 @@ public class VisitaController {
 
     @GetMapping("/riepilogoCliente")
     public ResponseEntity<List<Visita>> riepilogoVisiteCliente() {
+        TokenUtils.checkIfCliente();
         String uidCliente = TokenUtils.getUserSub();
         List<Visita> visite = visitaService.riepilogoVisiteCliente(uidCliente);
 

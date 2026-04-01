@@ -66,6 +66,13 @@ public class TokenUtils {
         }
     }
 
+    public static void checkIfCliente() {
+        String role = getRole();
+        if (!role.equals("Cliente")) {
+            throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PERMISSIONS);
+        }
+    }
+
     public static void checkIfUtenteAgenzia() {
         String role = getRole();
 

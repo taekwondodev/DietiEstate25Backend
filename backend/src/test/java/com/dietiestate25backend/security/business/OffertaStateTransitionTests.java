@@ -9,13 +9,17 @@ import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.Offerta;
 import com.dietiestate25backend.model.StatoOfferta;
 import com.dietiestate25backend.service.OffertaService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -36,6 +40,20 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
     @MockitoBean
     private OffertaDao offertaDao;
 
+    private void mockJwtUser(String uid, String role) {
+        Jwt jwt = Jwt.withTokenValue("mock-token")
+                .header("alg", "none")
+                .claim("sub", uid)
+                .claim("role", role)
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     private Immobile buildTestImmobile(int id, String indirizzo, String idResponsabile) {
         return new Immobile.Builder()
                 .setIdImmobile(id).setIndirizzo(indirizzo)
@@ -48,14 +66,13 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → ACCETTATA - SHOULD be valid transition (no exception)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToAccettata_ShouldBeValid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(1, "Via Roma", "agente1");
         Offerta offertaInSospeso = new Offerta(1, 50000.0, StatoOfferta.IN_SOSPESO, "client1", immobile);
 
         when(offertaDao.getOffertaById(1)).thenReturn(offertaInSospeso);
-        when(offertaDao.aggiornaStatoOfferta(new Offerta(1, 50000.0, StatoOfferta.ACCETTATA, "client1", immobile)))
-                .thenReturn(true);
+        when(offertaDao.aggiornaStatoOfferta(any())).thenReturn(true);
 
         try {
             offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(1, "Accettata"), "client1");
@@ -66,14 +83,13 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → RIFIUTATA - SHOULD be valid transition (no exception)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToRifiutata_ShouldBeValid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(2, "Via Milano", "agente1");
         Offerta offertaInSospeso = new Offerta(2, 60000.0, StatoOfferta.IN_SOSPESO, "client1", immobile);
 
         when(offertaDao.getOffertaById(2)).thenReturn(offertaInSospeso);
-        when(offertaDao.aggiornaStatoOfferta(new Offerta(2, 60000.0, StatoOfferta.RIFIUTATA, "client1", immobile)))
-                .thenReturn(true);
+        when(offertaDao.aggiornaStatoOfferta(any())).thenReturn(true);
 
         try {
             offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(2, "Rifiutata"), "client1");
@@ -84,8 +100,8 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → IN_SOSPESO - SHOULD be rejected (same state)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(3, "Via Napoli", "agente1");
         Offerta offertaInSospeso = new Offerta(3, 70000.0, StatoOfferta.IN_SOSPESO, "client1", immobile);
 
@@ -101,8 +117,8 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("ACCETTATA → RIFIUTATA - SHOULD be rejected (terminal state)")
-    @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testAccettata_ToRifiutata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
         Immobile immobile = buildTestImmobile(4, "Via Veneto", "agente1");
         Offerta offertaAccettata = new Offerta(4, 80000.0, StatoOfferta.ACCETTATA, "client1", immobile);
 
@@ -118,8 +134,8 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("ACCETTATA → ACCETTATA - SHOULD be rejected (same state)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testAccettata_ToAccettata_ShouldBeInvalid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(5, "Via Torino", "agente1");
         Offerta offertaAccettata = new Offerta(5, 90000.0, StatoOfferta.ACCETTATA, "client1", immobile);
 
@@ -135,8 +151,8 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("RIFIUTATA → ACCETTATA - SHOULD be rejected (terminal state)")
-    @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testRifiutata_ToAccettata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
         Immobile immobile = buildTestImmobile(6, "Via Firenze", "agente1");
         Offerta offertaRifiutata = new Offerta(6, 100000.0, StatoOfferta.RIFIUTATA, "client1", immobile);
 

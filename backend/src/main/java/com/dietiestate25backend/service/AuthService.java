@@ -46,6 +46,8 @@ public class AuthService {
             }
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             throw new UnauthorizedException(ErrorCode.INVALID_CREDENTIALS);
+        } catch (org.springframework.dao.DataAccessException e) {
+            throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), utente.getPassword())) {

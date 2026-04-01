@@ -9,16 +9,20 @@ import com.dietiestate25backend.model.Immobile;
 import com.dietiestate25backend.model.StatoVisita;
 import com.dietiestate25backend.model.Visita;
 import com.dietiestate25backend.service.VisitaService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.sql.Date;
 import java.sql.Time;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,6 +43,20 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
     @MockitoBean
     private VisitaDao visitaDao;
 
+    private void mockJwtUser(String uid, String role) {
+        Jwt jwt = Jwt.withTokenValue("mock-token")
+                .header("alg", "none")
+                .claim("sub", uid)
+                .claim("role", role)
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     private Immobile buildTestImmobile(int id, String indirizzo, String idResponsabile) {
         return new Immobile.Builder()
                 .setIdImmobile(id).setIndirizzo(indirizzo)
@@ -51,16 +69,14 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → CONFERMATA - SHOULD be valid transition (no exception)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToConfermata_ShouldBeValid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(1, "Via Roma", "agente1");
         Visita visitaInSospeso = new Visita(1, Date.valueOf("2026-04-10"), Time.valueOf("14:00:00"),
                 StatoVisita.IN_SOSPESO, "client1", immobile);
 
         when(visitaDao.getVisitaById(1)).thenReturn(visitaInSospeso);
-        when(visitaDao.aggiornaStato(new Visita(1, visitaInSospeso.getDataVisita(),
-                visitaInSospeso.getOraVisita(), StatoVisita.CONFERMATA, "client1", immobile)))
-                .thenReturn(true);
+        when(visitaDao.aggiornaStato(any())).thenReturn(true);
 
         try {
             visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(1, "Confermata"), "client1");
@@ -71,16 +87,14 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → RIFIUTATA - SHOULD be valid transition (no exception)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToRifiutata_ShouldBeValid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(2, "Via Milano", "agente1");
         Visita visitaInSospeso = new Visita(2, Date.valueOf("2026-04-11"), Time.valueOf("15:00:00"),
                 StatoVisita.IN_SOSPESO, "client1", immobile);
 
         when(visitaDao.getVisitaById(2)).thenReturn(visitaInSospeso);
-        when(visitaDao.aggiornaStato(new Visita(2, visitaInSospeso.getDataVisita(),
-                visitaInSospeso.getOraVisita(), StatoVisita.RIFIUTATA, "client1", immobile)))
-                .thenReturn(true);
+        when(visitaDao.aggiornaStato(any())).thenReturn(true);
 
         try {
             visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(2, "Rifiutata"), "client1");
@@ -91,8 +105,8 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("IN_SOSPESO → IN_SOSPESO - SHOULD be rejected (same state)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testInSospeso_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(3, "Via Napoli", "agente1");
         Visita visitaInSospeso = new Visita(3, Date.valueOf("2026-04-12"), Time.valueOf("16:00:00"),
                 StatoVisita.IN_SOSPESO, "client1", immobile);
@@ -109,8 +123,8 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("CONFERMATA → RIFIUTATA - SHOULD be rejected (terminal state)")
-    @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testConfermata_ToRifiutata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
         Immobile immobile = buildTestImmobile(4, "Via Veneto", "agente1");
         Visita visitaConfermata = new Visita(4, Date.valueOf("2026-04-13"), Time.valueOf("17:00:00"),
                 StatoVisita.CONFERMATA, "client1", immobile);
@@ -127,8 +141,8 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("CONFERMATA → CONFERMATA - SHOULD be rejected (same state)")
-    @WithMockUser(username = "client1", roles = "Cliente")
     void testConfermata_ToConfermata_ShouldBeInvalid() {
+        mockJwtUser("client1", "Cliente");
         Immobile immobile = buildTestImmobile(5, "Via Torino", "agente1");
         Visita visitaConfermata = new Visita(5, Date.valueOf("2026-04-14"), Time.valueOf("18:00:00"),
                 StatoVisita.CONFERMATA, "client1", immobile);
@@ -145,8 +159,8 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Test
     @DisplayName("RIFIUTATA → CONFERMATA - SHOULD be rejected (terminal state)")
-    @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testRifiutata_ToConfermata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
         Immobile immobile = buildTestImmobile(6, "Via Firenze", "agente1");
         Visita visitaRifiutata = new Visita(6, Date.valueOf("2026-04-15"), Time.valueOf("19:00:00"),
                 StatoVisita.RIFIUTATA, "client1", immobile);

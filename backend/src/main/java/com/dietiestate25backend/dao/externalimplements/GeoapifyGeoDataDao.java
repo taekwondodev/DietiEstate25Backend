@@ -5,7 +5,6 @@ import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.BadRequestException;
 import com.dietiestate25backend.error.exception.InternalServerErrorException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -21,8 +20,8 @@ public class GeoapifyGeoDataDao implements GeoDataDao {
     @Value("${GEO_KEY}")
     private String apiKey;
 
-    public GeoapifyGeoDataDao(RestTemplateBuilder builder) {
-        this.restTemplate = builder.build();
+    public GeoapifyGeoDataDao(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     @Override

@@ -13,11 +13,10 @@ Questo branch è dedicato al refactoring della sicurezza del sistema, con la rim
 3. [Stack Tecnologico](#3-stack-tecnologico)
 4. [Autenticazione e Sicurezza](#4-autenticazione-e-sicurezza)
 5. [Schema del Database](#5-schema-del-database)
-6. [Prerequisiti e Installazione](#6-prerequisiti-e-installazione)
-7. [Configurazione](#7-configurazione)
-8. [Testing](#8-testing)
-9. [Pipeline CI/CD](#9-pipeline-cicd)
-10. [Qualità del Codice](#10-qualità-del-codice)
+6. [Testing](#6-testing)
+7. [Pipeline](#7-pipeline)
+8. [Setup Iniziale](#8-setup-iniziale)
+9. [Qualità del Codice](#9-qualità-del-codice)
 
 ---
 
@@ -97,6 +96,8 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 ---
 
 ## 3. Stack Tecnologico
+
+placeholder -> da finire
 
 | Tecnologia | Versione | Scopo |
 |---|---|---|
@@ -349,132 +350,9 @@ Il database viene inizializzato automaticamente tramite lo script SQL nella cart
 
 ---
 
-## 6. Prerequisiti ed Installazione
+## 6. Testing
 
-### 6.1 Prerequisiti
-
-- **Java 21+** (SDK)
-- **Maven 3.8+**
-- **Docker** e **Docker Compose**
-- **OpenSSL** (per generare JWT secret)
-
-### 6.2 Setup Iniziale
-
-#### Passo 1: Clonare il Repository
-
-```bash
-git clone https://github.com/taekwondodev/DietiEstate25Backend.git
-cd DietiEstate25Backend
-git switch security
-```
-
-#### Passo 2: Generare il JWT Secret
-
-```bash
-# Generare un secret base64 256-bit
-openssl rand -base64 32
-
-# Output: Es. "A9fTkL2xP8mQ4vB9sJ7wHn6kL3mN5qR2sT4uV6wX8yZ="
-```
-
-#### Passo 3: Creare il File `.env`
-
-Nella root del progetto, creare `.env`:
-
-```env
-# ==================== Database PostgreSQL (Docker Compose) ====================
-POSTGRES_URL=jdbc:postgresql://postgres:5432/dietiestate25_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=dietiestate25_db
-# ==================== JWT Secret ====================
-JWT_SECRET=<INSERIRE_IL_SECRET_GENERATO>
-# ==================== Server Configuration ====================
-SERVER_PORT=8080
-# ==================== Email Configuration (SMTP) ====================
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=<TUA_EMAIL>
-MAIL_PASSWORD=<TUA_APP_PASSWORD>
-# ==================== External APIs ====================
-GEO_KEY=<TUA_GEOAPIFY_API_KEY>
-```
-
-**Note su Email**:
-- Per Gmail, generare una [App Password](https://myaccount.google.com/apppasswords) se 2FA abilitato
-- Per altri provider, consultare la documentazione SMTP
-
-### 6.3 Avvio con Docker Compose
-
-```bash
-docker compose up --build -d
-```
-
-**Servizi in avvio**:
-- Backend: http://localhost:8080
-- PostgreSQL: localhost:5432
-
----
-
-## 7. Configurazione
-
-### 7.1 File di Configurazione
-
-#### `application.properties`
-
-Tutte le proprietà vengono injettate da variabili d'ambiente (12-factor app):
-
-```properties
-# Database
-spring.datasource.url=${SPRING_DATASOURCE_URL}
-spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
-spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
-
-# JWT
-app.jwt.secret=${JWT_SECRET}
-
-# Email
-spring.mail.host=${MAIL_HOST}
-spring.mail.port=${MAIL_PORT}
-spring.mail.username=${MAIL_USERNAME}
-spring.mail.password=${MAIL_PASSWORD}
-
-# External APIs
-GEO_KEY=${GEO_KEY}
-```
-
-#### `compose.yaml`
-
-Orchestrazione dei servizi:
-
-```yaml
-services:
-  backend:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=${POSTGRES_URL}
-      # ... (altre variabili da .env)
-    depends_on:
-      - postgres
-
-```
-
-### 7.2 Fail-Fast Configuration
-
-In caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup:
-
-```java
-// Spring Boot automaticamente valida le proprietà
-// Se manca una variabile, lanciato: InvalidConfigurationPropertyException
-```
-
----
-
-## 8. Testing
-
-### 8.1 Focus e Strategia
+### 6.1 Focus e Strategia
 
 Il testing è **incentrato sulla sicurezza**, non sulla correttezza funzionale. L'obiettivo è verificare che il sistema sia **resistente ad attacchi e a input malevoli**, non che la business logic funzioni.
 
@@ -485,9 +363,9 @@ La strategia di test segue i principi di **OWASP Testing Guide** e **Security Te
 - **Data Protection** — Hashing password, password policy, JWT validation, token tampering
 - **Business Logic Testing** — Business logic test, nessuna information leakage in caso di errori
 
-### 8.2 Input Validation & Boundary Testing
+### 6.2 Input Validation & Boundary Testing
 
-#### 8.2.1 MalformedPayloadTests (`security/validation/`)
+#### 6.2.1 MalformedPayloadTests (`security/validation/`)
 
 Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
@@ -527,7 +405,7 @@ Suite di **13 test** che verificano il corretto rifiuto di input malevoli:
 
 **Outcome**: `@Pattern(regexp = "^[\\x20-\\x7E]+$")` su `LoginRequest.password` rifiuta caratteri non-ASCII
 
-#### 8.2.2 LoginRequestValidationTests (`security/validation/`)
+#### 6.2.2 LoginRequestValidationTests (`security/validation/`)
 
 Suite di **10 test** che verificano la validazione specifica del DTO `LoginRequest`:
 
@@ -558,7 +436,7 @@ Suite di **10 test** che verificano la validazione specifica del DTO `LoginReque
 
 **Outcome**: Jackson configurato con `FAIL_ON_UNKNOWN_PROPERTIES=true` rifiuta campi non mappati
 
-#### 8.2.3 RegistrazioneRequestValidationTests (`security/validation/`)
+#### 6.2.3 RegistrazioneRequestValidationTests (`security/validation/`)
 
 Suite di **10 test** che verificano la validazione specifica del DTO `RegistrazioneRequest`:
 
@@ -593,7 +471,7 @@ Suite di **10 test** che verificano la validazione specifica del DTO `Registrazi
 
 **Outcome**: Conferma che il sistema non ha validazione di password strength
 
-#### 8.2.4 Miglioramenti Implementati
+#### 6.2.4 Miglioramenti Implementati
 
 | Area | Prima | Dopo | Impact |
 |------|-------|------|--------|
@@ -604,9 +482,9 @@ Suite di **10 test** che verificano la validazione specifica del DTO `Registrazi
 | **DAO Error Mapping** | `RuntimeException` uncaught | `DataIntegrityViolationException` → `ConflictException` | Constraint violation handling |
 | **Type Coercion Safety** | No validation | `@MethodArgumentTypeMismatchException` handler | Type safety |
 
-### 8.3 Authorization & Access Control
+### 6.3 Authorization & Access Control
 
-#### 8.3.1 PublicEndpointTests (`security/authorization/`)
+#### 6.3.1 PublicEndpointTests (`security/authorization/`)
 
 Suite di **7 test** che verifica quali endpoint siano pubblici (non autenticati) e quali protetti:
 
@@ -626,7 +504,7 @@ Suite di **7 test** che verifica quali endpoint siano pubblici (non autenticati)
 
 **Outcome**: Fallback di Spring Security `anyRequest().authenticated()` funzionante correttamente
 
-#### 8.3.2 AdminBoundaryTests (`security/authorization/`)
+#### 6.3.2 AdminBoundaryTests (`security/authorization/`)
 
 Suite di **6 test** che verifica che solo **Admin** (e Gestore) possano registrare nuovo staff:
 
@@ -639,7 +517,7 @@ Suite di **6 test** che verifica che solo **Admin** (e Gestore) possano registra
 
 **Outcome**: Implementazione di `TokenUtils.checkIfAdminOrGestore()` in `AuthController.registraGestoreOrAgente()`.
 
-#### 8.3.3 UtenteAgenziaBoundaryTests (`security/authorization/`)
+#### 6.3.3 UtenteAgenziaBoundaryTests (`security/authorization/`)
 
 Suite di **10 test** che verifica che **solo UtenteAgenzia** (Admin, Gestore, AgenteImmobiliare) possano:
 1. Creare immobili
@@ -662,7 +540,7 @@ Suite di **10 test** che verifica che **solo UtenteAgenzia** (Admin, Gestore, Ag
 - `OffertaController.riepilogoOfferteUtenteAgenzia()`
 - `VisitaController.riepilogoVisitaUtenteAgenzia()`
 
-#### 8.3.4 Data Isolation Tests (`security/dataisolation/`)
+#### 6.3.4 Data Isolation Tests (`security/dataisolation/`)
 
 Suite di **3 categorie di test** che verificano che gli endpoint "riepilogo UtenteAgenzia" siano **accessibili solo a UtenteAgenzia**.
 
@@ -705,7 +583,7 @@ Suite di **6 test** che verifica la separazione dei dati tra visite di Cliente e
 
 **Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in `/visita/riepilogoUtenteAgenzia`
 
-#### 8.3.5 BruteForceAndAccountLockoutTests (`security/authorization/`)
+#### 6.3.5 BruteForceAndAccountLockoutTests (`security/authorization/`)
 
 Suite di **9 test** che verifica la protezione contro brute force attacks e il meccanismo di account lockout secondo **OWASP WSTG-AUTHN-02**:
 
@@ -764,7 +642,7 @@ public String login(String email, String password) {
 - Messaging generico per prevenire user enumeration 
 - Email notification al lockout
 
-#### 8.3.6 Miglioramenti Implementati
+#### 6.3.6 Miglioramenti Implementati
 
 | Area                       | Prima                                          | Dopo                                                                  | Impact                    |
 |----------------------------|------------------------------------------------|-----------------------------------------------------------------------|---------------------------|
@@ -775,13 +653,13 @@ public String login(String email, String password) {
 | **Brute Force Protection** | Nessuna                                        | 5 tentativi max + 15 min lockout                                      | Attack prevention         |
 | **Account Lockout**        | Nessun lock-out                                | Auto-lock + notification                                              | Credential protection     |
 
-### 8.4 Data Protection
+### 6.4 Data Protection
 
 Suite di **47 test** che verifica token JWT integrity, password hashing, e validazione crittografica.
 
-#### 8.4.1 JwtServiceSecurityTests (`security/auth/`)
+#### 6.4.1 JwtServiceSecurityTests (`security/auth/`)
 
-Suite di **18 test** che verifica il ciclo di vita completo dei token JWT:
+Suite di **19 test** che verifica il ciclo di vita completo dei token JWT:
 
 **Token Generation & Claims**
 - `testTokenGeneration_ShouldCreateValidToken` — JWT generato con claims corretti
@@ -801,6 +679,9 @@ Suite di **18 test** che verifica il ciclo di vita completo dei token JWT:
 - `testSubjectExtraction_ShouldExtractCorrectSubject` — Estrazione corretta di `sub` claim
 - `testRoleExtraction_ShouldExtractCorrectRole` — Estrazione corretta di `role` claim
 
+**Role Stealing Integration** (`RoleStealingIntegrationTests`)
+- `testRoleStealing_ClientForgesAdminRole_ShouldReturn401` — JWT con `role=Admin` forgiato (firma invalida) rifiutato con HTTP 401
+
 **Outcome**: Implementazione di `JwtService` con:
 - Generazione token con `JwtEncoder` e claims `sub`, `role`, `email`
 - Decodifica sicura con `JwtDecoder`
@@ -809,7 +690,7 @@ Suite di **18 test** che verifica il ciclo di vita completo dei token JWT:
 
 **Nota di Sicurezza**: Token signature è validata via Spring Security RSA/HMAC, impedendo tampering payload.
 
-#### 8.4.2 AuthServiceSecurityTests (`security/auth/`)
+#### 6.4.2 AuthServiceSecurityTests (`security/auth/`)
 
 Suite di **8 test** che verifica password hashing con BCrypt:
 
@@ -830,7 +711,7 @@ Suite di **8 test** che verifica password hashing con BCrypt:
 - BCrypt è resistant a timing attacks per natura
 - Error messages **non differenziano** tra email inesistente e password errata
 
-#### 8.4.3 PasswordPolicySecurityTests (`security/auth/`)
+#### 6.4.3 PasswordPolicySecurityTests (`security/auth/`)
 
 Suite di **15 test** che verifica la conformità della password policy secondo **OWASP WSTG-AUTHN-03**:
 
@@ -873,7 +754,7 @@ Suite di **15 test** che verifica la conformità della password policy secondo *
 private String password;
 ```
 
-#### 8.4.4 Miglioramenti Implementati
+#### 6.4.4 Miglioramenti Implementati
 
 | Area                      | Prima                        | Dopo | Impact |
 |---------------------------|------------------------------|------|--------|
@@ -886,11 +767,11 @@ private String password;
 | **Password Strength**     | Nessuna validazione          | 8+ chars, uppercase, lowercase, digit, special char | OWASP WSTG-AUTHN-03 compliance |
 | **Password Patterns**      | Nessun controllo             | No sequential/repeating, no email parts | Common pattern prevention |
 
-### 8.5 Business Logic Security Tests
+### 6.5 Business Logic Security Tests
 
 Suite di **47** test che verifica la sicurezza della logica di business, in particolare la validazione delle transizioni di stato e l'handling sicuro delle eccezioni.
 
-#### 8.5.1 State Transition Validation Tests (`security/business/`)
+#### 6.5.1 State Transition Validation Tests (`security/business/`)
 
 ##### Offerta State Machine
 
@@ -918,7 +799,7 @@ Suite di **6 test** in `VisitaStateTransitionTests`:
 
 **Outcome**: Implementazione di `VisitaService.isTransizioneValidaVisita()` che valida transizioni secondo la state machine.
 
-#### 8.5.2 Exception Handling Tests (`security/business/`)
+#### 6.5.2 Exception Handling Tests (`security/business/`)
 
 ##### Offerta Exception Handling Tests
 
@@ -1034,7 +915,7 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 
 **Outcome**: Impossibile determinare il motivo della validazione fallita dal messaggio di errore. Token tampering rilevato e rifiutato senza rivelare il tipo di errore.
 
-#### 8.5.4 Miglioramenti Implementati
+#### 6.5.4 Miglioramenti Implementati
 
 | Area | Prima | Dopo | Impact |
 |------|-------|------|--------|
@@ -1043,28 +924,28 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 | **Guard Ordering** | Validazione di stato PRIMA di ownership check | Ownership check PRIMA di validazione stato | Information hiding on unauthorized access |
 | **API External Errors** | Stack trace di API Geoapify/OpenMeteo leakato | Generic `InternalServerErrorException` | External service details protection |
 
-### 8.6 Riepilogo Finale
+### 6.6 Riepilogo Finale
 
 #### Copertura dei Test
 
 | Categoria | Numero di Test | Focus |
 |-----------|---|--|
-| **Input Validation & Boundary Testing** | 33 test | JSON parsing, type validation, payload size, SQL injection |
-| **Authorization & Access Control** | 34 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
-| **Data Protection & Cryptography** | 41 test | JWT integrity, password hashing, token tampering, password policy |
-| **Business Logic Security** | 47 test | State machine validation, exception handling, error message safety |
-| **TOTALE** | **155 test** |
+| **Input Validation & Boundary Testing** | 38 test | JSON parsing, type validation, payload size, SQL injection |
+| **Authorization & Access Control** | 53 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
+| **Data Protection & Cryptography** | 42 test | JWT integrity, password hashing, token tampering, password policy |
+| **Business Logic Security** | 46 test | State machine validation, exception handling, error message safety |
+| **TOTALE** | **180 test** |
 
 #### Conformità OWASP Testing Guide
 
 | Sezione OWASP WSTG | Descrizione | Status | Test |
 |---|---|---|---|
-| **WSTG-AUTH-01** | Authentication Mechanisms Testing | ✓ Compliant | `JwtServiceSecurityTests` (18 test) |
+| **WSTG-AUTH-01** | Authentication Mechanisms Testing | ✓ Compliant | `JwtServiceSecurityTests` (19 test) |
 | **WSTG-AUTHN-02** | Account Enumeration & Brute Force | ✓ Compliant | `BruteForceAndAccountLockoutTests` (9 test) |
 | **WSTG-AUTHN-03** | Password Policy Testing | ✓ Compliant | `PasswordPolicySecurityTests` (15 test) |
 | **WSTG-AUTHN-04** | Weak Authentication Mechanisms | ✓ Compliant | `AuthServiceSecurityTests` (8 test) |
 | **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test) |
-| **WSTG-AUTHZ-02** | Privilege Escalation | ✓ Compliant | `ImmobileOwnershipTests` (5 test) |
+| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (7 test), `VisitaPrivacyTests` (6 test) |
 | **WSTG-IA-06** | Forced Browsing/Endpoint Discovery | ✓ Compliant | `PublicEndpointTests` (7 test) |
 | **WSTG-SI-06** | Input Validation - SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test) |
 | **WSTG-SI-11** | Input Validation - XXE & SSRF | ✓ Compliant | `RegistrazioneRequestValidationTests` (10 test) |
@@ -1072,32 +953,103 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 
 ---
 
-## 9. Pipeline CI/CD
+## 7. Pipeline
 
-🚧 **Work in progress** — La pipeline verrà configurata nelle prossime fasi.
+placeholder -> (quali ho fatto, che ho usato github actions)
 
-### 9.1 Pianificazione
+### 7.1 Configurazione Progetto
 
-La pipeline avrà i seguenti stage:
+Rispetto al main ho fatto in modo che il file application.properties leggesse da variabili d'ambiente, in modo da poter tener traccia anche di questo file su git, così da permettere la configurazione del progetto ugualmente per ogni build del progetto ed ottimizzato il build nelle pipeline.
 
-1. **Build** — `mvn clean package`
-2. **Security Tests** — `mvn test -Dgroups=security` (JUnit 5 tags)
-3. **Integration Tests** — `mvn test -Dgroups=integration`
-4. **Security Scan** — SAST (Static Application Security Testing)
-5. **Docker Build** — Build immagine container
-6. **Deploy to Staging** — Deployment test environment
-7. **E2E Tests** — Test funzionali finali
-8. **Deploy to Production** — Rilascio in prod (manual approval)
+C'è anche il file application-test.properties che viene usato per i test, con configurazione specifica per il database di test.
 
-### 9.2 Trigger
+L'approccio che è stato utilizzato è Fail-Fast Configuration, ovvero in caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup, così da evitare errori di configurazione che potrebbero portare a problemi di sicurezza o malfunzionamenti.
 
-- Ogni push su `security` branch
-- Merge request / Pull request
-- Tag di release
+Le variabili d'ambiente sono salvate nel file .env iniettato nei container Docker, e sono documentate nel README con istruzioni per la generazione del JWT secret, la configurazione del db e delle email.
+
+### 7.2 Docker
+
+placeholder -> qui spiego che ho dockerizzato il progetto e i test del progetto. Quindi che ho creato sia un ambiente di produzione che un ambiente di test con docker compose, e che i test vengono eseguiti in un container dedicato che si avvia, esegue i test e poi si ferma, così da permettere di vedere i log dei test e il risultato dei test direttamente da docker compose. I due container si trovano entrambi nella stessa immagine quindi nello stesso ambiente durante la valutazione del progetto.
 
 ---
 
-## 10. Qualità del Codice
+## 8. Esecuzione del progetto
+
+### 8.1 Prerequisiti
+
+- **Java 21+** (SDK)
+- **Maven 3.8+**
+- **Docker** e **Docker Compose**
+- **OpenSSL** (per generare JWT secret)
+
+### 8.2 Setup Iniziale
+
+#### Passo 1: Clonare il Repository
+
+```bash
+git clone https://github.com/taekwondodev/DietiEstate25Backend.git
+cd DietiEstate25Backend
+git switch security
+```
+
+#### Passo 2: Generare il JWT Secret
+
+```bash
+# Generare un secret base64 256-bit
+openssl rand -base64 32
+
+# Output: Es. "A9fTkL2xP8mQ4vB9sJ7wHn6kL3mN5qR2sT4uV6wX8yZ="
+```
+
+#### Passo 3: Creare il File `.env`
+
+Nella root del progetto, creare `.env`:
+
+```env
+# ==================== Database PostgreSQL (Docker Compose) ====================
+POSTGRES_URL=jdbc:postgresql://postgres:5432/dietiestate25_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=dietiestate25_db
+# ==================== JWT Secret ====================
+JWT_SECRET=<INSERIRE_IL_SECRET_GENERATO>
+# ==================== Server Configuration ====================
+SERVER_PORT=8080
+# ==================== Email Configuration (SMTP) ====================
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=<TUA_EMAIL>
+MAIL_PASSWORD=<TUA_APP_PASSWORD>
+# ==================== External APIs ====================
+GEO_KEY=<TUA_GEOAPIFY_API_KEY>
+```
+
+**Note su Email**:
+- Per Gmail, generare una [App Password](https://myaccount.google.com/apppasswords) se 2FA abilitato
+- Per altri provider, consultare la documentazione SMTP
+
+**Note su Geoapify**:
+- Registrarsi su Geoapify per ottenere una API key
+
+### 8.3 Avvio con Docker Compose
+
+```bash
+docker compose up -d
+```
+
+**Servizi in avvio**:
+- Backend: http://localhost:8080
+- PostgreSQL: localhost:5432
+
+### 8.4 Esecuzione dei Test con Docker Compose
+
+```bash
+docker compose -f compose.test.yaml up --build --abort-on-container-exit 2>&1 | grep -E "ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started"
+```
+
+---
+
+## 9. Qualità del Codice
 
 Placeholder
 
