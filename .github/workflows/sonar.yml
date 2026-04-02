@@ -5,6 +5,9 @@ on:
     workflows: [Test]
     types: [completed]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sonar:
     name: SonarQube Analysis
@@ -43,4 +46,4 @@ jobs:
         working-directory: backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B compile sonar:sonar -DskipTests -Dsonar.projectKey=taekwondodev_DietiEstate25Backend
+        run: mvn -B compile org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -DskipTests -Dsonar.projectKey=taekwondodev_DietiEstate25Backend
