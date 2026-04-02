@@ -40,6 +40,8 @@ paths:
         '400':
           description: Richiesta non valida (body malformato, campi mancanti, email non valida)
         '401':
+          description: Account bloccato per troppi tentativi falliti
+        '404':
           description: Email o password errata
         '500':
           description: Errore interno del server
@@ -57,7 +59,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '201':
+        '200':
           description: Cliente registrato con successo
         '400':
           description: Richiesta non valida (email non valida, password vuota, role non è "Cliente")
@@ -69,7 +71,7 @@ paths:
   /auth/register-staff:
     post:
       summary: Registra un gestore o agente immobiliare
-      description: Registra un nuovo gestore o agente immobiliare. Solo gli admin possono eseguire questa operazione.
+      description: Registra un nuovo gestore o agente immobiliare. Solo Admin e Gestore possono eseguire questa operazione.
       tags:
         - Autenticazione
       requestBody:
@@ -79,14 +81,16 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrazioneRequest'
       responses:
-        '201':
+        '200':
           description: Gestore/Agente registrato con successo
         '400':
           description: Richiesta non valida (email non valida, role non valido, etc.)
         '401':
-          description: Non autenticato o non autorizzato (solo Admin)
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo Admin e Gestore)
         '404':
-          description: Admin non trovato o non associato ad agenzia
+          description: Admin/Gestore non trovato o non associato ad agenzia
         '409':
           description: Email già registrata
         '500':
@@ -174,7 +178,9 @@ paths:
         '400':
           description: Richiesta non valida (campi obbligatori mancanti, valori fuori range, indirizzo invalido, etc.)
         '401':
-          description: Non autenticato o non autorizzato (solo AgenteImmobiliare/Gestore/Admin)
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo AgenteImmobiliare/Gestore/Admin)
         '500':
           description: Errore interno del server
 
@@ -194,7 +200,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/Immobile'
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo AgenteImmobiliare/Gestore/Admin)
         '500':
           description: Errore interno del server
 
@@ -227,7 +235,7 @@ paths:
   /offerta/aggiorna:
     patch:
       summary: Aggiorna lo stato di un'offerta
-      description: Aggiorna lo stato di un'offerta (In sospeso → Accettata/Rifiutata). Richiede autorizzazione.
+      description: Aggiorna lo stato di un'offerta (In sospeso → Accettata/Rifiutata). Richiede autenticazione.
       tags:
         - Offerte
       requestBody:
@@ -242,7 +250,7 @@ paths:
         '400':
           description: Richiesta non valida o transizione di stato non consentita
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato (token mancante o non valido)
         '404':
           description: Offerta non trovata
         '500':
@@ -263,10 +271,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Offerta'
-        '400':
-          description: Richiesta non valida
         '401':
-          description: Non autenticato
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo Cliente)
         '500':
           description: Errore interno del server
 
@@ -285,10 +293,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Offerta'
-        '400':
-          description: Richiesta non valida
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo AgenteImmobiliare/Gestore/Admin)
         '500':
           description: Errore interno del server
 
@@ -321,7 +329,7 @@ paths:
   /visita/aggiorna:
     patch:
       summary: Aggiorna lo stato di una visita
-      description: Aggiorna lo stato di una visita (In sospeso → Confermata/Rifiutata). Richiede autorizzazione.
+      description: Aggiorna lo stato di una visita (In sospeso → Confermata/Rifiutata). Richiede autenticazione.
       tags:
         - Visite
       requestBody:
@@ -336,7 +344,7 @@ paths:
         '400':
           description: Richiesta non valida o transizione di stato non consentita
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato (token mancante o non valido)
         '404':
           description: Visita non trovata
         '500':
@@ -357,10 +365,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Visita'
-        '400':
-          description: Richiesta non valida
         '401':
-          description: Non autenticato
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo Cliente)
         '500':
           description: Errore interno del server
 
@@ -379,10 +387,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Visita'
-        '400':
-          description: Richiesta non valida
         '401':
-          description: Non autenticato o non autorizzato
+          description: Non autenticato (token mancante o non valido)
+        '403':
+          description: Ruolo insufficiente (solo AgenteImmobiliare/Gestore/Admin)
         '500':
           description: Errore interno del server
 

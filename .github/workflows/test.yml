@@ -1,0 +1,47 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - security
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('backend/pom.xml', 'backend/Dockerfile.test') }}
+          restore-keys: ${{ runner.os }}-buildx-
+
+      - name: Build test image
+        run: |
+          docker buildx build \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --load -t backend-test:latest \
+            -f backend/Dockerfile.test backend/
+          rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          docker compose -f compose.test.yaml up --abort-on-container-exit 2>&1 | grep -E "ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started"
+
+      - name: Upload JaCoCo report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/jacoco.xml
+          retention-days: 1

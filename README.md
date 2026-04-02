@@ -955,7 +955,7 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 
 ## 7. Pipeline
 
-placeholder -> (quali ho fatto, che ho usato github actions)
+Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test e l'analisi della qualità del codice ad ogni push o pull request.
 
 ### 7.1 Configurazione Progetto
 
@@ -963,13 +963,35 @@ Rispetto al main ho fatto in modo che il file application.properties leggesse da
 
 C'è anche il file application-test.properties che viene usato per i test, con configurazione specifica per il database di test.
 
-L'approccio che è stato utilizzato è Fail-Fast Configuration, ovvero in caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup, così da evitare errori di configurazione che potrebbero portare a problemi di sicurezza o malfunzionamenti.
+L'approccio che è stato utilizzato è `Fail-Fast Configuration`, ovvero in caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup, così da evitare errori di configurazione che potrebbero portare a problemi di sicurezza o malfunzionamenti.
 
-Le variabili d'ambiente sono salvate nel file .env iniettato nei container Docker, e sono documentate nel README con istruzioni per la generazione del JWT secret, la configurazione del db e delle email.
+Le variabili d'ambiente sono salvate nel file .env iniettato nei container Docker, e sono documentate nel README con istruzioni per la generazione del JWT secret, la configurazione del db, delle email e del servizio Geoapify.
 
 ### 7.2 Docker
 
-placeholder -> qui spiego che ho dockerizzato il progetto e i test del progetto. Quindi che ho creato sia un ambiente di produzione che un ambiente di test con docker compose, e che i test vengono eseguiti in un container dedicato che si avvia, esegue i test e poi si ferma, così da permettere di vedere i log dei test e il risultato dei test direttamente da docker compose. I due container si trovano entrambi nella stessa immagine quindi nello stesso ambiente durante la valutazione del progetto.
+Il progetto è stato dockerizzato con due ambienti distinti, entrambi basati sull'immagine `maven:3.9-eclipse-temurin-21`:
+
+- **Ambiente di produzione** (`Dockerfile` + `compose.yaml`): build multi-stage che produce un'immagine runtime minimale con solo il JAR dell'applicazione, affiancata da un container PostgreSQL.
+
+- **Ambiente di test** (`Dockerfile.test` + `compose.test.yaml`): container dedicato che si avvia, esegue l'intera suite di test tramite `mvn clean test` e si ferma automaticamente. PostgreSQL viene avviato come servizio separato con healthcheck, garantendo che il database sia pronto prima dell'esecuzione dei test. I log e il risultato finale sono visibili direttamente nell'output di Docker Compose.
+
+Questo approccio garantisce che i test vengano eseguiti nello stesso ambiente sia in locale che in CI, eliminando dipendenze dall'host e assicurando la riproducibilità dei risultati.
+
+### 7.3 GitHub Actions
+
+La pipeline CI è composta da due workflow separati in `.github/workflows/`:
+
+**`test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
+1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
+2. Esecuzione dei test tramite `docker compose up`, con un volume mount su `target/` per estrarre il report di coverage generato da JaCoCo.
+3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
+
+**`sonar.yml`** — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Esegue:
+1. Download del report JaCoCo prodotto dal workflow precedente.
+2. Compilazione dei sorgenti con Maven (dipendenze cachate) per rendere disponibili le classi compilate all'analisi.
+3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
+
+I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions, con storico e stato indipendenti.
 
 ---
 

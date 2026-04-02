@@ -17,9 +17,12 @@ services:
       - ./db-init:/docker-entrypoint-initdb.d
 
   backend-test:
+    image: backend-test:latest
     build:
       context: ./backend
       dockerfile: Dockerfile.test
+    volumes:
+      - ./backend/target:/app/target
     depends_on:
       postgres-test:
         condition: service_healthy

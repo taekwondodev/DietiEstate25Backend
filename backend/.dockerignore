@@ -1,0 +1,24 @@
+# Build output - most critical, can be hundreds of MB
+target/
+
+# Maven wrapper - not needed, base image already has Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Dockerfiles - no need to copy them inside the image
+Dockerfile
+Dockerfile.test
+
+# Documentation
+openapi.yaml
+*.md
+
+# IDE and OS files
+.idea/
+*.iml
+.DS_Store
+
+# Git
+.git/
+.gitignore
