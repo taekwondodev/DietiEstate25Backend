@@ -39,6 +39,11 @@ jobs:
           set -o pipefail
           docker compose -f compose.test.yaml up --abort-on-container-exit 2>&1 | grep -E "ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started"
 
+      - name: Extract JaCoCo report
+        run: |
+          mkdir -p backend/target/site/jacoco
+          docker compose -f compose.test.yaml cp backend-test:/app/target/site/jacoco/jacoco.xml backend/target/site/jacoco/jacoco.xml
+
       - name: Upload JaCoCo report
         uses: actions/upload-artifact@v4
         with:

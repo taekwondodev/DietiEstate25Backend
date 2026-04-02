@@ -983,7 +983,7 @@ La pipeline CI è composta da due workflow separati in `.github/workflows/`:
 
 **`test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
 1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
-2. Esecuzione dei test tramite `docker compose up`, con un volume mount su `target/` per estrarre il report di coverage generato da JaCoCo.
+2. Esecuzione dei test tramite `docker compose up`. Al termine, il report di coverage generato da JaCoCo viene estratto dal container con `docker compose cp`, evitando conflitti con `mvn clean` che non può eliminare una directory montata come volume.
 3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
 
 **`sonar.yml`** — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Esegue:
