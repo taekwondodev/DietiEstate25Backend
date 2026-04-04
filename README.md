@@ -924,7 +924,91 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 | **Guard Ordering** | Validazione di stato PRIMA di ownership check | Ownership check PRIMA di validazione stato | Information hiding on unauthorized access |
 | **API External Errors** | Stack trace di API Geoapify/OpenMeteo leakato | Generic `InternalServerErrorException` | External service details protection |
 
-### 6.6 Riepilogo Finale
+### 6.6 DAO Integration Security Tests
+
+Suite di **20 test** che verifica la sicurezza del layer di persistenza testando direttamente le implementazioni DAO contro il database PostgreSQL reale. Tutti i test usano `@Transactional` con rollback automatico per garantire l'isolamento tra i test e i dati pre-seeded di `02_test_data.sql`.
+
+#### 6.6.1 UtentePostgresDaoSecurityTests (`security/dao/`)
+
+Suite di **4 test** — WSTG-INPV-05, WSTG-CRYP-04
+
+**SQL Injection (WSTG-INPV-05)**
+- `testFindByEmail_WithOrInjection_ShouldNotReturnAnyUser` — OR injection su `findByEmail` → `EmptyResultDataAccessException` (la query parametrizzata tratta il payload come stringa letterale, non come SQL)
+- `testFindByEmail_WithUnionInjection_ShouldNotLeakData` — UNION injection su `findByEmail` → `EmptyResultDataAccessException`
+- `testFindEmailByUid_WithOrInjection_ShouldNotReturnAnyEmail` — OR injection su `findEmailByUid` → `EmptyResultDataAccessException`
+
+**Integrità Dati Sensibili (WSTG-CRYP-04)**
+- `testSave_ShouldStorePasswordHashUnchanged` — Il DAO persiste l'hash BCrypt **esattamente come fornito** dal service layer, senza alcuna alterazione
+
+**Outcome**: Le query parametrizzate di JdbcTemplate neutralizzano ogni tentativo di SQL injection. Il DAO non trasforma i dati sensibili in ingresso.
+
+#### 6.6.2 ImmobilePostgresDaoSecurityTests (`security/dao/`)
+
+Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+
+**SQL Injection (WSTG-INPV-05)**
+- `testCercaImmobili_WithOrInjectionInComune_ShouldReturnEmptyList` — OR injection nel filtro `comune` → lista vuota (non ritorna tutti gli immobili)
+- `testCercaImmobili_WithUnionInjectionInComune_ShouldReturnEmptyList` — UNION injection nel filtro `comune` → lista vuota
+- `testImmobiliPersonali_WithOrInjection_ShouldReturnEmptyList` — OR injection in `uidResponsabile` → lista vuota
+
+**Data Isolation (WSTG-ATHZ-02)**
+- `testImmobiliPersonali_ShouldReturnOnlyOwnerProperties` — `immobiliPersonali("uid-agente-001")` restituisce **solo** gli immobili di agente-001, mai quelli di agente-002
+
+**Outcome**: SQL injection neutralizzato. Il filtro `WHERE idagente = ?` isola correttamente i dati per agente a livello di query SQL.
+
+#### 6.6.3 OffertaPostgresDaoSecurityTests (`security/dao/`)
+
+Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+
+**SQL Injection (WSTG-INPV-05)**
+- `testRiepilogoOfferteCliente_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idCliente` → lista vuota
+- `testRiepilogoOfferteUtenteAgenzia_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idAgente` → lista vuota
+
+**Data Isolation (WSTG-ATHZ-02)**
+- `testRiepilogoOfferteCliente_ShouldNotExposeOtherClientsOffers` — Offerte di cliente-001 non contengono mai offerte di cliente-002
+- `testRiepilogoOfferteUtenteAgenzia_ShouldNotExposeOtherAgentsOffers` — Offerte visibili ad agente-001 riguardano esclusivamente i suoi immobili
+
+**Outcome**: Il filtro `WHERE o.idcliente = ?` e `WHERE i.idagente = ?` isolano correttamente i dati.
+
+#### 6.6.4 VisitaPostgresDaoSecurityTests (`security/dao/`)
+
+Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+
+**SQL Injection (WSTG-INPV-05)**
+- `testRiepilogoVisiteCliente_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idCliente` → lista vuota
+- `testRiepilogoVisiteUtenteAgenzia_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idAgente` → lista vuota
+
+**Data Isolation (WSTG-ATHZ-02)**
+- `testRiepilogoVisiteCliente_ShouldNotExposeOtherClientsVisits` — Visite di cliente-001 non contengono mai visite di cliente-002
+- `testRiepilogoVisiteUtenteAgenzia_ShouldNotExposeOtherAgentsVisits` — Visite visibili ad agente-001 riguardano esclusivamente i suoi immobili
+
+**Outcome**: Il filtro `WHERE v.idcliente = ?` e `WHERE i.idagente = ?` isolano correttamente i dati.
+
+#### 6.6.5 UtenteAgenziaPostgresDaoSecurityTests (`security/dao/`)
+
+Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+
+**SQL Injection (WSTG-INPV-05)**
+- `testGetIdAgenzia_WithOrInjection_ShouldThrowNotFoundException` — OR injection → `NotFoundException(ADMIN_NOT_FOUND)` (nessun utente corrisponde alla stringa iniettata)
+- `testGetIdAgenzia_WithUnionInjection_ShouldThrowNotFoundException` — UNION injection → `NotFoundException(ADMIN_NOT_FOUND)`
+
+**Authorization Bypass (WSTG-ATHZ-02)**
+- `testGetIdAgenzia_WithNonAdminRole_ShouldThrowUnauthorizedException` — Utente con ruolo Cliente → `UnauthorizedException(INSUFFICIENT_PERMISSIONS)` prima di esporre qualsiasi dato agenzia
+- `testGetIdAgenzia_WithNonExistentUid_ShouldThrowNotFoundException` — UID inesistente → `NotFoundException(ADMIN_NOT_FOUND)` senza leak di dettagli DB
+
+**Outcome**: SQL injection neutralizzato. Il DAO verifica il ruolo Admin prima di restituire qualsiasi informazione sull'agenzia.
+
+#### 6.6.6 Bug Risolti durante il Testing
+
+Durante la scrittura dei test di integrazione DAO sono stati identificati e corretti tre bug che rendevano la protezione brute force e le operazioni di stato parzialmente non funzionanti:
+
+| Bug | File | Problema | Fix |
+|-----|------|----------|-----|
+| **Colonne DB errate in UPDATE** | `UtentePostgres.java` | `updateLoginAttempts` usava `failed_login_attempts` e `locked_until` — colonne inesistenti nello schema | Corrette in `failedloginattempts` e `lockeduntil` |
+| **SELECT incompleto in findByEmail** | `UtentePostgres.java` | `findByEmail` selezionava solo `uid, email, password, role` ma il RowMapper leggeva anche `failedloginattempts` e `lockeduntil` | Aggiunto `failedloginattempts, lockeduntil` alla clausola SELECT |
+| **Enum mismatch con PostgreSQL** | `StatoOfferta.java`, `StatoVisita.java` | `IN_SOSPESO` produceva `"In sospeso"` ma il tipo ENUM PostgreSQL definisce `'In Sospeso'` — INSERT falliva silenziosamente in produzione | Corretta capitalizzazione in `"In Sospeso"` |
+
+### 6.7 Riepilogo Finale
 
 #### Copertura dei Test
 
@@ -934,7 +1018,8 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 | **Authorization & Access Control** | 53 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
 | **Data Protection & Cryptography** | 42 test | JWT integrity, password hashing, token tampering, password policy |
 | **Business Logic Security** | 46 test | State machine validation, exception handling, error message safety |
-| **TOTALE** | **180 test** |
+| **DAO Integration Security** | 20 test | SQL injection at DB level, data isolation at query level, sensitive data integrity |
+| **TOTALE** | **200 test** |
 
 #### Conformità OWASP Testing Guide
 
@@ -945,9 +1030,10 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 | **WSTG-AUTHN-03** | Password Policy Testing | ✓ Compliant | `PasswordPolicySecurityTests` (15 test) |
 | **WSTG-AUTHN-04** | Weak Authentication Mechanisms | ✓ Compliant | `AuthServiceSecurityTests` (8 test) |
 | **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test) |
-| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (7 test), `VisitaPrivacyTests` (6 test) |
+| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (7 test), `VisitaPrivacyTests` (6 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
 | **WSTG-IA-06** | Forced Browsing/Endpoint Discovery | ✓ Compliant | `PublicEndpointTests` (7 test) |
-| **WSTG-SI-06** | Input Validation - SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test) |
+| **WSTG-INPV-05** | SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test), `UtentePostgresDaoSecurityTests` (3 test), `ImmobilePostgresDaoSecurityTests` (3 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
+| **WSTG-CRYP-04** | Sensitive Data at Persistence Layer | ✓ Compliant | `UtentePostgresDaoSecurityTests` (1 test) |
 | **WSTG-SI-11** | Input Validation - XXE & SSRF | ✓ Compliant | `RegistrazioneRequestValidationTests` (10 test) |
 | **WSTG-DV-03** | Error Handling - Information Disclosure | ✓ Compliant | `OffertaExceptionHandlingTests` (5 test), `VisitaExceptionHandlingTests` (5 test) |
 
@@ -979,31 +1065,27 @@ Questo approccio garantisce che i test vengano eseguiti nello stesso ambiente si
 
 ### 7.3 GitHub Actions
 
-La pipeline CI è composta da due workflow separati in `.github/workflows/`:
+La configurazione di GitHub Actions è composta da tre file in `.github/`:
 
-**`test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
+**`workflows/test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
 1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
 2. Esecuzione dei test tramite `docker compose up`. Al termine, il report di coverage generato da JaCoCo viene estratto dal container con `docker compose cp`, evitando conflitti con `mvn clean` che non può eliminare una directory montata come volume.
 3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
 
-**`sonar.yml`** — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Esegue:
+**`workflows/sonar.yml`** — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Esegue:
 1. Download del report JaCoCo prodotto dal workflow precedente.
 2. Compilazione dei sorgenti con Maven (dipendenze cachate) per rendere disponibili le classi compilate all'analisi.
 3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
 
 I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions, con storico e stato indipendenti.
 
-### 7.4 Dependabot
-
-Il progetto utilizza Dependabot (`dependabot.yml`) per il monitoraggio automatico delle dipendenze su tre ecosistemi:
+**`dependabot.yml`** — configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecosistemi:
 
 - **Maven** — controlla `pom.xml` per aggiornamenti alle dipendenze Java/Spring Boot.
 - **Docker** — controlla le base image nei `Dockerfile` per nuove versioni.
 - **GitHub Actions** — controlla le versioni delle action usate nei workflow (es. `actions/checkout`, `actions/cache`).
 
-Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI (`test.yml` → `sonar.yml`) prima del merge, garantendo che nessun aggiornamento rompa la build.
-
-Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo: monitora le dipendenze rispetto ai database CVE e apre PR urgenti in caso di vulnerabilità note, indipendentemente dallo schedule settimanale.
+Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI (`test.yml` → `sonar.yml`) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
 
 ---
 
