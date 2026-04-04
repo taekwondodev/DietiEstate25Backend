@@ -72,11 +72,11 @@ public class CreaImmobileRequest {
         return dimensione;
     }
 
-    public int getnBagni() {
+    public int getNBagni() {
         return nBagni;
     }
 
-    public int getnStanze() {
+    public int getNStanze() {
         return nStanze;
     }
 
@@ -103,4 +103,17 @@ public class CreaImmobileRequest {
     public boolean isHasBalcone() {
         return hasBalcone;
     }
+
+    public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
+    public void setUrlFoto(String urlFoto) { this.urlFoto = urlFoto; }
+    public void setPrezzo(double prezzo) { this.prezzo = prezzo; }
+    public void setDimensione(int dimensione) { this.dimensione = dimensione; }
+    public void setNBagni(int nBagni) { this.nBagni = nBagni; }
+    public void setNStanze(int nStanze) { this.nStanze = nStanze; }
+    public void setTipologia(String tipologia) { this.tipologia = tipologia; }
+    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
+    public void setComune(String comune) { this.comune = comune; }
+    public void setPiano(int piano) { this.piano = piano; }
+    public void setHasAscensore(boolean hasAscensore) { this.hasAscensore = hasAscensore; }
+    public void setHasBalcone(boolean hasBalcone) { this.hasBalcone = hasBalcone; }
 }
