@@ -153,11 +153,11 @@ public class Immobile {
         return dimensione;
     }
 
-    public int getnBagni() {
+    public int getNBagni() {
         return nBagni;
     }
 
-    public int getnStanze() {
+    public int getNStanze() {
         return nStanze;
     }
 
