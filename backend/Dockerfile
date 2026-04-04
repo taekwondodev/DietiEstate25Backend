@@ -1,5 +1,5 @@
 # Usa un'immagine base di OpenJDK per la fase di build
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+FROM maven:3.9.13-eclipse-temurin-25 AS build
 
 # Imposta la directory di lavoro
 WORKDIR /app
