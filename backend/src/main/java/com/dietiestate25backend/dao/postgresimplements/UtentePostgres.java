@@ -25,7 +25,7 @@ public class UtentePostgres implements UtenteDao {
 
     @Override
     public void updateLoginAttempts(Utente u) {
-        String sql = "UPDATE utenti SET failed_login_attempts = ?, locked_until = ? WHERE uid = ?";
+        String sql = "UPDATE utenti SET failedloginattempts = ?, lockeduntil = ? WHERE uid = ?";
 
         Timestamp lockedUntilTimestamp = u.getLockedUntil() != null ? Timestamp.from(u.getLockedUntil()) : null;
         jdbcTemplate.update(sql, u.getFailedLoginAttempts(), lockedUntilTimestamp, u.getUid());
@@ -33,7 +33,7 @@ public class UtentePostgres implements UtenteDao {
 
     @Override
     public Utente findByEmail(String email) {
-        String sql = "SELECT uid, email, password, role FROM utenti WHERE email = ?";
+        String sql = "SELECT uid, email, password, role, failedloginattempts, lockeduntil FROM utenti WHERE email = ?";
         return jdbcTemplate.queryForObject(sql, utenteRowMapper(), email);
     }
 
@@ -52,8 +52,8 @@ public class UtentePostgres implements UtenteDao {
                     rs.getString("role")
             );
 
-            u.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
-            Timestamp lockedUntilTimestamp = rs.getTimestamp("locked_until");
+            u.setFailedLoginAttempts(rs.getInt("failedloginattempts"));
+            Timestamp lockedUntilTimestamp = rs.getTimestamp("lockeduntil");
             if (lockedUntilTimestamp != null) {
                 u.setLockedUntil(lockedUntilTimestamp.toInstant());
             }
