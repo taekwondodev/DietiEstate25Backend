@@ -955,7 +955,7 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 
 ## 7. Pipeline
 
-Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test e l'analisi della qualità del codice ad ogni push o pull request.
+Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze.
 
 ### 7.1 Configurazione Progetto
 
@@ -992,6 +992,18 @@ La pipeline CI è composta da due workflow separati in `.github/workflows/`:
 3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
 
 I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions, con storico e stato indipendenti.
+
+### 7.4 Dependabot
+
+Il progetto utilizza Dependabot (`dependabot.yml`) per il monitoraggio automatico delle dipendenze su tre ecosistemi:
+
+- **Maven** — controlla `pom.xml` per aggiornamenti alle dipendenze Java/Spring Boot.
+- **Docker** — controlla le base image nei `Dockerfile` per nuove versioni.
+- **GitHub Actions** — controlla le versioni delle action usate nei workflow (es. `actions/checkout`, `actions/cache`).
+
+Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI (`test.yml` → `sonar.yml`) prima del merge, garantendo che nessun aggiornamento rompa la build.
+
+Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo: monitora le dipendenze rispetto ai database CVE e apre PR urgenti in caso di vulnerabilità note, indipendentemente dallo schedule settimanale.
 
 ---
 
