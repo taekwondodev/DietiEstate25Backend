@@ -31,3 +31,4 @@ services:
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.authorization.**"
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.business.**"
     #command: mvn clean test -Dtest="com.dietiestate25backend.security.dataisolation.**"
+    #command: mvn clean test -Dtest="com.dietiestate25backend.security.dao.**"

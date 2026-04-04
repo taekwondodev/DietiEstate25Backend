@@ -3,7 +3,7 @@ package com.dietiestate25backend.model;
 public enum StatoOfferta {
     ACCETTATA("Accettata"),
     RIFIUTATA("Rifiutata"),
-    IN_SOSPESO("In sospeso");
+    IN_SOSPESO("In Sospeso");
 
     private final String stato;
 
