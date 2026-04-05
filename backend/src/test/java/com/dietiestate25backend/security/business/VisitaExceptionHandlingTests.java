@@ -61,13 +61,13 @@ class VisitaExceptionHandlingTests extends BaseIntegrationTest {
     }
 
     private Immobile buildTestImmobile(int id, String indirizzo, String idResponsabile) {
-        return new Immobile.Builder()
-                .setIdImmobile(id).setIndirizzo(indirizzo)
-                .setLatitudine(43.7 + id * 0.01).setLongitudine(10.4 + id * 0.01)
-                .setDescrizione("Test immobile").setNStanze(4).setDimensione(100).setNBagni(2)
-                .setUrlFoto("image.jpg").setIdResponsabile(idResponsabile)
-                .setPrezzo(100000.0).setTipologia("Appartamento").setComune("Genova")
-                .setPiano(2).setHasAscensore(true).setHasBalcone(false).build();
+        return Immobile.builder()
+                .idImmobile(id).indirizzo(indirizzo)
+                .latitudine(43.7 + id * 0.01).longitudine(10.4 + id * 0.01)
+                .descrizione("Test immobile").nStanze(4).dimensione(100).nBagni(2)
+                .urlFoto("image.jpg").idResponsabile(idResponsabile)
+                .prezzo(100000.0).tipologia("Appartamento").comune("Genova")
+                .piano(2).hasAscensore(true).hasBalcone(false).build();
     }
 
     @Test

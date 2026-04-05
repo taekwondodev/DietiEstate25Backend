@@ -28,7 +28,7 @@ class UtenteAgenziaBoundaryTests extends BaseMvcTest {
                 "http://photo.example.com/photo.jpg",
                 "Bellissimo appartamento",
                 250000.0,
-                85.0,
+                85,
                 2,
                 3,
                 "Appartamento",

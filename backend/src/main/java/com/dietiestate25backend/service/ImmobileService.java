@@ -88,22 +88,22 @@ public class ImmobileService {
         }
         Map<String, Double> coordinate = ottieniCoordinate(request.getIndirizzo(), request.getComune());
 
-        Immobile immobile = new Immobile.Builder()
-                .setUrlFoto(request.getUrlFoto())
-                .setDescrizione(request.getDescrizione())
-                .setPrezzo(request.getPrezzo())
-                .setDimensione(request.getDimensione())
-                .setNBagni(request.getNBagni())
-                .setNStanze(request.getNStanze())
-                .setTipologia(request.getTipologia())
-                .setLatitudine(coordinate.get(LATITUDINE))
-                .setLongitudine(coordinate.get(LONGITUDINE))
-                .setIndirizzo(request.getIndirizzo())
-                .setComune(request.getComune())
-                .setPiano(request.getPiano())
-                .setHasAscensore(request.isHasAscensore())
-                .setHasBalcone(request.isHasBalcone())
-                .setIdResponsabile(uidResponsabile)
+        Immobile immobile = Immobile.builder()
+                .urlFoto(request.getUrlFoto())
+                .descrizione(request.getDescrizione())
+                .prezzo(request.getPrezzo())
+                .dimensione(request.getDimensione())
+                .nBagni(request.getNBagni())
+                .nStanze(request.getNStanze())
+                .tipologia(request.getTipologia())
+                .latitudine(coordinate.get(LATITUDINE))
+                .longitudine(coordinate.get(LONGITUDINE))
+                .indirizzo(request.getIndirizzo())
+                .comune(request.getComune())
+                .piano(request.getPiano())
+                .hasAscensore(request.isHasAscensore())
+                .hasBalcone(request.isHasBalcone())
+                .idResponsabile(uidResponsabile)
                 .build();
 
         try {

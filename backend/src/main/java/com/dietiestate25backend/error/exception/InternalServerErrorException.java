@@ -1,7 +1,9 @@
 package com.dietiestate25backend.error.exception;
 
 import com.dietiestate25backend.error.ErrorCode;
+import lombok.Getter;
 
+@Getter
 public class InternalServerErrorException extends RuntimeException {
     private final ErrorCode errorCode;
 
@@ -13,9 +15,5 @@ public class InternalServerErrorException extends RuntimeException {
     public InternalServerErrorException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.name(), cause);
         this.errorCode = errorCode;
-    }
-
-    public ErrorCode getErrorCode() {
-        return errorCode;
     }
 }

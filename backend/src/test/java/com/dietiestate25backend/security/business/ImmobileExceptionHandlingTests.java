@@ -57,7 +57,7 @@ class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testCreaImmobile_GeoServiceReturnsNull_ShouldThrowBadRequest() {
         CreaImmobileRequest request = new CreaImmobileRequest(
-                "image.jpg", "Piccolo monolocale", 300000.0, 50.0,
+                "image.jpg", "Piccolo monolocale", 300000.0, 50,
                 1, 1, "Monolocale", "Via Torino 20", "Torino", 5, false, false
         );
 
@@ -74,7 +74,7 @@ class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testCreaImmobile_DAOConstraintViolation_ShouldThrowConflict() {
         CreaImmobileRequest request = new CreaImmobileRequest(
-                "image.jpg", "Piccolo monolocale", 300000.0, 50.0,
+                "image.jpg", "Piccolo monolocale", 300000.0, 50,
                 1, 1, "Monolocale", "Via Torino 20", "Torino", 5, false, false
         );
 
@@ -94,7 +94,7 @@ class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
     @WithMockUser(username = "agente1", roles = "AgenteImmobiliare")
     void testCreaImmobile_DAOThrowsDataAccessException_ShouldWrapGeneric() {
         CreaImmobileRequest request = new CreaImmobileRequest(
-                "image.jpg", "Piccolo monolocale", 300000.0, 50.0,
+                "image.jpg", "Piccolo monolocale", 300000.0, 50,
                 1, 1, "Monolocale", "Via Torino 20", "Torino", 5, false, false
         );
 

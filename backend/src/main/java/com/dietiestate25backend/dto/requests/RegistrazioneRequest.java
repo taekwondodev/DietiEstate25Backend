@@ -1,7 +1,13 @@
 package com.dietiestate25backend.dto.requests;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegistrazioneRequest {
     @NotBlank
     @Email(message = "Email non valida")
@@ -17,28 +23,4 @@ public class RegistrazioneRequest {
     @NotBlank
     @Pattern(regexp = "^(Cliente|Gestore|AgenteImmobiliare)$", message = "Il ruolo deve essere Cliente, Gestore o AgenteImmobiliare")
     private String role;
-
-    public RegistrazioneRequest() {}
-
-    public RegistrazioneRequest(String email, String password, String role) {
-        this.email = email;
-        this.password = password;
-        this.role = role;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setEmail(String email) { this.email = email; }
-    public void setPassword(String password) { this.password = password; }
-    public void setRole(String role) { this.role = role; }
 }
