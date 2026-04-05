@@ -77,4 +77,59 @@ class ImmobilePostgresDaoSecurityTests extends BaseIntegrationTest {
         assertTrue(result.stream().noneMatch(i -> "uid-agente-002".equals(i.getIdResponsabile())),
                 "Properties of other agents must not be accessible through immobiliPersonali");
     }
+
+    @Test
+    @DisplayName("SQL Injection - OR injection in 'tipologia' filter must return empty list (WSTG-INPV-05)")
+    void testCercaImmobili_WithOrInjectionInTipologia_ShouldReturnEmptyList() {
+        Map<String, Object> filters = Map.of("comune", "Roma", "tipologia", "' OR '1'='1");
+
+        List<Immobile> result = immobileDao.cercaImmobiliConFiltri(filters, 0, 10);
+
+        assertTrue(result.isEmpty(),
+                "OR injection in 'tipologia' must be treated as a literal string and not return all rows");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - UNION injection in 'tipologia' filter must not leak all immobili (WSTG-INPV-05)")
+    void testCercaImmobili_WithUnionInjectionInTipologia_ShouldReturnEmptyList() {
+        Map<String, Object> filters = Map.of("comune", "Roma", "tipologia", "x' UNION SELECT * FROM immobile --");
+
+        List<Immobile> result = immobileDao.cercaImmobiliConFiltri(filters, 0, 10);
+
+        assertTrue(result.isEmpty(),
+                "UNION injection in 'tipologia' must be blocked by parameterized query");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - UNION injection in immobiliPersonali must return empty list (WSTG-INPV-05)")
+    void testImmobiliPersonali_WithUnionInjection_ShouldReturnEmptyList() {
+        List<Immobile> result = immobileDao.immobiliPersonali(
+                "x' UNION SELECT idImmobile,urlFoto,descrizione,prezzo,dimensione,nBagni,nStanze,tipologia,latitudine,longitudine,indirizzo,comune,piano,hasAscensore,hasBalcone,idAgente FROM immobile --");
+
+        assertTrue(result.isEmpty(),
+                "UNION injection in uidResponsabile must be treated as a literal string and not leak property data");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - comment injection in immobiliPersonali must not truncate WHERE clause (WSTG-INPV-05)")
+    void testImmobiliPersonali_WithCommentInjection_ShouldReturnEmptyList() {
+        List<Immobile> result = immobileDao.immobiliPersonali("uid-agente-001'--");
+
+        assertTrue(result.isEmpty(),
+                "Comment injection must not truncate the WHERE clause and return all immobili");
+    }
+
+    // ============================================================================
+    // OWASP WSTG-ERRH-01: Missing resource must surface exception, not null
+    // Querying a non-existent property by ID must raise EmptyResultDataAccessException
+    // so that callers can map it to 404 without masking referencing errors.
+    // ============================================================================
+
+    @Test
+    @DisplayName("getImmobileById - non-existent ID must throw EmptyResultDataAccessException (WSTG-ERRH-01)")
+    void testGetImmobileById_NonExistentId_ShouldThrowEmptyResult() {
+        assertThrows(org.springframework.dao.EmptyResultDataAccessException.class,
+                () -> immobileDao.getImmobileById(Integer.MAX_VALUE),
+                "Querying a non-existent immobile must not return null — it must throw EmptyResultDataAccessException");
+    }
 }
