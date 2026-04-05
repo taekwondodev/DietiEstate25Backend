@@ -28,7 +28,7 @@ public class MeteoService {
         LocalDate dataAttuale = LocalDate.now();
         LocalDate dataMassimaSupportata = dataAttuale.plusDays(7);
 
-        if (dataRichiesta.isBefore(dataMassimaSupportata)) {
+        if (dataRichiesta.isBefore(dataAttuale) || dataRichiesta.isAfter(dataMassimaSupportata)) {
             throw new BadRequestException(ErrorCode.INVALID_DATE_RANGE);
         }
 

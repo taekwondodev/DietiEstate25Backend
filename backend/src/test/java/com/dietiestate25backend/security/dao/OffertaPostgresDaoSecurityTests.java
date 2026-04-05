@@ -6,6 +6,7 @@ import com.dietiestate25backend.model.Offerta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -72,5 +73,58 @@ class OffertaPostgresDaoSecurityTests extends BaseIntegrationTest {
         assertFalse(result.isEmpty(), "Agent must be able to see offers on his own properties");
         assertTrue(result.stream().allMatch(o -> "uid-agente-001".equals(o.getImmobile().getIdResponsabile())),
                 "riepilogoOfferteUtenteAgenzia must only return offers on properties belonging to the requesting agent");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - UNION injection in riepilogoOfferteCliente must return empty list")
+    void testRiepilogoOfferteCliente_WithUnionInjection_ShouldReturnEmptyList() {
+        List<Offerta> result = offertaDao.riepilogoOfferteCliente(
+                "x' UNION SELECT idOfferta,importo,stato,idCliente,idImmobile FROM offerta --");
+
+        assertTrue(result.isEmpty(),
+                "UNION injection in idCliente must be treated as a literal string and not leak offer data");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - UNION injection in riepilogoOfferteUtenteAgenzia must return empty list")
+    void testRiepilogoOfferteUtenteAgenzia_WithUnionInjection_ShouldReturnEmptyList() {
+        List<Offerta> result = offertaDao.riepilogoOfferteUteneAgenzia(
+                "x' UNION SELECT idOfferta,importo,stato,idCliente,idImmobile FROM offerta --");
+
+        assertTrue(result.isEmpty(),
+                "UNION injection in idAgente must be treated as a literal string and not leak offer data");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - comment-based injection in riepilogoOfferteCliente must return empty list")
+    void testRiepilogoOfferteCliente_WithCommentInjection_ShouldReturnEmptyList() {
+        List<Offerta> result = offertaDao.riepilogoOfferteCliente("uid-cliente-001'--");
+
+        assertTrue(result.isEmpty(),
+                "Comment injection must be treated as a literal string and not truncate the WHERE clause");
+    }
+
+    @Test
+    @DisplayName("SQL Injection - stacked query in riepilogoOfferteCliente must not execute DDL (WSTG-INPV-05)")
+    void testRiepilogoOfferteCliente_WithStackedQueryInjection_ShouldReturnEmptyList() {
+        List<Offerta> result = offertaDao.riepilogoOfferteCliente(
+                "uid'; DROP TABLE offerta; --");
+
+        assertTrue(result.isEmpty(),
+                "Stacked query injection must be treated as a literal string and must not execute DDL statements");
+    }
+
+    // ============================================================================
+    // OWASP WSTG-ERRH-01: Error handling — missing resource must surface exception
+    // Verifies that querying a non-existent offer by ID raises EmptyResultDataAccessException
+    // instead of returning null (which would mask referencing errors).
+    // ============================================================================
+
+    @Test
+    @DisplayName("getOffertaById - non-existent ID must throw EmptyResultDataAccessException (WSTG-ERRH-01)")
+    void testGetOffertaById_NonExistentId_ShouldThrowEmptyResult() {
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> offertaDao.getOffertaById(Integer.MAX_VALUE),
+                "Querying a non-existent offer must not return null — it must throw EmptyResultDataAccessException");
     }
 }

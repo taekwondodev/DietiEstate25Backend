@@ -769,7 +769,7 @@ private String password;
 
 ### 6.5 Business Logic Security Tests
 
-Suite di **47** test che verifica la sicurezza della logica di business, in particolare la validazione delle transizioni di stato e l'handling sicuro delle eccezioni.
+Suite di **98** test che verifica la sicurezza della logica di business, in particolare la validazione delle transizioni di stato, l'handling sicuro delle eccezioni e il rifiuto di input malevoli a livello di service.
 
 #### 6.5.1 State Transition Validation Tests (`security/business/`)
 
@@ -871,17 +871,31 @@ Suite di **5 test** in `GeoapifyGeoDataExceptionHandlingTests`:
 
 ##### Open Meteo Weather Exception Handling Tests
 
-Suite di **5 test** in `OpenMeteoExceptionHandlingTests`:
+Suite di **10 test** in `OpenMeteoExceptionHandlingTests`:
 
 **API Response Validation**
 - `testOttieniPrevisioni_InvalidResponse_ShouldThrowInternalError` — Se API non ritorna "daily" → `InternalServerErrorException`
 - `testOttieniPrevisioni_DateNotFound_ShouldThrowBadRequest` — Se data non trovata nei dati → `BadRequestException`
 - `testOttieniPrevisioni_DailyIsNull_ShouldHandleGracefully` — Se "daily" è null → `InternalServerErrorException`
+- `testOttieniPrevisioni_NullResponse_ShouldThrowInternalError` — API restituisce null → `InternalServerErrorException(EXTERNAL_SERVICE_ERROR)` (WSTG-ERRH-01)
 
 **Network Error Handling**
 - `testOttieniPrevisioni_APIUnreachable_ShouldWrapWithoutLeaking` — Se API non raggiungibile → `InternalServerErrorException` generico
 
-**Outcome**: Errori meteo non leakano architettura di API esterne.
+**Null entries in `daily` — NPE handling (WSTG-ERRH-01)**
+- `testOttieniPrevisioni_TimeListIsNull_ShouldWrapGeneric` — `daily.time` è null → `NullPointerException` wrappata in `InternalServerErrorException`
+- `testOttieniPrevisioni_TemperatureMaxIsNull_ShouldWrapGeneric` — `daily.temperature_2m_max` è null → NPE wrappata senza rivelare stack
+
+**Array length mismatch (WSTG-ERRH-01)**
+- `testOttieniPrevisioni_MismatchedArrayLengths_ShouldWrapGeneric` — array temperature più corti della lista date → `IndexOutOfBoundsException` wrappata in `InternalServerErrorException`
+
+**Type confusion — risposta API con tipo errato (WSTG-INPV-11)**
+- `testOttieniPrevisioni_DailyIsWrongType_ShouldWrapGeneric` — `daily` è una String anziché Map → `ClassCastException` wrappata senza rivelare dettagli di tipo
+
+**Defensive default (WSTG-ERRH-01)**
+- `testOttieniPrevisioni_UnknownWeatherCode_ShouldReturnDefaultDescription` — codice meteo sconosciuto (999) → `descriviTempo()` ritorna `"Non disponibile"` senza eccezioni
+
+**Outcome**: Tutti i possibili guasti dell'API esterna (null, tipo errato, array mismatch, NPE) vengono wrappati senza propagare dettagli interni al client.
 
 ##### AuthService Exception Handling Tests
 
@@ -915,7 +929,112 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 
 **Outcome**: Impossibile determinare il motivo della validazione fallita dal messaggio di errore. Token tampering rilevato e rifiutato senza rivelare il tipo di errore.
 
-#### 6.5.4 Miglioramenti Implementati
+#### 6.5.3 ImmobileServiceInputValidationTests (`security/business/`)
+
+Suite di **13 test** — WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01
+
+Verifica che `ImmobileService` applichi i controlli di input **prima di raggiungere il layer DAO o i servizi esterni**, coprendo i rami non testati di `cercaImmobili`, `creaImmobile` e `immobiliPersonali`.
+
+**Paginazione — page size fuori limite (WSTG-BUSL-07)**
+- `testCercaImmobili_PageSizeExceedsLimit_ShouldThrowBadRequest` — `size > 100` → `INVALID_PAGE_SIZE` (previene dump dell'intero dataset in una chiamata)
+
+**Filtri prezzo — valori negativi e range invertito (WSTG-BUSL-07)**
+- `testCercaImmobili_NegativePrezzoMin_ShouldThrowBadRequest` — `prezzoMin < 0` → `INVALID_PRICE`
+- `testCercaImmobili_NegativePrezzoMax_ShouldThrowBadRequest` — `prezzoMax < 0` → `INVALID_PRICE`
+- `testCercaImmobili_InvertedPriceRange_ShouldThrowBadRequest` — `prezzoMin > prezzoMax` → `INVALID_PRICE_RANGE`
+
+**Filtri dimensione e bagni — valori negativi (WSTG-BUSL-07)**
+- `testCercaImmobili_NegativeDimensione_ShouldThrowBadRequest` — `dimensione < 0` → `INVALID_DIMENSION`
+- `testCercaImmobili_NegativeNBagni_ShouldThrowBadRequest` — `nBagni < 0` → `INVALID_BATHROOMS`
+
+**Identity field tampering — null/blank uidResponsabile (WSTG-INPV-01)**
+- `testCreaImmobile_NullUidResponsabile_ShouldThrowBadRequest` — null → `INVALID_RESPONSABILE` prima di qualsiasi chiamata esterna
+- `testCreaImmobile_BlankUidResponsabile_ShouldThrowBadRequest` — whitespace → `INVALID_RESPONSABILE`
+- `testImmobiliPersonali_NullUidResponsabile_ShouldThrowBadRequest` — null → `INVALID_RESPONSABILE` prima del DAO
+- `testImmobiliPersonali_BlankUidResponsabile_ShouldThrowBadRequest` — whitespace → `INVALID_RESPONSABILE`
+
+**Coordinate map integrity — risposta geo parziale (WSTG-INPV-01)**
+- `testCreaImmobile_CoordinateMissingLatitudine_ShouldThrowBadRequest` — mappa senza chiave `"latitudine"` → `INVALID_ADDRESS`
+- `testCreaImmobile_CoordinateMissingLongitudine_ShouldThrowBadRequest` — mappa senza chiave `"longitudine"` → `INVALID_ADDRESS`
+
+**DAO write failure — error handling (WSTG-ERRH-01)**
+- `testCreaImmobile_DaoReturnsFalse_ShouldThrowDatabaseError` — `immobileDao.creaImmobile()` → false → `DatabaseErrorException` senza leak stack
+
+**Outcome**: I controlli di input in `ImmobileService` bloccano payload fuori range e risposte esterne incomplete prima di qualsiasi interazione con il database.
+
+#### 6.5.5 VisitaServiceInputValidationTests (`security/business/`)
+
+Suite di **17 test** — WSTG-INPV-01, WSTG-INPV-05, WSTG-BUSL-07, WSTG-ERRH-01
+
+Verifica che `VisitaService` applichi i controlli di input **prima di raggiungere il layer DAO**, coprendo i rami di `prenotaVisita`, `aggiornaStatoVisita`, `riepilogoVisiteCliente` e `riepilogoVisiteUtenteAgenzia` non testati in precedenza.
+
+**Identity field tampering — null/blank UID (WSTG-INPV-01)**
+- `testPrenotaVisita_NullUidCliente_ShouldThrowBadRequest` — null uidCliente → `INVALID_CLIENT_ID` prima del DAO
+- `testPrenotaVisita_BlankUidCliente_ShouldThrowBadRequest` — whitespace uidCliente → `INVALID_CLIENT_ID`
+- `testRiepilogoVisiteCliente_NullId_ShouldThrowBadRequest` — null idCliente → `INVALID_CLIENT_ID`
+- `testRiepilogoVisiteCliente_BlankId_ShouldThrowBadRequest` — whitespace idCliente → `INVALID_CLIENT_ID`
+- `testRiepilogoVisiteUtenteAgenzia_NullId_ShouldThrowBadRequest` — null idAgente → `INVALID_USER_ID`
+- `testRiepilogoVisiteUtenteAgenzia_BlankId_ShouldThrowBadRequest` — whitespace idAgente → `INVALID_USER_ID`
+- `testAggiornaStatoVisita_NullUidUtente_ShouldThrowBadRequest` — null uidUtente → `INVALID_USER_ID`
+- `testAggiornaStatoVisita_BlankUidUtente_ShouldThrowBadRequest` — whitespace uidUtente → `INVALID_USER_ID`
+
+**Business logic bypass — out-of-hours booking (WSTG-BUSL-07)**
+- `testPrenotaVisita_TimeBeforeWorkHours_ShouldThrowBadRequest` — visita alle 07:59 → `INVALID_VISIT_TIME`
+- `testPrenotaVisita_TimeAfterWorkHours_ShouldThrowBadRequest` — visita alle 18:01 → `INVALID_VISIT_TIME`
+
+**Referential integrity attacks — FK forgiata (WSTG-INPV-01)**
+- `testPrenotaVisita_ImmobileFKViolation_ShouldThrowNotFoundException` — `DataIntegrityViolationException` su `immobile` → `NotFoundException(IMMOBILE_NOT_FOUND)` senza leak DB
+- `testPrenotaVisita_ClienteFKViolation_ShouldThrowNotFoundException` — `DataIntegrityViolationException` su `idcliente` → `NotFoundException(CLIENT_NOT_FOUND)`
+- `testPrenotaVisita_DaoReturnsFalse_ShouldThrowDatabaseError` — DAO restituisce false → `DatabaseErrorException` senza leak stack
+
+**Injection in campo stato (WSTG-INPV-05)**
+- `testAggiornaStatoVisita_SqlInjectionInStato_ShouldThrowBadRequest` — `'; DROP TABLE visita; --'` come stato → `INVALID_STATUS` (non raggiunge il DAO)
+- `testAggiornaStatoVisita_ArbitraryStato_ShouldThrowBadRequest` — stringa arbitraria → `INVALID_STATUS`
+
+**Error handling — DAO failures (WSTG-ERRH-01)**
+- `testAggiornaStatoVisita_DaoUpdateReturnsFalse_ShouldThrowDatabaseError` — DAO update → false → `DatabaseErrorException`
+- `testAggiornaStatoVisita_EmptyResultException_ShouldThrowNotFoundException` — `EmptyResultDataAccessException` → `NotFoundException(RESOURCE_NOT_FOUND)` senza leak stack
+
+**Outcome**: I controlli di input in `VisitaService` bloccano payload malevoli prima di ogni interazione con il database. Le eccezioni DAO vengono sempre wrapped in eccezioni di business.
+
+#### 6.5.6 MeteoServiceSecurityTests (`security/business/`)
+
+Suite di **15 test** — WSTG-INPV-01, WSTG-INPV-05, WSTG-BUSL-07
+
+Verifica che `MeteoService` validi e rifiuti input malevoli nelle coordinate e nella data prima di propagarli all'API esterna.
+
+**Injection nel parametro data (WSTG-INPV-05)**
+- `testOttieniPrevisioni_SqlInjectionInDate_ShouldThrowBadRequest` — `' OR '1'='1` → `INVALID_DATE_FORMAT`
+- `testOttieniPrevisioni_UnionInjectionInDate_ShouldThrowBadRequest` — UNION injection → `INVALID_DATE_FORMAT`
+- `testOttieniPrevisioni_XssInDate_ShouldThrowBadRequest` — `<script>alert(1)</script>` → `INVALID_DATE_FORMAT` (WSTG-INPV-01)
+- `testOttieniPrevisioni_MalformedDate_ShouldThrowBadRequest` — stringa non ISO-8601 → `INVALID_DATE_FORMAT`
+
+**Date range enforcement — date passate (WSTG-BUSL-07)**
+- `testOttieniPrevisioni_PastDate_ShouldThrowBadRequest` — ieri → `INVALID_DATE_RANGE`
+- `testOttieniPrevisioni_FarPastDate_ShouldThrowBadRequest` — 30 giorni fa → `INVALID_DATE_RANGE`
+
+**Injection nelle coordinate (WSTG-INPV-05)**
+- `testOttieniPrevisioni_SqlInjectionInLatitude_ShouldThrowBadRequest` — OR injection in latitudine → `INVALID_COORDINATES`
+- `testOttieniPrevisioni_SqlInjectionInLongitude_ShouldThrowBadRequest` — DROP TABLE in longitudine → `INVALID_COORDINATES`
+- `testOttieniPrevisioni_XssInLatitude_ShouldThrowBadRequest` — payload XSS → `INVALID_COORDINATES` (WSTG-INPV-01)
+- `testOttieniPrevisioni_LongStringInLatitude_ShouldThrowBadRequest` — stringa da 10.000 caratteri → `INVALID_COORDINATES` (WSTG-INPV-13)
+- `testOttieniPrevisioni_NullByteInLatitude_ShouldThrowBadRequest` — null byte `\u0000` → `INVALID_COORDINATES`
+
+**Boundary validation delle coordinate (WSTG-INPV-01)**
+- `testOttieniPrevisioni_LatitudeBelowMin_ShouldThrowBadRequest` — `-90.001` → `INVALID_LATITUDE`
+- `testOttieniPrevisioni_LatitudeAboveMax_ShouldThrowBadRequest` — `90.001` → `INVALID_LATITUDE`
+- `testOttieniPrevisioni_LongitudeBelowMin_ShouldThrowBadRequest` — `-180.001` → `INVALID_LONGITUDE`
+- `testOttieniPrevisioni_LongitudeAboveMax_ShouldThrowBadRequest` — `180.001` → `INVALID_LONGITUDE`
+
+**Bug risolto durante il testing**:
+
+| Bug | File | Problema | Fix |
+|-----|------|----------|-----|
+| **Condizione date range invertita** | `MeteoService.java` | `if (dataRichiesta.isBefore(dataMassimaSupportata))` rifiutava le date valide (oggi → oggi+6) e accettava quelle oltre i 7 giorni | Corretta in `if (dataRichiesta.isBefore(dataAttuale) \|\| dataRichiesta.isAfter(dataMassimaSupportata))` |
+
+**Outcome**: Qualsiasi payload non numerico nelle coordinate viene rifiutato prima di raggiungere l'API esterna. La validazione del range temporale è ora corretta.
+
+#### 6.5.7 Miglioramenti Implementati
 
 | Area | Prima | Dopo | Impact |
 |------|-------|------|--------|
@@ -923,24 +1042,35 @@ Suite di **5 test** in `JwtServiceExceptionHandlingTests`:
 | **Exception Leakage - Stack Trace** | `"Errore interno: " + e.getMessage()` espone dettagli di database | `"Errore interno del server"` messaggio generico | Information disclosure prevention |
 | **Guard Ordering** | Validazione di stato PRIMA di ownership check | Ownership check PRIMA di validazione stato | Information hiding on unauthorized access |
 | **API External Errors** | Stack trace di API Geoapify/OpenMeteo leakato | Generic `InternalServerErrorException` | External service details protection |
+| **Input Validation - Service Layer** | Assente su VisitaService e MeteoService | Null/blank guard, time boundary, FK violation mapping, injection rejection | Pre-DAO attack surface reduction |
+| **Date Range Validation** | Condizione invertita in MeteoService | `isBefore(today) \|\| isAfter(today+7)` | Correct temporal boundary enforcement |
 
 ### 6.6 DAO Integration Security Tests
 
-Suite di **20 test** che verifica la sicurezza del layer di persistenza testando direttamente le implementazioni DAO contro il database PostgreSQL reale. Tutti i test usano `@Transactional` con rollback automatico per garantire l'isolamento tra i test e i dati pre-seeded di `02_test_data.sql`.
+Suite di **30 test** che verifica la sicurezza del layer di persistenza testando direttamente le implementazioni DAO contro il database PostgreSQL reale. Tutti i test usano `@Transactional` con rollback automatico per garantire l'isolamento tra i test e i dati pre-seeded di `02_test_data.sql`.
 
 #### 6.6.1 UtentePostgresDaoSecurityTests (`security/dao/`)
 
-Suite di **4 test** — WSTG-INPV-05, WSTG-CRYP-04
+Suite di **9 test** — WSTG-INPV-05, WSTG-CRYP-04, WSTG-AUTHN-03
 
 **SQL Injection (WSTG-INPV-05)**
 - `testFindByEmail_WithOrInjection_ShouldNotReturnAnyUser` — OR injection su `findByEmail` → `EmptyResultDataAccessException` (la query parametrizzata tratta il payload come stringa letterale, non come SQL)
 - `testFindByEmail_WithUnionInjection_ShouldNotLeakData` — UNION injection su `findByEmail` → `EmptyResultDataAccessException`
+- `testFindByEmail_WithCommentInjection_ShouldNotBypassAuthentication` — comment injection (`admin@test.it'--`) → `EmptyResultDataAccessException` (il commento non tronca la clausola WHERE)
+- `testFindByEmail_WithStackedQueryInjection_ShouldNotExecuteDDL` — stacked query (`x'; DROP TABLE utenti; --`) → `EmptyResultDataAccessException` (nessun DDL eseguito)
 - `testFindEmailByUid_WithOrInjection_ShouldNotReturnAnyEmail` — OR injection su `findEmailByUid` → `EmptyResultDataAccessException`
+- `testFindEmailByUid_WithUnionInjection_ShouldNotLeakData` — UNION injection su `findEmailByUid` → `EmptyResultDataAccessException`
 
 **Integrità Dati Sensibili (WSTG-CRYP-04)**
 - `testSave_ShouldStorePasswordHashUnchanged` — Il DAO persiste l'hash BCrypt **esattamente come fornito** dal service layer, senza alcuna alterazione
 
-**Outcome**: Le query parametrizzate di JdbcTemplate neutralizzano ogni tentativo di SQL injection. Il DAO non trasforma i dati sensibili in ingresso.
+**Uniqueness constraint — prevenzione account hijacking (WSTG-INPV-01)**
+- `testSave_WithDuplicateEmail_ShouldThrowDataIntegrityViolation` — Email duplicata → `DataIntegrityViolationException` (il vincolo UNIQUE impedisce la registrazione di due account con la stessa email)
+
+**Brute force protection data integrity (WSTG-AUTHN-03)**
+- `testUpdateLoginAttempts_ShouldPersistBruteForceProtectionData` — `updateLoginAttempts` persiste correttamente `failedLoginAttempts = 5` e `lockedUntil` nel futuro, garantendo l'integrità del meccanismo di lockout
+
+**Outcome**: Le query parametrizzate di JdbcTemplate neutralizzano ogni tentativo di SQL injection. Il DAO non trasforma i dati sensibili in ingresso. I dati di protezione brute-force sono persistiti correttamente.
 
 #### 6.6.2 ImmobilePostgresDaoSecurityTests (`security/dao/`)
 
@@ -958,17 +1088,24 @@ Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
 
 #### 6.6.3 OffertaPostgresDaoSecurityTests (`security/dao/`)
 
-Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+Suite di **9 test** — WSTG-INPV-05, WSTG-ATHZ-02, WSTG-ERRH-01
 
 **SQL Injection (WSTG-INPV-05)**
 - `testRiepilogoOfferteCliente_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idCliente` → lista vuota
+- `testRiepilogoOfferteCliente_WithUnionInjection_ShouldReturnEmptyList` — UNION injection in `idCliente` → lista vuota (nessun dato leakato)
+- `testRiepilogoOfferteCliente_WithCommentInjection_ShouldReturnEmptyList` — comment injection (`uid'--`) → lista vuota (il commento non tronca la WHERE)
+- `testRiepilogoOfferteCliente_WithStackedQueryInjection_ShouldReturnEmptyList` — stacked query (`uid'; DROP TABLE offerta; --`) → lista vuota (nessun DDL eseguito)
 - `testRiepilogoOfferteUtenteAgenzia_WithOrInjection_ShouldReturnEmptyList` — OR injection in `idAgente` → lista vuota
+- `testRiepilogoOfferteUtenteAgenzia_WithUnionInjection_ShouldReturnEmptyList` — UNION injection in `idAgente` → lista vuota
 
 **Data Isolation (WSTG-ATHZ-02)**
 - `testRiepilogoOfferteCliente_ShouldNotExposeOtherClientsOffers` — Offerte di cliente-001 non contengono mai offerte di cliente-002
 - `testRiepilogoOfferteUtenteAgenzia_ShouldNotExposeOtherAgentsOffers` — Offerte visibili ad agente-001 riguardano esclusivamente i suoi immobili
 
-**Outcome**: Il filtro `WHERE o.idcliente = ?` e `WHERE i.idagente = ?` isolano correttamente i dati.
+**Error handling — risorsa inesistente (WSTG-ERRH-01)**
+- `testGetOffertaById_NonExistentId_ShouldThrowEmptyResult` — ID inesistente → `EmptyResultDataAccessException` (non ritorna null, che maschererebbe l'errore nei layer superiori)
+
+**Outcome**: Il filtro `WHERE o.idcliente = ?` e `WHERE i.idagente = ?` isolano correttamente i dati. Tutti i vettori SQL injection (OR, UNION, comment, stacked query) vengono neutralizzati dalle query parametrizzate.
 
 #### 6.6.4 VisitaPostgresDaoSecurityTests (`security/dao/`)
 
@@ -1017,9 +1154,9 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 | **Input Validation & Boundary Testing** | 38 test | JSON parsing, type validation, payload size, SQL injection |
 | **Authorization & Access Control** | 53 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
 | **Data Protection & Cryptography** | 42 test | JWT integrity, password hashing, token tampering, password policy |
-| **Business Logic Security** | 46 test | State machine validation, exception handling, error message safety |
-| **DAO Integration Security** | 20 test | SQL injection at DB level, data isolation at query level, sensitive data integrity |
-| **TOTALE** | **200 test** |
+| **Business Logic Security** | 98 test | State machine validation, exception handling, error message safety, service input validation |
+| **DAO Integration Security** | 30 test | SQL injection at DB level, data isolation at query level, sensitive data integrity, brute force protection |
+| **TOTALE** | **261 test** |
 
 #### Conformità OWASP Testing Guide
 
@@ -1027,15 +1164,19 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 |---|---|---|---|
 | **WSTG-AUTH-01** | Authentication Mechanisms Testing | ✓ Compliant | `JwtServiceSecurityTests` (19 test) |
 | **WSTG-AUTHN-02** | Account Enumeration & Brute Force | ✓ Compliant | `BruteForceAndAccountLockoutTests` (9 test) |
-| **WSTG-AUTHN-03** | Password Policy Testing | ✓ Compliant | `PasswordPolicySecurityTests` (15 test) |
+| **WSTG-AUTHN-03** | Password Policy / Lockout Mechanism | ✓ Compliant | `PasswordPolicySecurityTests` (15 test), `UtentePostgresDaoSecurityTests` (1 test) |
 | **WSTG-AUTHN-04** | Weak Authentication Mechanisms | ✓ Compliant | `AuthServiceSecurityTests` (8 test) |
 | **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test) |
 | **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (7 test), `VisitaPrivacyTests` (6 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
 | **WSTG-IA-06** | Forced Browsing/Endpoint Discovery | ✓ Compliant | `PublicEndpointTests` (7 test) |
-| **WSTG-INPV-05** | SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test), `UtentePostgresDaoSecurityTests` (3 test), `ImmobilePostgresDaoSecurityTests` (3 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
+| **WSTG-INPV-01** | Input Validation — identity/boundary | ✓ Compliant | `ImmobileServiceInputValidationTests` (10 test), `VisitaServiceInputValidationTests` (10 test), `MeteoServiceSecurityTests` (8 test), `UtentePostgresDaoSecurityTests` (1 test) |
+| **WSTG-INPV-05** | SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test), `VisitaServiceInputValidationTests` (2 test), `UtentePostgresDaoSecurityTests` (5 test), `ImmobilePostgresDaoSecurityTests` (3 test), `OffertaPostgresDaoSecurityTests` (6 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
+| **WSTG-INPV-11** | Type Confusion / Code Injection | ✓ Compliant | `OpenMeteoExceptionHandlingTests` (1 test) |
+| **WSTG-INPV-13** | Buffer Overflow / Large Payload | ✓ Compliant | `MalformedPayloadTests` (1 test), `MeteoServiceSecurityTests` (1 test) |
+| **WSTG-BUSL-07** | Business Logic Bypass | ✓ Compliant | `ImmobileServiceInputValidationTests` (6 test), `VisitaServiceInputValidationTests` (2 test), `MeteoServiceSecurityTests` (6 test) |
 | **WSTG-CRYP-04** | Sensitive Data at Persistence Layer | ✓ Compliant | `UtentePostgresDaoSecurityTests` (1 test) |
 | **WSTG-SI-11** | Input Validation - XXE & SSRF | ✓ Compliant | `RegistrazioneRequestValidationTests` (10 test) |
-| **WSTG-DV-03** | Error Handling - Information Disclosure | ✓ Compliant | `OffertaExceptionHandlingTests` (5 test), `VisitaExceptionHandlingTests` (5 test) |
+| **WSTG-ERRH-01** | Error Handling - Information Disclosure | ✓ Compliant | `OffertaExceptionHandlingTests` (5 test), `VisitaExceptionHandlingTests` (5 test), `ImmobileServiceInputValidationTests` (1 test), `VisitaServiceInputValidationTests` (3 test), `OpenMeteoExceptionHandlingTests` (7 test), `OffertaPostgresDaoSecurityTests` (1 test) |
 
 ---
 
