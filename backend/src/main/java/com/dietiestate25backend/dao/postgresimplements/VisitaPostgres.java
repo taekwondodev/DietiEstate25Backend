@@ -24,7 +24,7 @@ public class VisitaPostgres implements VisitaDao {
 
     @Override
     public boolean salva(Date data, Time time, StatoVisita stato, String uidCliente, int idImmobile) {
-        String sql = "INSERT INTO visita (data, orario, stato, idCliente, idImmobile) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO visita (data, orario, stato, idCliente, idImmobile) VALUES (?, ?, CAST(? AS statovisita), ?, ?)";
 
         int result = jdbcTemplate.update(sql,
                 data, time, stato.getStatoString(), uidCliente, idImmobile
@@ -34,10 +34,10 @@ public class VisitaPostgres implements VisitaDao {
 
     @Override
     public boolean aggiornaStato(Visita visita) {
-        String sql = "UPDATE visita SET stato = ? WHERE idVisita = ?";
+        String sql = "UPDATE visita SET stato = CAST(? AS statovisita) WHERE idVisita = ?";
 
         int result = jdbcTemplate.update(sql,
-                visita.getStato().toString(),
+                visita.getStato().getStatoString(),
                 visita.getIdVisita()
         );
         return result > 0;

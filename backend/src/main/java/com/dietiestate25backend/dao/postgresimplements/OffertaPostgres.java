@@ -21,7 +21,7 @@ public class OffertaPostgres implements OffertaDao {
 
     @Override
     public boolean salvaOfferta(double importo, StatoOfferta stato, String uidCliente, int idImmobile) {
-        String sql = "INSERT INTO offerta (importo, stato, idCliente, idImmobile) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO offerta (importo, stato, idCliente, idImmobile) VALUES (?, CAST(? AS statoofferta), ?, ?)";
         int result = jdbcTemplate.update(sql,
                 importo, stato.getStatoString(), uidCliente, idImmobile
         );
@@ -50,10 +50,10 @@ public class OffertaPostgres implements OffertaDao {
 
     @Override
     public boolean aggiornaStatoOfferta(Offerta offerta) {
-        String sql = "UPDATE offerta SET stato = ? WHERE idOfferta = ?";
+        String sql = "UPDATE offerta SET stato = CAST(? AS statoofferta) WHERE idOfferta = ?";
 
         int result = jdbcTemplate.update(sql,
-                offerta.getStato().toString(),
+                offerta.getStato().getStatoString(),
                 offerta.getIdOfferta()
         );
         return result > 0;
