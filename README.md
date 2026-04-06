@@ -1420,5 +1420,41 @@ docker compose -f compose.test.yaml up --build --abort-on-container-exit 2>&1 \
 
 ## 9. Qualità del Codice
 
-Placeholder
+La qualità del codice è misurata attraverso due strumenti integrati nella pipeline CI: **JaCoCo** per la coverage dei test e **SonarCloud** per l'analisi statica del codice.
+
+### 9.1 Coverage dei Test (JaCoCo)
+
+JaCoCo raccoglie i dati di coverage durante l'esecuzione della suite di test e produce un report XML (`jacoco.xml`) estratto dal container Docker al termine di ogni run CI.
+
+| Metrica | Missed | Covered | Copertura |
+|---|---|---|---|
+| **Class Coverage** | 0 | 37 | **100%** |
+| **Method Coverage** | 29 | 149 | **83.7%** |
+| **Line Coverage** | 166 | 802 | **82.9%** |
+| **Branch Coverage** | 88 | 257 | **74.5%** |
+| **Instruction Coverage** | 777 | 3524 | **81.9%** |
+
+Tutte le 37 classi del progetto risultano coperte da almeno un test. Il branch coverage al 74.5% riflette la natura del testing adottato: la suite è orientata alla sicurezza e testa i percorsi critici (autenticazione, autorizzazione, validazione input, isolamento dei dati), non la copertura esaustiva di ogni ramo condizionale interno alle implementazioni.
+
+### 9.2 Analisi Statica (SonarCloud)
+
+SonarCloud analizza il codice sorgente al termine di ogni run CI riuscito, ricevendo il report JaCoCo per integrare la coverage reale nell'analisi.
+
+| Metrica | Valore |
+|---|---|
+| **Reliability Rating** | A |
+| **Security Rating** | A |
+| **Maintainability Rating** | A |
+| **Bugs** | 0 |
+| **Vulnerabilities** | 0 |
+| **Security Hotspots** | 0 |
+| **Code Smells** | 66 |
+| **Duplications** | 0.0% |
+| **Coverage (SonarCloud)** | 80.7% |
+
+I rating A su tutti e tre gli assi (Reliability, Security, Maintainability) e l'assenza di bugs e vulnerabilità confermano il superamento del Quality Gate. I 66 code smells rappresentano avvisi di maintainability (es. naming conventions, complessità ciclomatica) che non impattano la correttezza o la sicurezza del codice.
+
+### 9.3 Nota sulla Discrepanza di Coverage
+
+SonarCloud riporta **80.7%** contro l'**82.9%** di line coverage misurato da JaCoCo. La differenza è attesa: SonarCloud può escludere dall'analisi classi generate automaticamente (es. Lombok, modelli) o applicare un calcolo su un sottoinsieme differente di linee rispetto al report JaCoCo grezzo.
 
