@@ -15,6 +15,9 @@ RUN mvn clean package -DskipTests
 # Usa un'immagine base di OpenJDK per la fase di runtime
 FROM eclipse-temurin:25-jre-alpine
 
+# Aggiorna i pacchetti per eventuali CVE di sicurezza
+RUN apk upgrade --no-cache
+
 # Imposta la directory di lavoro
 WORKDIR /app
 
