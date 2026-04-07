@@ -36,3 +36,6 @@ build/
 **/.DS_Store
 
 .env
+
+### Claude Code ###
+.claude/settings.local.json

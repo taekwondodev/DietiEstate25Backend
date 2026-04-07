@@ -1315,7 +1315,7 @@ Questo approccio garantisce che i test vengano eseguiti nello stesso ambiente si
 
 ### 7.3 GitHub Actions
 
-La configurazione di GitHub Actions è composta da tre file in `.github/`:
+La configurazione di GitHub Actions è composta da quattro file in `.github/`:
 
 **`workflows/test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
 1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
@@ -1336,6 +1336,16 @@ I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions
 - **GitHub Actions** — controlla le versioni delle action usate nei workflow (es. `actions/checkout`, `actions/cache`).
 
 Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI (`test.yml` → `sonar.yml`) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
+
+**`workflows/trivy.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue due job in parallelo:
+
+- **Filesystem Scan** (`trivy-fs`): scansiona l'intero repository alla ricerca di secrets hardcodati nei file sorgente, misconfiguration nei Dockerfile e Docker Compose, e CVE nelle dipendenze Maven dichiarate in `pom.xml`. I risultati vengono caricati nel tab *Security → Code scanning alerts* di GitHub in formato SARIF.
+
+- **Image Scan** (`trivy-image`): builda l'immagine di produzione (`Dockerfile`) e scansiona i package OS del layer runtime (`eclipse-temurin:25-jre-jammy`) e le librerie Java embedded nel fat JAR. Sfrutta la stessa strategia di cache Docker BuildKit usata in `test.yml`, con una chiave separata per evitare collisioni. I risultati vengono caricati anch'essi come SARIF.
+
+Entrambi i job falliscono con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge. I falsi positivi accettati (credenziali di test in `application-test.properties` e `compose.test.yaml`) sono soppressi in modo chirurgico tramite `.trivyignore.yaml` con scope limitato ai file specifici, senza disabilitare la regola globalmente.
+
+Trivy e Dependabot coprono superfici complementari: Dependabot aggiorna automaticamente le dipendenze dichiarate in `pom.xml`, Trivy copre anche i package OS dell'immagine base, i secrets nei file e le misconfiguration IaC — superfici che Dependabot non monitora.
 
 ---
 
