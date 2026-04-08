@@ -6,9 +6,10 @@ secrets:
       - backend/src/test/resources/application-test.properties
     statement: "Test-only credentials (JWT secret, SMTP password) — production secrets are env-var injected"
 
-  # PostgreSQL credentials in the integration test compose file are fixed test values
-  # used exclusively by the ephemeral Docker Compose test environment.
+  # PostgreSQL credentials in the integration test environments are fixed test values
+  # used exclusively by ephemeral test environments, never in production.
   - id: generic-api-key
     paths:
       - compose.test.yaml
-    statement: "Test-only PostgreSQL credentials for ephemeral integration test environment"
+      - k8s/test/postgres-test-deployment.yaml
+    statement: "Test-only PostgreSQL credentials for ephemeral integration test environments"

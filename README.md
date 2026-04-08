@@ -1291,7 +1291,7 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 
 ## 7. Pipeline
 
-Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze.
+Il progetto adotta una pipeline CI strutturata su tre livelli: containerizzazione con Docker per garantire ambienti riproducibili, orchestrazione con Kubernetes per il deploy locale e l'esecuzione dei test, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze.
 
 ### 7.1 Configurazione Progetto
 
@@ -1301,19 +1301,28 @@ C'è anche il file application-test.properties che viene usato per i test, con c
 
 L'approccio che è stato utilizzato è `Fail-Fast Configuration`, ovvero in caso di variabili d'ambiente mancanti, l'applicazione fallisce al startup, così da evitare errori di configurazione che potrebbero portare a problemi di sicurezza o malfunzionamenti.
 
-Le variabili d'ambiente sono salvate nel file .env iniettato nei container Docker, e sono documentate nel README con istruzioni per la generazione del JWT secret, la configurazione del db, delle email e del servizio Geoapify.
+Le variabili d'ambiente sono iniettate tramite Kubernetes Secret, e sono documentate nel README con istruzioni per la generazione del JWT secret, la configurazione del db, delle email e del servizio Geoapify.
 
 ### 7.2 Docker
 
-Il progetto è stato dockerizzato con due ambienti distinti, entrambi basati sull'immagine `maven:3.9-eclipse-temurin-21`:
+Il progetto utilizza due Dockerfile distinti, entrambi basati sull'immagine `maven:3.9-eclipse-temurin-21`:
 
-- **Ambiente di produzione** (`Dockerfile` + `compose.yaml`): build multi-stage che produce un'immagine runtime minimale con solo il JAR dell'applicazione, affiancata da un container PostgreSQL.
+- **`Dockerfile`**: build multi-stage che produce un'immagine runtime minimale con solo il JAR dell'applicazione. Utilizzata per costruire l'immagine di produzione da caricare nel cluster Kubernetes.
 
-- **Ambiente di test** (`Dockerfile.test` + `compose.test.yaml`): container dedicato che si avvia, esegue l'intera suite di test tramite `mvn clean test` e si ferma automaticamente. PostgreSQL viene avviato come servizio separato con healthcheck, garantendo che il database sia pronto prima dell'esecuzione dei test. I log e il risultato finale sono visibili direttamente nell'output di Docker Compose.
+- **`Dockerfile.test`**: immagine dedicata che esegue l'intera suite di test tramite `mvn clean test` e termina. Utilizzata dal Job Kubernetes nell'ambiente di test.
 
-Questo approccio garantisce che i test vengano eseguiti nello stesso ambiente sia in locale che in CI, eliminando dipendenze dall'host e assicurando la riproducibilità dei risultati.
+Le immagini non vengono pubblicate su un registry esterno — vengono caricate direttamente nel nodo kind tramite `kind load image-archive`.
 
-### 7.3 GitHub Actions
+### 7.3 Kubernetes
+
+Il deploy locale avviene su un cluster kind (Kubernetes in Docker) gestito con Podman. L'infrastruttura è definita nei manifest in `k8s/` e prevede due namespace isolati:
+
+- **`dietiestate25`** — ambiente di produzione: backend + PostgreSQL con NetworkPolicy che limita l'accesso al database al solo pod backend.
+- **`dietiestate25-test`** — ambiente di test: PostgreSQL dedicato + Job che esegue la suite di test e termina, anch'esso protetto da NetworkPolicy.
+
+Per il setup completo, i comandi di deploy e le istruzioni operative vedere [`k8s/README.md`](k8s/README.md).
+
+### 7.4 GitHub Actions
 
 La configurazione di GitHub Actions è composta da quattro file in `.github/`:
 
@@ -1332,7 +1341,7 @@ I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions
 **`dependabot.yml`** — configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecosistemi:
 
 - **Maven** — controlla `pom.xml` per aggiornamenti alle dipendenze Java/Spring Boot.
-- **Docker** — controlla le base image nei `Dockerfile` per nuove versioni.
+- **Docker** — controlla le base image nei `Dockerfile` e `Dockerfile.test` per nuove versioni.
 - **GitHub Actions** — controlla le versioni delle action usate nei workflow (es. `actions/checkout`, `actions/cache`).
 
 Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI (`test.yml` → `sonar.yml`) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
@@ -1343,7 +1352,7 @@ Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggio
 
 - **Image Scan** (`trivy-image`): builda l'immagine di produzione (`Dockerfile`) e scansiona i package OS del layer runtime (`eclipse-temurin:25-jre-jammy`) e le librerie Java embedded nel fat JAR. Sfrutta la stessa strategia di cache Docker BuildKit usata in `test.yml`, con una chiave separata per evitare collisioni. I risultati vengono caricati anch'essi come SARIF.
 
-Entrambi i job falliscono con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge. I falsi positivi accettati (credenziali di test in `application-test.properties` e `compose.test.yaml`) sono soppressi in modo chirurgico tramite `.trivyignore.yaml` con scope limitato ai file specifici, senza disabilitare la regola globalmente.
+Entrambi i job falliscono con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge. I falsi positivi accettati (credenziali di test in `application-test.properties` e nei manifest Kubernetes di test in `k8s/test/`) sono soppressi in modo chirurgico tramite `.trivyignore.yaml` con scope limitato ai file specifici, senza disabilitare la regola globalmente.
 
 Trivy e Dependabot coprono superfici complementari: Dependabot aggiorna automaticamente le dipendenze dichiarate in `pom.xml`, Trivy copre anche i package OS dell'immagine base, i secrets nei file e le misconfiguration IaC — superfici che Dependabot non monitora.
 
