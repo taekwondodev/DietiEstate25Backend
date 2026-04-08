@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend-test
+  namespace: dietiestate25
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres-test
+          image: postgres:16
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-test -p 5432 -U test; do
+                echo "Waiting for postgres-test..."; sleep 2;
+              done
+      containers:
+        - name: backend-test
+          image: dietiestate25-backend-test:latest
+          imagePullPolicy: Never
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: test
