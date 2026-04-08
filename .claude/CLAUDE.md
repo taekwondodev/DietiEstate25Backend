@@ -41,13 +41,15 @@ mvn clean test jacoco:report
 mvn spring-boot:run
 ```
 
-Full integration tests require PostgreSQL via Docker (from project root):
+Full integration tests require PostgreSQL via Kubernetes (from project root):
 
 ```bash
-docker compose -f compose.test.yaml up --abort-on-container-exit
+kubectl apply -f k8s/test/namespace-test.yaml
+kubectl apply -f k8s/test/
+kubectl logs -n dietiestate25-test job/backend-test -f
 ```
 
-Tests use `SPRING_PROFILES_ACTIVE=test` and connect to a PostgreSQL container defined in `compose.test.yaml`.
+Tests use `SPRING_PROFILES_ACTIVE=test` and connect to a PostgreSQL pod defined in `k8s/test/`.
 
 ## Architecture
 

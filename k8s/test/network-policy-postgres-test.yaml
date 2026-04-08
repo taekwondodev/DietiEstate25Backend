@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-test-network-policy
+  namespace: dietiestate25-test
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres-test
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend-test
+      ports:
+        - protocol: TCP
+          port: 5432

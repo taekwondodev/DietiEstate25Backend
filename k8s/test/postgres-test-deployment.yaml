@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres-test
-  namespace: dietiestate25
+  namespace: dietiestate25-test
 spec:
   replicas: 1
   selector:

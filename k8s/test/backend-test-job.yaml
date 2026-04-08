@@ -2,10 +2,13 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: backend-test
-  namespace: dietiestate25
+  namespace: dietiestate25-test
 spec:
   backoffLimit: 0
   template:
+    metadata:
+      labels:
+        app: backend-test
     spec:
       restartPolicy: Never
       initContainers:
@@ -20,7 +23,7 @@ spec:
               done
       containers:
         - name: backend-test
-          image: dietiestate25-backend-test:latest
+          image: localhost/dietiestate25-backend-test:latest
           imagePullPolicy: Never
           env:
             - name: SPRING_PROFILES_ACTIVE
