@@ -17,6 +17,8 @@
         <java.version>21</java.version>
         <sonar.organization>taekwondodev</sonar.organization>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <tomcat.version>11.0.21</tomcat.version>
+        <jackson-bom.version>3.1.2</jackson-bom.version>
     </properties>
     <dependencies>
         <dependency>
