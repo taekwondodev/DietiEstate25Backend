@@ -1,4 +1,28 @@
-# DietiEstates25Backend - Security Refactoring
+<div align="center">
+
+# DietiEstates25Backend — Security Refactoring
+
+[![Tests](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/test.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/test.yml)
+[![Trivy Security Scan](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=alert_status&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=coverage&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
+![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?style=flat-square&logo=dependabot&logoColor=white)
+
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring Security](https://img.shields.io/badge/Spring_Security-7.0.4-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-3.9.13-C71A36?style=flat-square&logo=apachemaven&logoColor=white)
+![Lombok](https://img.shields.io/badge/Lombok-BOM-BC4521?style=flat-square&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Latest-2496ED?style=flat-square&logo=docker&logoColor=white)
+![kind](https://img.shields.io/badge/kind-v0.29+-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
+![kubectl](https://img.shields.io/badge/kubectl-Latest-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
+![JUnit 5](https://img.shields.io/badge/JUnit_5-BOM-25A162?style=flat-square&logo=junit5&logoColor=white)
+![JaCoCo](https://img.shields.io/badge/JaCoCo-0.8.14-E05D44?style=flat-square&logoColor=white)
+![Geoapify](https://img.shields.io/badge/Geoapify-REST_API-FF6B35?style=flat-square&logoColor=white)
+![Open Meteo](https://img.shields.io/badge/Open_Meteo-REST_API-00B4D8?style=flat-square&logoColor=white)
+
+</div>
 
 Questo branch è dedicato al refactoring della sicurezza del sistema, con la rimozione di AWS Cognito e la gestione completa dell'autenticazione internamente tramite PostgreSQL e JWT con Spring Security.
 
@@ -97,20 +121,29 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 
 ## 3. Stack Tecnologico
 
-placeholder -> da finire
-
 | Tecnologia | Versione | Scopo |
 |---|---|---|
 | **Java** | 21 | Linguaggio principale |
-| **Spring Boot** | 3.4.1 | Framework REST API |
-| **Spring Data JDBC** | Latest | Accesso database |
-| **Spring Security** | 6.2.4 | Autenticazione e autorizzazione |
-| **Spring Validation** | Latest | Bean validation |
-| **Spring Mail** | Latest | Invio notifiche email |
-| **PostgreSQL** | Latest | Database relazionale |
-| **Maven** | Latest | Build e gestione dipendenze |
-| **Docker** | Latest | Containerizzazione applicazione |
-| **JUnit 5 + Mockito** | Latest | Testing framework |
+| **Spring Boot** | 4.0.5 | Framework REST API |
+| **Spring Security** | 7.0.4 | Autenticazione JWT e autorizzazione RBAC |
+| **Spring Data JDBC / JdbcTemplate** | (gestita da BOM) | Accesso database con SQL raw |
+| **Spring Validation** | (gestita da BOM) | Bean validation (Jakarta) |
+| **Spring Mail** | (gestita da BOM) | Invio notifiche email |
+| **Spring Actuator** | (gestita da BOM) | Health check ed esposizione metriche |
+| **PostgreSQL** | 16 | Database relazionale |
+| **Lombok** | (gestita da BOM) | Riduzione boilerplate (getter, costruttori) |
+| **JUnit 5 + Mockito** | (gestita da BOM) | Testing unitario e di integrazione |
+| **JaCoCo** | 0.8.14 | Copertura del codice (report XML per SonarQube) |
+| **Maven** | 3.9.13 | Build e gestione dipendenze |
+| **Docker** | Latest | Containerizzazione per CI e ambienti di test |
+| **kind** | v0.29+ | Cluster Kubernetes locale via Podman (macOS) |
+| **kubectl** | Latest | CLI per interagire con il cluster kind |
+| **curl + jq** | Latest | Testing manuale delle API via `test-manual.sh` |
+| **Geoapify** | REST API | Punti di interesse e dati geospaziali |
+| **Open Meteo** | REST API | Previsioni meteo per coordinate GPS |
+| **Trivy** | v0.35.0 | Scansione CVE su filesystem e immagine Docker (HIGH/CRITICAL) |
+| **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura |
+| **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions |
 
 ### 3.1 Dipendenze (pom.xml)
 
@@ -118,8 +151,13 @@ placeholder -> da finire
 - `software.amazon.awssdk:cognitoidentityprovider`
 
 #### Aggiunte (vs. branch `main`)
-- `spring-boot-starter-security` — Hashing password BCrypt, autenticazione stateless
-- `spring-security-test` — Testing di security
+- `spring-boot-starter-security` — BCrypt password hashing, autenticazione stateless
+- `spring-security-oauth2-jose:7.0.4` — Firma e validazione JWT (HMAC-SHA256)
+- `spring-boot-starter-oauth2-resource-server` — Resource server JWT per Spring Security
+- `spring-security-test` — Supporto MockMvc con contesti di security
+- `spring-boot-starter-webmvc-test` — Slice test `@WebMvcTest` (nuovo artifact Spring Boot 4)
+- `spring-boot-starter-restclient` — `RestClient` per chiamate HTTP verso API esterne (Spring Boot 4)
+- `spring-boot-starter-actuator` — Endpoint `/actuator/health` e metriche
 
 ---
 

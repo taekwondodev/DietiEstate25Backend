@@ -34,15 +34,47 @@ jobs:
             -f backend/Dockerfile.test backend/
           rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      - name: Create network and start PostgreSQL
+        run: |
+          docker network create test-net
+          docker run -d \
+            --name my-postgres-test \
+            --network test-net \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test \
+            -e POSTGRES_DB=test_db \
+            -v ${{ github.workspace }}/db-init:/docker-entrypoint-initdb.d \
+            --health-cmd "pg_isready -U test -d test_db" \
+            --health-interval 10s \
+            --health-timeout 5s \
+            --health-retries 5 \
+            postgres:16
+
+      - name: Wait for PostgreSQL healthy
+        run: |
+          timeout 60 sh -c \
+            'until [ "$(docker inspect --format={{.State.Health.Status}} my-postgres-test)" = "healthy" ]; do sleep 2; done'
+
       - name: Run tests
         run: |
-          set -o pipefail
-          docker compose -f compose.test.yaml up --abort-on-container-exit 2>&1 | grep -E "ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started"
+          docker run --name backend-test \
+            --network test-net \
+            -e SPRING_PROFILES_ACTIVE=test \
+            backend-test:latest 2>&1 | \
+            grep --line-buffered -E "ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started" || true
+          exit $(docker inspect --format='{{.State.ExitCode}}' backend-test)
 
       - name: Extract JaCoCo report
+        if: always()
         run: |
           mkdir -p backend/target/site/jacoco
-          docker compose -f compose.test.yaml cp backend-test:/app/target/site/jacoco/jacoco.xml backend/target/site/jacoco/jacoco.xml
+          docker cp backend-test:/app/target/site/jacoco/jacoco.xml backend/target/site/jacoco/jacoco.xml
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f backend-test my-postgres-test || true
+          docker network rm test-net || true
 
       - name: Upload JaCoCo report
         uses: actions/upload-artifact@v7
