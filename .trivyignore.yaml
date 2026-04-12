@@ -10,5 +10,6 @@ secrets:
   # used exclusively by ephemeral test environments, never in production.
   - id: generic-api-key
     paths:
+      - compose.test.yaml
       - k8s/test/postgres-test-deployment.yaml
     statement: "Test-only PostgreSQL credentials for ephemeral integration test environments"

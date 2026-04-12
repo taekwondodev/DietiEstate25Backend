@@ -7,6 +7,7 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=alert_status&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=coverage&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
 ![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?style=flat-square&logo=dependabot&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-claude.ai%2Fcode-D97757?style=flat-square&logo=anthropic&logoColor=white)
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
@@ -144,6 +145,7 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 | **Trivy** | v0.35.0 | Scansione CVE su filesystem e immagine Docker (HIGH/CRITICAL) |
 | **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura |
 | **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions |
+| **Claude Code** | claude.ai/code | AI coding assistant (refactoring, threat modeling, code review) |
 
 ### 3.1 Dipendenze (pom.xml)
 
