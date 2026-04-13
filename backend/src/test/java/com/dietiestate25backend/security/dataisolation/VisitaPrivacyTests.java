@@ -62,4 +62,35 @@ class VisitaPrivacyTests extends BaseMvcTest {
         mockMvc.perform(get("/visita/riepilogoUtenteAgenzia"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @DisplayName("Riepilogo Visite Cliente - Admin cannot access client visits (403 Forbidden)")
+    void testRiepilogoVisiteCliente_WithAdminRole_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/visita/riepilogoCliente")
+                .with(jwt().jwt(j -> j.subject("admin1").claim("role", "Admin"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Riepilogo Visite Cliente - Gestore cannot access client visits (403 Forbidden)")
+    void testRiepilogoVisiteCliente_WithGestoreRole_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/visita/riepilogoCliente")
+                .with(jwt().jwt(j -> j.subject("gestore1").claim("role", "Gestore"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Riepilogo Visite Cliente - AgenteImmobiliare cannot access client visits (403 Forbidden)")
+    void testRiepilogoVisiteCliente_WithAgenteRole_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/visita/riepilogoCliente")
+                .with(jwt().jwt(j -> j.subject("agente1").claim("role", "AgenteImmobiliare"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Riepilogo Visite Cliente - Unauthenticated user should get 401 Unauthorized")
+    void testRiepilogoVisiteCliente_WithoutAuthentication_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/visita/riepilogoCliente"))
+                .andExpect(status().isUnauthorized());
+    }
 }

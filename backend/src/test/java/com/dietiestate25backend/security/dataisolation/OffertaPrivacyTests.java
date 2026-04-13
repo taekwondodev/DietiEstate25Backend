@@ -70,4 +70,27 @@ class OffertaPrivacyTests extends BaseMvcTest {
                 .with(jwt().jwt(j -> j.subject("agente1").claim("role", "AgenteImmobiliare"))))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("Riepilogo Offerte Cliente - Admin cannot access client offers (403 Forbidden)")
+    void testRiepilogoOfferteCliente_WithAdminRole_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/offerta/riepilogoCliente")
+                .with(jwt().jwt(j -> j.subject("admin1").claim("role", "Admin"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Riepilogo Offerte Cliente - Gestore cannot access client offers (403 Forbidden)")
+    void testRiepilogoOfferteCliente_WithGestoreRole_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/offerta/riepilogoCliente")
+                .with(jwt().jwt(j -> j.subject("gestore1").claim("role", "Gestore"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Riepilogo Offerte Cliente - Unauthenticated user should get 401 Unauthorized")
+    void testRiepilogoOfferteCliente_WithoutAuthentication_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/offerta/riepilogoCliente"))
+                .andExpect(status().isUnauthorized());
+    }
 }

@@ -110,11 +110,11 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 | `POST /meteo` | ✗ | ✓ | ✓ | ✓ | ✓ |
 | `POST /offerta/aggiungi` | ✗ | ✓ | ✓ | ✓ | ✓ |
 | `PATCH /offerta/aggiorna` | ✗ | ✓ | ✓ | ✓ | ✓ |
-| `GET /offerta/riepilogoCliente` | ✗ | ✓ | ✓ | ✓ | ✓ |
+| `GET /offerta/riepilogoCliente` | ✗ | ✗ | ✗ | ✗ | ✓ |
 | `GET /offerta/riepilogoUtenteAgenzia` | ✗ | ✓ | ✓ | ✓ | ✗ |
 | `POST /visita/prenota` | ✗ | ✓ | ✓ | ✓ | ✓ |
 | `PATCH /visita/aggiorna` | ✗ | ✓ | ✓ | ✓ | ✓ |
-| `GET /visita/riepilogoCliente` | ✗ | ✓ | ✓ | ✓ | ✓ |
+| `GET /visita/riepilogoCliente` | ✗ | ✗ | ✗ | ✗ | ✓ |
 | `GET /visita/riepilogoUtenteAgenzia` | ✗ | ✓ | ✓ | ✓ | ✗ |
 
 ---
@@ -578,9 +578,73 @@ Suite di **10 test** che verifica che **solo UtenteAgenzia** (Admin, Gestore, Ag
 - `OffertaController.riepilogoOfferteUtenteAgenzia()`
 - `VisitaController.riepilogoVisitaUtenteAgenzia()`
 
-#### 6.3.4 Data Isolation Tests (`security/dataisolation/`)
+#### 6.3.4 GeodataBoundaryTests (`security/authorization/`)
 
-Suite di **3 categorie di test** che verificano che gli endpoint "riepilogo UtenteAgenzia" siano **accessibili solo a UtenteAgenzia**.
+Suite di **5 test** che verifica che `POST /geodata` sia protetto e accessibile a tutti i ruoli autenticati:
+
+- `testGeodata_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testGeodata_WithClienteRole_ShouldReturn201` — Cliente **può accedere**
+- `testGeodata_WithAdminRole_ShouldReturn201` — Admin **può accedere**
+- `testGeodata_WithGestoreRole_ShouldReturn201` — Gestore **può accedere**
+- `testGeodata_WithAgenteRole_ShouldReturn201` — AgenteImmobiliare **può accedere**
+
+**Outcome**: `anyRequest().authenticated()` protegge l'endpoint; nessuna restrizione di ruolo aggiuntiva.
+
+#### 6.3.5 MeteoBoundaryTests (`security/authorization/`)
+
+Suite di **5 test** che verifica che `POST /meteo` sia protetto e accessibile a tutti i ruoli autenticati:
+
+- `testMeteo_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testMeteo_WithClienteRole_ShouldReturn200` — Cliente **può accedere**
+- `testMeteo_WithAdminRole_ShouldReturn200` — Admin **può accedere**
+- `testMeteo_WithGestoreRole_ShouldReturn200` — Gestore **può accedere**
+- `testMeteo_WithAgenteRole_ShouldReturn200` — AgenteImmobiliare **può accedere**
+
+**Outcome**: `anyRequest().authenticated()` protegge l'endpoint; nessuna restrizione di ruolo aggiuntiva.
+
+#### 6.3.6 OffertaBoundaryTests (`security/authorization/`)
+
+Suite di **10 test** che verifica l'accesso a `POST /offerta/aggiungi` e `PATCH /offerta/aggiorna` per tutti i ruoli:
+
+**POST /offerta/aggiungi**
+- `testAggiungiOfferta_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testAggiungiOfferta_WithClienteRole_ShouldReturn201` — Cliente **può aggiungere**
+- `testAggiungiOfferta_WithAdminRole_ShouldReturn201` — Admin **può aggiungere**
+- `testAggiungiOfferta_WithGestoreRole_ShouldReturn201` — Gestore **può aggiungere**
+- `testAggiungiOfferta_WithAgenteRole_ShouldReturn201` — AgenteImmobiliare **può aggiungere**
+
+**PATCH /offerta/aggiorna**
+- `testAggiornaOfferta_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testAggiornaOfferta_WithClienteRole_ShouldReturn200` — Cliente **può aggiornare**
+- `testAggiornaOfferta_WithAdminRole_ShouldReturn200` — Admin **può aggiornare**
+- `testAggiornaOfferta_WithGestoreRole_ShouldReturn200` — Gestore **può aggiornare**
+- `testAggiornaOfferta_WithAgenteRole_ShouldReturn200` — AgenteImmobiliare **può aggiornare**
+
+**Outcome**: `anyRequest().authenticated()` protegge entrambi gli endpoint; nessuna restrizione di ruolo aggiuntiva.
+
+#### 6.3.7 VisitaBoundaryTests (`security/authorization/`)
+
+Suite di **10 test** che verifica l'accesso a `POST /visita/prenota` e `PATCH /visita/aggiorna` per tutti i ruoli:
+
+**POST /visita/prenota**
+- `testPrenotaVisita_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testPrenotaVisita_WithClienteRole_ShouldReturn201` — Cliente **può prenotare**
+- `testPrenotaVisita_WithAdminRole_ShouldReturn201` — Admin **può prenotare**
+- `testPrenotaVisita_WithGestoreRole_ShouldReturn201` — Gestore **può prenotare**
+- `testPrenotaVisita_WithAgenteRole_ShouldReturn201` — AgenteImmobiliare **può prenotare**
+
+**PATCH /visita/aggiorna**
+- `testAggiornaVisita_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+- `testAggiornaVisita_WithClienteRole_ShouldReturn200` — Cliente **può aggiornare**
+- `testAggiornaVisita_WithAdminRole_ShouldReturn200` — Admin **può aggiornare**
+- `testAggiornaVisita_WithGestoreRole_ShouldReturn200` — Gestore **può aggiornare**
+- `testAggiornaVisita_WithAgenteRole_ShouldReturn200` — AgenteImmobiliare **può aggiornare**
+
+**Outcome**: `anyRequest().authenticated()` protegge entrambi gli endpoint; nessuna restrizione di ruolo aggiuntiva.
+
+#### 6.3.8 Data Isolation Tests (`security/dataisolation/`)
+
+Suite di **3 categorie di test** che verificano la separazione dei dati tra ruoli per gli endpoint di riepilogo.
 
 ##### ImmobileOwnershipTests
 
@@ -594,34 +658,47 @@ Suite di **5 test** che verifica che:
 
 ##### OffertaPrivacyTests
 
-Suite di **7 test** che verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
+Suite di **11 test** che verifica la separazione dei dati tra offerte di Cliente e UtenteAgenzia:
 
+**GET /offerta/riepilogoCliente** — solo `Cliente`:
 - `testRiepilogoOfferteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue offerte**
-- `testRiepilogoOfferteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
+- `testRiepilogoOfferteCliente_WithAgenteRole_ShouldReturn403` — Agente **bloccato**
+- `testRiepilogoOfferteCliente_WithAdminRole_ShouldReturn403` — Admin **bloccato**
+- `testRiepilogoOfferteCliente_WithGestoreRole_ShouldReturn403` — Gestore **bloccato**
+- `testRiepilogoOfferteCliente_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
 
-**Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in endpoint `/offerta/riepilogoUtenteAgenzia`
-
-**Nota di Sicurezza**: Precedentemente questo endpoint era **accessibile anche ai Cliente**, permettendo la fuga di dati riservati. **Fixato con aggiunta della guardia di autorizzazione**.
-
+**GET /offerta/riepilogoUtenteAgenzia** — solo `UtenteAgenzia`:
+- `testRiepilogoOfferteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato**
 - `testRiepilogoOfferteUtenteAgenzia_WithAdminRole_ShouldReturn200` — Admin accede
 - `testRiepilogoOfferteUtenteAgenzia_WithGestoreRole_ShouldReturn200` — Gestore accede
 - `testRiepilogoOfferteUtenteAgenzia_WithAgenteRole_ShouldReturn200` — Agente accede
 - `testRiepilogoOfferteUtenteAgenzia_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
 
+**Outcome**: `checkIfCliente()` su `/riepilogoCliente`, `checkIfUtenteAgenzia()` su `/riepilogoUtenteAgenzia`.
+
+**Nota di Sicurezza**: Precedentemente `/riepilogoUtenteAgenzia` era **accessibile anche ai Cliente**, permettendo la fuga di dati riservati. **Fixato con aggiunta della guardia di autorizzazione**.
+
 ##### VisitaPrivacyTests
 
-Suite di **6 test** che verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
+Suite di **10 test** che verifica la separazione dei dati tra visite di Cliente e UtenteAgenzia:
 
+**GET /visita/riepilogoCliente** — solo `Cliente`:
 - `testRiepilogoVisiteCliente_WithClienteRole_ShouldReturn200` — Cliente vede **solo le sue visite**
-- `testRiepilogoVisiteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato** da riepilogo agenzia
+- `testRiepilogoVisiteCliente_WithAgenteRole_ShouldReturn403` — Agente **bloccato**
+- `testRiepilogoVisiteCliente_WithAdminRole_ShouldReturn403` — Admin **bloccato**
+- `testRiepilogoVisiteCliente_WithGestoreRole_ShouldReturn403` — Gestore **bloccato**
+- `testRiepilogoVisiteCliente_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
+
+**GET /visita/riepilogoUtenteAgenzia** — solo `UtenteAgenzia`:
+- `testRiepilogoVisiteUtenteAgenzia_WithClienteRole_ShouldReturn403` — Cliente **bloccato**
 - `testRiepilogoVisiteUtenteAgenzia_WithAdminRole_ShouldReturn200` — Admin accede
 - `testRiepilogoVisiteUtenteAgenzia_WithGestoreRole_ShouldReturn200` — Gestore accede
 - `testRiepilogoVisiteUtenteAgenzia_WithAgenteRole_ShouldReturn200` — Agente accede
 - `testRiepilogoVisiteUtenteAgenzia_WithoutAuthentication_ShouldReturn401` — Unauthenticated bloccato
 
-**Outcome**: Implementazione di `TokenUtils.checkIfUtenteAgenzia()` in `/visita/riepilogoUtenteAgenzia`
+**Outcome**: `checkIfCliente()` su `/riepilogoCliente`, `checkIfUtenteAgenzia()` su `/riepilogoUtenteAgenzia`.
 
-#### 6.3.5 BruteForceAndAccountLockoutTests (`security/authorization/`)
+#### 6.3.9 BruteForceAndAccountLockoutTests (`security/authorization/`)
 
 Suite di **9 test** che verifica la protezione contro brute force attacks e il meccanismo di account lockout secondo **OWASP WSTG-AUTHN-02**:
 
@@ -680,7 +757,7 @@ public String login(String email, String password) {
 - Messaging generico per prevenire user enumeration 
 - Email notification al lockout
 
-#### 6.3.6 Miglioramenti Implementati
+#### 6.3.10 Miglioramenti Implementati
 
 | Area                       | Prima                                          | Dopo                                                                  | Impact                    |
 |----------------------------|------------------------------------------------|-----------------------------------------------------------------------|---------------------------|
@@ -1299,11 +1376,11 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 | Categoria | Numero di Test | Focus |
 |-----------|---|--|
 | **Input Validation & Boundary Testing** | 38 test | JSON parsing, type validation, payload size, SQL injection |
-| **Authorization & Access Control** | 53 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
+| **Authorization & Access Control** | 91 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
 | **Data Protection & Cryptography** | 42 test | JWT integrity, password hashing, token tampering, password policy |
 | **Business Logic Security** | 125 test | State machine validation, exception handling, error message safety, service input validation |
 | **DAO Integration Security** | 49 test | SQL injection at DB level, data isolation at query level, referential integrity, state persistence |
-| **TOTALE** | **307 test** |
+| **TOTALE** | **345 test** |
 
 #### Conformità OWASP Testing Guide
 
@@ -1313,8 +1390,8 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 | **WSTG-AUTHN-02** | Account Enumeration & Brute Force | ✓ Compliant | `BruteForceAndAccountLockoutTests` (9 test) |
 | **WSTG-AUTHN-03** | Password Policy / Lockout Mechanism | ✓ Compliant | `PasswordPolicySecurityTests` (15 test), `UtentePostgresDaoSecurityTests` (1 test) |
 | **WSTG-AUTHN-04** | Weak Authentication Mechanisms | ✓ Compliant | `AuthServiceSecurityTests` (8 test) |
-| **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test) |
-| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (7 test), `VisitaPrivacyTests` (6 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (3 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test), `OffertaServiceInputValidationTests` (1 test) |
+| **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test), `GeodataBoundaryTests` (5 test), `MeteoBoundaryTests` (5 test), `OffertaBoundaryTests` (10 test), `VisitaBoundaryTests` (10 test) |
+| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (11 test), `VisitaPrivacyTests` (10 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (3 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test), `OffertaServiceInputValidationTests` (1 test) |
 | **WSTG-IA-06** | Forced Browsing/Endpoint Discovery | ✓ Compliant | `PublicEndpointTests` (7 test) |
 | **WSTG-INPV-01** | Input Validation — identity/boundary | ✓ Compliant | `ImmobileServiceInputValidationTests` (10 test), `OffertaServiceInputValidationTests` (9 test), `VisitaServiceInputValidationTests` (10 test), `MeteoServiceSecurityTests` (8 test), `GeoDataExceptionHandlingTests` (1 test), `UtentePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (1 test) |
 | **WSTG-INPV-05** | SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test), `OffertaServiceInputValidationTests` (2 test), `VisitaServiceInputValidationTests` (2 test), `UtentePostgresDaoSecurityTests` (5 test), `ImmobilePostgresDaoSecurityTests` (7 test), `OffertaPostgresDaoSecurityTests` (8 test), `VisitaPostgresDaoSecurityTests` (7 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |
