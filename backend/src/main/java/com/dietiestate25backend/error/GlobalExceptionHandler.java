@@ -132,8 +132,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
-        System.err.println("[DEBUG] Unhandled exception: " + e.getClass().getName() + " - " + e.getMessage());
-        e.printStackTrace(System.err);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(INTERNAL_ERROR_MSG);
     }
 
