@@ -38,7 +38,7 @@ public class ImmobileController {
     ) {
     
         List<Immobile> response = immobileService.cercaImmobili(
-            tipologia, comune, prezzoMin, prezzoMax, dimensione, nBagni, page, size
+            comune, tipologia, prezzoMin, prezzoMax, dimensione, nBagni, page, size
         );
     
         return ResponseEntity.status(200).body(response);

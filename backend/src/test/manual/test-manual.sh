@@ -29,7 +29,16 @@ VISITA_ID="${VISITA_ID:-1}"
 # ─── helpers ───────────────────────────────────────────────────────────────
 
 sep()  { echo; echo "── $1 ──────────────────────────────"; }
-ok()   { curl -s -w "\n[HTTP %{http_code}]\n" "$@" | jq . 2>/dev/null || cat; }
+ok() {
+  local tmp http_code
+  tmp=$(mktemp)
+  http_code=$(curl -s -w "%{http_code}" -o "$tmp" "$@")
+  echo
+  jq . "$tmp" 2>/dev/null || cat "$tmp"
+  echo
+  echo "[HTTP $http_code]"
+  rm -f "$tmp"
+}
 auth() { echo "Authorization: Bearer $1"; }
 
 require_token() {
@@ -275,9 +284,11 @@ visita() {
 # ─── SERVIZI ESTERNI ───────────────────────────────────────────────────────
 
 geodata() {
+  require_token TOKEN TOKEN
   sep "GEODATA: Punti di interesse"
   ok -X POST "$BASE_URL/geodata" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d '{
       "latitudine": 40.8522,
       "longitudine": 14.2681,
@@ -288,6 +299,7 @@ geodata() {
   sep "GEODATA: Raggio 0 → expect 400"
   ok -X POST "$BASE_URL/geodata" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d '{
       "latitudine": 40.8522,
       "longitudine": 14.2681,
@@ -297,9 +309,11 @@ geodata() {
 }
 
 meteo() {
+  require_token TOKEN TOKEN
   sep "METEO: Previsioni"
   ok -X POST "$BASE_URL/meteo" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d '{
       "latitudine": "40.8522",
       "longitudine": "14.2681",
@@ -309,6 +323,7 @@ meteo() {
   sep "METEO: Data nel passato → expect 400"
   ok -X POST "$BASE_URL/meteo" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d '{
       "latitudine": "40.8522",
       "longitudine": "14.2681",
