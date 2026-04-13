@@ -16,6 +16,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:25-jre-alpine
 
 # Aggiorna i pacchetti per eventuali CVE di sicurezza
+# BUILD_WEEK invalida questo layer settimanalmente nel CI, forzando apk upgrade fresco
+ARG BUILD_WEEK
 RUN apk upgrade --no-cache
 
 # Crea utente non privilegiato

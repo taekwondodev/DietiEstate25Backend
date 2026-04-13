@@ -64,6 +64,7 @@ jobs:
         run: |
           docker buildx build \
             --pull \
+            --build-arg BUILD_WEEK=$(date +%Y-%U) \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             --load -t dietiestate25-backend:${{ github.sha }} \
