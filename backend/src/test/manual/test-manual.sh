@@ -5,6 +5,7 @@
 #   ./test-manual.sh <section>[:<test>]
 #
 # Examples:
+#   ./test-manual.sh seed:up
 #   ./test-manual.sh auth
 #   ./test-manual.sh auth:login
 #   ./test-manual.sh immobile
@@ -14,10 +15,7 @@
 #   ./test-manual.sh geodata
 #   ./test-manual.sh meteo
 #   ./test-manual.sh all
-#
-# After login, export tokens before running protected endpoints:
-#   export TOKEN="eyJ..."
-#   export STAFF_TOKEN="eyJ..."
+#   ./test-manual.sh seed:down
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 TOKEN="${TOKEN:-}"
@@ -26,7 +24,20 @@ IMMOBILE_ID="${IMMOBILE_ID:-1}"
 OFFERTA_ID="${OFFERTA_ID:-1}"
 VISITA_ID="${VISITA_ID:-1}"
 
-# ─── helpers ───────────────────────────────────────────────────────────────
+# ─── session identity ──────────────────────────────────────────────────────────
+# Ogni run genera un TEST_RUN_ID univoco basato sul timestamp.
+# Esportalo per rientrare nella stessa sessione (es. login dopo register separato):
+#   export TEST_RUN_ID=1744123456
+
+TEST_RUN_ID="${TEST_RUN_ID:-$(date +%s)}"
+CLIENT_EMAIL="${CLIENT_EMAIL:-cliente_${TEST_RUN_ID}@test.com}"
+STAFF_EMAIL="${STAFF_EMAIL:-agente_${TEST_RUN_ID}@test.com}"
+VISITA_DATE="${VISITA_DATE:-2026-06-01}"
+
+# ─── k8s seed ──────────────────────────────────────────────────────────────────
+K8S_NS="${K8S_NS:-dietiestate25}"
+
+# ─── helpers ───────────────────────────────────────────────────────────────────
 
 sep()  { echo; echo "── $1 ──────────────────────────────"; }
 ok() {
@@ -50,37 +61,93 @@ require_token() {
   fi
 }
 
-# ─── AUTH ──────────────────────────────────────────────────────────────────
+session:info() {
+  echo
+  echo "── SESSION ──────────────────────────────────────"
+  echo "  TEST_RUN_ID  = $TEST_RUN_ID"
+  echo "  CLIENT_EMAIL = $CLIENT_EMAIL"
+  echo "  STAFF_EMAIL  = $STAFF_EMAIL"
+  echo "  VISITA_DATE  = $VISITA_DATE"
+  echo "  → per rientrare: export TEST_RUN_ID=$TEST_RUN_ID"
+  echo "─────────────────────────────────────────────────"
+  echo
+}
+
+# ─── SEED ──────────────────────────────────────────────────────────────────────
+# Inserisce nel DB di produzione (via kubectl exec sul pod postgres) i dati
+# bootstrap minimi: agenzia fissa (id=9999) + utente Admin + link utenteagenzia.
+# Necessario perché non esiste endpoint API per creare agenzie o Admin.
+# Idempotente: sicuro da rieseguire più volte.
+
+seed:up() {
+  sep "SEED: Bootstrap DB (kubectl exec → postgres pod)"
+  local pod pguser pgdb
+  pod=$(kubectl get pod -n "$K8S_NS" -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+  pguser=$(kubectl get secret postgres-secret -n "$K8S_NS" -o jsonpath='{.data.POSTGRES_USER}' | base64 -d)
+  pgdb=$(kubectl get secret postgres-secret -n "$K8S_NS" -o jsonpath='{.data.POSTGRES_DB}' | base64 -d)
+
+  kubectl exec -i -n "$K8S_NS" "$pod" -- psql -U "$pguser" -d "$pgdb" <<'SQL'
+INSERT INTO public.agenzia (idagenzia) VALUES (9999) ON CONFLICT (idagenzia) DO NOTHING;
+INSERT INTO public.utenti (uid, email, password, role) VALUES
+  ('seed-admin-manual', 'admin_manual@test.com',
+   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+   'Admin')
+  ON CONFLICT (uid) DO NOTHING;
+INSERT INTO public.utenteagenzia (uid, idagenzia) VALUES ('seed-admin-manual', 9999)
+  ON CONFLICT (uid) DO NOTHING;
+SQL
+  echo
+  echo "→ Admin pronto: admin_manual@test.com / Test1234!"
+  echo "→ export STAFF_EMAIL=\"admin_manual@test.com\""
+  echo "→ Prossimo step: ./test-manual.sh auth:login-staff"
+}
+
+seed:down() {
+  sep "SEED: Cleanup DB (kubectl exec → postgres pod)"
+  local pod pguser pgdb
+  pod=$(kubectl get pod -n "$K8S_NS" -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+  pguser=$(kubectl get secret postgres-secret -n "$K8S_NS" -o jsonpath='{.data.POSTGRES_USER}' | base64 -d)
+  pgdb=$(kubectl get secret postgres-secret -n "$K8S_NS" -o jsonpath='{.data.POSTGRES_DB}' | base64 -d)
+
+  kubectl exec -i -n "$K8S_NS" "$pod" -- psql -U "$pguser" -d "$pgdb" <<'SQL'
+DELETE FROM public.utenteagenzia WHERE uid = 'seed-admin-manual';
+DELETE FROM public.utenti        WHERE uid = 'seed-admin-manual';
+SQL
+  # agenzia 9999 non viene rimossa: potrebbero esserci immobili collegati da test precedenti
+  echo "→ Seed rimosso."
+}
+
+# ─── AUTH ──────────────────────────────────────────────────────────────────────
 
 auth:register() {
-  sep "AUTH: Register cliente"
+  sep "AUTH: Register cliente ($CLIENT_EMAIL)"
   ok -X POST "$BASE_URL/auth/register" \
     -H "Content-Type: application/json" \
-    -d '{"email":"cliente@test.com","password":"Password123!","role":"Cliente"}'
+    -d "{\"email\":\"$CLIENT_EMAIL\",\"password\":\"Password123!\",\"role\":\"Cliente\"}"
 }
 
 auth:register-staff() {
   require_token STAFF_TOKEN STAFF_TOKEN
-  sep "AUTH: Register staff (Admin/Gestore role required)"
+  sep "AUTH: Register staff ($STAFF_EMAIL — Admin/Gestore role required)"
   ok -X POST "$BASE_URL/auth/register-staff" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $STAFF_TOKEN" \
-    -d '{"email":"agente@test.com","password":"Password123!","role":"AgenteImmobiliare"}'
+    -d "{\"email\":\"$STAFF_EMAIL\",\"password\":\"Password123!\",\"role\":\"AgenteImmobiliare\"}"
 }
 
 auth:login() {
-  sep "AUTH: Login cliente"
+  sep "AUTH: Login cliente ($CLIENT_EMAIL)"
   ok -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"cliente@test.com","password":"Password123!"}'
+    -d "{\"email\":\"$CLIENT_EMAIL\",\"password\":\"Password123!\"}"
   echo "→ copy token and run: export TOKEN=\"<token>\""
 }
 
 auth:login-staff() {
-  sep "AUTH: Login staff"
+  sep "AUTH: Login staff ($STAFF_EMAIL)"
   ok -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"agente@test.com","password":"Password123!"}'
+    -d "{\"email\":\"$STAFF_EMAIL\",\"password\":\"Password123!\"}"
   echo "→ copy token and run: export STAFF_TOKEN=\"<token>\""
 }
 
@@ -88,7 +155,7 @@ auth:login-bad() {
   sep "AUTH: Login bad password → expect 404"
   ok -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"cliente@test.com","password":"wrong"}'
+    -d "{\"email\":\"$CLIENT_EMAIL\",\"password\":\"wrong\"}"
 }
 
 auth() {
@@ -98,7 +165,7 @@ auth() {
   auth:login-bad
 }
 
-# ─── IMMOBILI ──────────────────────────────────────────────────────────────
+# ─── IMMOBILI ──────────────────────────────────────────────────────────────────
 
 immobile:cerca() {
   sep "IMMOBILE: Cerca (public)"
@@ -165,7 +232,7 @@ immobile() {
   immobile:personali
 }
 
-# ─── OFFERTE ───────────────────────────────────────────────────────────────
+# ─── OFFERTE ───────────────────────────────────────────────────────────────────
 
 offerta:aggiungi() {
   require_token TOKEN TOKEN
@@ -214,17 +281,17 @@ offerta() {
   offerta:riepilogo-agenzia
 }
 
-# ─── VISITE ────────────────────────────────────────────────────────────────
+# ─── VISITE ────────────────────────────────────────────────────────────────────
 
 visita:prenota() {
   require_token TOKEN TOKEN
-  sep "VISITA: Prenota (idImmobile=$IMMOBILE_ID)"
+  sep "VISITA: Prenota (idImmobile=$IMMOBILE_ID, data=$VISITA_DATE)"
   ok -X POST "$BASE_URL/visita/prenota" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{
       \"idImmobile\": $IMMOBILE_ID,
-      \"dataVisita\": \"2026-05-01\",
+      \"dataVisita\": \"$VISITA_DATE\",
       \"oraVisita\": \"10:00:00\"
     }"
 }
@@ -237,7 +304,7 @@ visita:prenota-bad() {
     -H "Authorization: Bearer $TOKEN" \
     -d "{
       \"idImmobile\": $IMMOBILE_ID,
-      \"dataVisita\": \"2026-05-01\",
+      \"dataVisita\": \"$VISITA_DATE\",
       \"oraVisita\": \"22:00:00\"
     }"
 }
@@ -281,7 +348,7 @@ visita() {
   visita:riepilogo-agenzia
 }
 
-# ─── SERVIZI ESTERNI ───────────────────────────────────────────────────────
+# ─── SERVIZI ESTERNI ───────────────────────────────────────────────────────────
 
 geodata() {
   require_token TOKEN TOKEN
@@ -331,9 +398,10 @@ meteo() {
     }'
 }
 
-# ─── ALL ───────────────────────────────────────────────────────────────────
+# ─── ALL ───────────────────────────────────────────────────────────────────────
 
 all() {
+  session:info
   auth
   immobile
   offerta
@@ -342,12 +410,13 @@ all() {
   meteo
 }
 
-# ─── help ──────────────────────────────────────────────────────────────────
+# ─── help ──────────────────────────────────────────────────────────────────────
 
 usage() {
   echo "Usage: $0 <section>[:<test>]"
   echo
   echo "Sections:"
+  echo "  seed                     seed:up  seed:down"
   echo "  all"
   echo "  auth                     auth:register  auth:register-staff"
   echo "                           auth:login     auth:login-staff  auth:login-bad"
@@ -359,17 +428,23 @@ usage() {
   echo "                           visita:rifiuta  visita:riepilogo-cliente  visita:riepilogo-agenzia"
   echo "  geodata"
   echo "  meteo"
+  echo "  session:info"
   echo
   echo "Env vars:"
   echo "  BASE_URL      (default: http://localhost:8080)"
-  echo "  TOKEN         JWT for cliente"
-  echo "  STAFF_TOKEN   JWT for agente/gestore/admin"
+  echo "  TOKEN         JWT per il cliente"
+  echo "  STAFF_TOKEN   JWT per agente/gestore/admin"
   echo "  IMMOBILE_ID   (default: 1)"
   echo "  OFFERTA_ID    (default: 1)"
   echo "  VISITA_ID     (default: 1)"
+  echo "  TEST_RUN_ID   (default: timestamp — usato per email univoche)"
+  echo "  CLIENT_EMAIL  (default: cliente_\${TEST_RUN_ID}@test.com)"
+  echo "  STAFF_EMAIL   (default: agente_\${TEST_RUN_ID}@test.com)"
+  echo "  VISITA_DATE   (default: 2026-06-01)"
+  echo "  K8S_NS        (default: dietiestate25 — namespace per seed:up/down)"
 }
 
-# ─── dispatch ──────────────────────────────────────────────────────────────
+# ─── dispatch ──────────────────────────────────────────────────────────────────
 
 CMD="${1:-}"
 if [[ -z "$CMD" ]]; then
