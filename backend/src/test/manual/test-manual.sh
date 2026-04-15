@@ -7,7 +7,10 @@
 # Examples:
 #   ./test-manual.sh seed:up
 #   ./test-manual.sh auth
-#   ./test-manual.sh auth:login
+#   ./test-manual.sh auth:login-staff
+#   ./test-manual.sh auth:register-gestore
+#   ./test-manual.sh auth:login-gestore
+#   ./test-manual.sh auth:register-agente
 #   ./test-manual.sh immobile
 #   ./test-manual.sh immobile:crea
 #   ./test-manual.sh offerta
@@ -20,6 +23,7 @@
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 TOKEN="${TOKEN:-}"
 STAFF_TOKEN="${STAFF_TOKEN:-}"
+GESTORE_TOKEN="${GESTORE_TOKEN:-}"
 IMMOBILE_ID="${IMMOBILE_ID:-1}"
 OFFERTA_ID="${OFFERTA_ID:-1}"
 VISITA_ID="${VISITA_ID:-1}"
@@ -31,7 +35,9 @@ VISITA_ID="${VISITA_ID:-1}"
 
 TEST_RUN_ID="${TEST_RUN_ID:-$(date +%s)}"
 CLIENT_EMAIL="${CLIENT_EMAIL:-cliente_${TEST_RUN_ID}@test.com}"
-STAFF_EMAIL="${STAFF_EMAIL:-agente_${TEST_RUN_ID}@test.com}"
+STAFF_EMAIL="${STAFF_EMAIL:-admin_manual@test.com}"
+GESTORE_EMAIL="${GESTORE_EMAIL:-gestore_${TEST_RUN_ID}@test.com}"
+AGENTE_EMAIL="${AGENTE_EMAIL:-agente_${TEST_RUN_ID}@test.com}"
 VISITA_DATE="${VISITA_DATE:-2026-06-01}"
 
 # ─── k8s seed ──────────────────────────────────────────────────────────────────
@@ -50,12 +56,11 @@ ok() {
   echo "[HTTP $http_code]"
   rm -f "$tmp"
 }
-auth() { echo "Authorization: Bearer $1"; }
 
 require_token() {
   local var=$1 name=$2
   if [[ -z "${!var}" ]]; then
-    echo "ERROR: $name not set. Run auth:login or auth:login-staff first, then:"
+    echo "ERROR: $name not set. Run the appropriate login command first, then:"
     echo "  export $var=\"<token>\""
     exit 1
   fi
@@ -64,10 +69,12 @@ require_token() {
 session:info() {
   echo
   echo "── SESSION ──────────────────────────────────────"
-  echo "  TEST_RUN_ID  = $TEST_RUN_ID"
-  echo "  CLIENT_EMAIL = $CLIENT_EMAIL"
-  echo "  STAFF_EMAIL  = $STAFF_EMAIL"
-  echo "  VISITA_DATE  = $VISITA_DATE"
+  echo "  TEST_RUN_ID   = $TEST_RUN_ID"
+  echo "  CLIENT_EMAIL  = $CLIENT_EMAIL"
+  echo "  STAFF_EMAIL   = $STAFF_EMAIL"
+  echo "  GESTORE_EMAIL = $GESTORE_EMAIL"
+  echo "  AGENTE_EMAIL  = $AGENTE_EMAIL"
+  echo "  VISITA_DATE   = $VISITA_DATE"
   echo "  → per rientrare: export TEST_RUN_ID=$TEST_RUN_ID"
   echo "─────────────────────────────────────────────────"
   echo
@@ -90,15 +97,14 @@ seed:up() {
 INSERT INTO public.agenzia (idagenzia) VALUES (9999) ON CONFLICT (idagenzia) DO NOTHING;
 INSERT INTO public.utenti (uid, email, password, role) VALUES
   ('seed-admin-manual', 'admin_manual@test.com',
-   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+   '$2a$10$P2bn/5K9gKJDaj88Ug5c9.AaUY8Bk54p6jnwF2J0yUa.c1BEtu8GC',
    'Admin')
   ON CONFLICT (uid) DO NOTHING;
 INSERT INTO public.utenteagenzia (uid, idagenzia) VALUES ('seed-admin-manual', 9999)
   ON CONFLICT (uid) DO NOTHING;
 SQL
   echo
-  echo "→ Admin pronto: admin_manual@test.com / Test1234!"
-  echo "→ export STAFF_EMAIL=\"admin_manual@test.com\""
+  echo "→ Admin pronto: admin_manual@test.com / Password123!"
   echo "→ Prossimo step: ./test-manual.sh auth:login-staff"
 }
 
@@ -126,15 +132,6 @@ auth:register() {
     -d "{\"email\":\"$CLIENT_EMAIL\",\"password\":\"Password123!\",\"role\":\"Cliente\"}"
 }
 
-auth:register-staff() {
-  require_token STAFF_TOKEN STAFF_TOKEN
-  sep "AUTH: Register staff ($STAFF_EMAIL — Admin/Gestore role required)"
-  ok -X POST "$BASE_URL/auth/register-staff" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $STAFF_TOKEN" \
-    -d "{\"email\":\"$STAFF_EMAIL\",\"password\":\"Password123!\",\"role\":\"AgenteImmobiliare\"}"
-}
-
 auth:login() {
   sep "AUTH: Login cliente ($CLIENT_EMAIL)"
   ok -X POST "$BASE_URL/auth/login" \
@@ -143,6 +140,10 @@ auth:login() {
   echo "→ copy token and run: export TOKEN=\"<token>\""
 }
 
+# auth:login-staff è generico: funziona per Admin, Gestore e AgenteImmobiliare.
+# Imposta STAFF_EMAIL prima di chiamarlo per scegliere l'identità.
+# Esempio flusso Admin  → export STAFF_EMAIL="admin_manual@test.com" (default)
+# Esempio flusso Gestore→ export STAFF_EMAIL="$GESTORE_EMAIL"
 auth:login-staff() {
   sep "AUTH: Login staff ($STAFF_EMAIL)"
   ok -X POST "$BASE_URL/auth/login" \
@@ -151,8 +152,39 @@ auth:login-staff() {
   echo "→ copy token and run: export STAFF_TOKEN=\"<token>\""
 }
 
+# Flusso: Admin (STAFF_TOKEN) registra un Gestore nella propria agenzia.
+# Prerequisito: auth:login-staff con STAFF_EMAIL=admin_manual@test.com
+auth:register-gestore() {
+  require_token STAFF_TOKEN STAFF_TOKEN
+  sep "AUTH: Admin registra Gestore ($GESTORE_EMAIL)"
+  ok -X POST "$BASE_URL/auth/register-staff" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $STAFF_TOKEN" \
+    -d "{\"email\":\"$GESTORE_EMAIL\",\"password\":\"Password123!\",\"role\":\"Gestore\"}"
+}
+
+# Flusso: dopo auth:register-gestore, login come Gestore per ottenere GESTORE_TOKEN.
+auth:login-gestore() {
+  sep "AUTH: Login gestore ($GESTORE_EMAIL)"
+  ok -X POST "$BASE_URL/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$GESTORE_EMAIL\",\"password\":\"Password123!\"}"
+  echo "→ copy token and run: export GESTORE_TOKEN=\"<token>\""
+}
+
+# Flusso: Gestore (GESTORE_TOKEN) registra un AgenteImmobiliare nella propria agenzia.
+# Prerequisito: auth:login-gestore
+auth:register-agente() {
+  require_token GESTORE_TOKEN GESTORE_TOKEN
+  sep "AUTH: Gestore registra AgenteImmobiliare ($AGENTE_EMAIL)"
+  ok -X POST "$BASE_URL/auth/register-staff" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $GESTORE_TOKEN" \
+    -d "{\"email\":\"$AGENTE_EMAIL\",\"password\":\"Password123!\",\"role\":\"AgenteImmobiliare\"}"
+}
+
 auth:login-bad() {
-  sep "AUTH: Login bad password → expect 404"
+  sep "AUTH: Login bad password → expect 401"
   ok -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
     -d "{\"email\":\"$CLIENT_EMAIL\",\"password\":\"wrong\"}"
@@ -162,6 +194,9 @@ auth() {
   auth:register
   auth:login
   auth:login-staff
+  auth:register-gestore
+  auth:login-gestore
+  auth:register-agente
   auth:login-bad
 }
 
@@ -215,6 +250,7 @@ immobile:crea() {
       "hasAscensore": true,
       "hasBalcone": true
     }'
+  echo "→ per ottenere l'id: ./test-manual.sh immobile:personali  poi: export IMMOBILE_ID=<id>"
 }
 
 immobile:personali() {
@@ -418,8 +454,11 @@ usage() {
   echo "Sections:"
   echo "  seed                     seed:up  seed:down"
   echo "  all"
-  echo "  auth                     auth:register  auth:register-staff"
-  echo "                           auth:login     auth:login-staff  auth:login-bad"
+  echo "  auth                     auth:register  auth:login  auth:login-bad"
+  echo "                           auth:login-staff  (generico: Admin / Gestore / Agente)"
+  echo "                           auth:register-gestore  (Admin → Gestore)"
+  echo "                           auth:login-gestore"
+  echo "                           auth:register-agente   (Gestore → AgenteImmobiliare)"
   echo "  immobile                 immobile:cerca  immobile:cerca-filtri  immobile:cerca-bad"
   echo "                           immobile:crea   immobile:personali"
   echo "  offerta                  offerta:aggiungi  offerta:accetta  offerta:rifiuta"
@@ -431,17 +470,27 @@ usage() {
   echo "  session:info"
   echo
   echo "Env vars:"
-  echo "  BASE_URL      (default: http://localhost:8080)"
-  echo "  TOKEN         JWT per il cliente"
-  echo "  STAFF_TOKEN   JWT per agente/gestore/admin"
-  echo "  IMMOBILE_ID   (default: 1)"
-  echo "  OFFERTA_ID    (default: 1)"
-  echo "  VISITA_ID     (default: 1)"
-  echo "  TEST_RUN_ID   (default: timestamp — usato per email univoche)"
-  echo "  CLIENT_EMAIL  (default: cliente_\${TEST_RUN_ID}@test.com)"
-  echo "  STAFF_EMAIL   (default: agente_\${TEST_RUN_ID}@test.com)"
-  echo "  VISITA_DATE   (default: 2026-06-01)"
-  echo "  K8S_NS        (default: dietiestate25 — namespace per seed:up/down)"
+  echo "  BASE_URL       (default: http://localhost:8080)"
+  echo "  TOKEN          JWT per il cliente"
+  echo "  STAFF_TOKEN    JWT per Admin (o altro ruolo staff)"
+  echo "  GESTORE_TOKEN  JWT per Gestore (dopo auth:login-gestore)"
+  echo "  IMMOBILE_ID    (default: 1)"
+  echo "  OFFERTA_ID     (default: 1)"
+  echo "  VISITA_ID      (default: 1)"
+  echo "  TEST_RUN_ID    (default: timestamp — usato per email univoche)"
+  echo "  CLIENT_EMAIL   (default: cliente_\${TEST_RUN_ID}@test.com)"
+  echo "  STAFF_EMAIL    (default: admin_manual@test.com)"
+  echo "  GESTORE_EMAIL  (default: gestore_\${TEST_RUN_ID}@test.com)"
+  echo "  AGENTE_EMAIL   (default: agente_\${TEST_RUN_ID}@test.com)"
+  echo "  VISITA_DATE    (default: 2026-06-01)"
+  echo "  K8S_NS         (default: dietiestate25 — namespace per seed:up/down)"
+  echo
+  echo "Flusso Admin → Gestore → Agente:"
+  echo "  seed:up"
+  echo "  auth:login-staff          → export STAFF_TOKEN=..."
+  echo "  auth:register-gestore     (Admin registra Gestore in agenzia 9999)"
+  echo "  auth:login-gestore        → export GESTORE_TOKEN=..."
+  echo "  auth:register-agente      (Gestore registra AgenteImmobiliare in agenzia 9999)"
 }
 
 # ─── dispatch ──────────────────────────────────────────────────────────────────

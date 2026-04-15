@@ -113,6 +113,8 @@ public class AuthService {
         Utente utente = new Utente(uid, request.getEmail(), hashedPassword, role);
         try {
             utenteDao.save(utente);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_IN_USE);
         } catch (org.springframework.dao.DataAccessException e) {
             throw new InternalServerErrorException(ErrorCode.INTERNAL_ERROR, e);
         }

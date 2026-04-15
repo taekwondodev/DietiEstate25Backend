@@ -15,13 +15,16 @@ Non fa parte della suite automatica — va eseguito a mano contro un'istanza in 
 |---|---|---|
 | `BASE_URL` | `http://localhost:8080` | URL base del server |
 | `TOKEN` | — | JWT del cliente (ottenuto dopo `auth:login`) |
-| `STAFF_TOKEN` | — | JWT dello staff (ottenuto dopo `auth:login-staff`) |
+| `STAFF_TOKEN` | — | JWT dell'Admin o altro ruolo staff (ottenuto dopo `auth:login-staff`) |
+| `GESTORE_TOKEN` | — | JWT del Gestore (ottenuto dopo `auth:login-gestore`) |
 | `IMMOBILE_ID` | `1` | ID immobile usato nei test di offerta e visita |
 | `OFFERTA_ID` | `1` | ID offerta usato nei test di aggiornamento stato |
 | `VISITA_ID` | `1` | ID visita usato nei test di aggiornamento stato |
 | `TEST_RUN_ID` | `$(date +%s)` | Suffisso univoco per email di test — permette run ripetuti |
 | `CLIENT_EMAIL` | `cliente_${TEST_RUN_ID}@test.com` | Email cliente generata per ogni run |
-| `STAFF_EMAIL` | `agente_${TEST_RUN_ID}@test.com` | Email staff generata per ogni run |
+| `STAFF_EMAIL` | `admin_manual@test.com` | Email usata da `auth:login-staff` — sovrascrivila per loggare come Gestore o Agente |
+| `GESTORE_EMAIL` | `gestore_${TEST_RUN_ID}@test.com` | Email Gestore generata per ogni run |
+| `AGENTE_EMAIL` | `agente_${TEST_RUN_ID}@test.com` | Email AgenteImmobiliare generata per ogni run |
 | `VISITA_DATE` | `2026-06-01` | Data usata in `visita:prenota` — cambiala se lo slot è già occupato |
 | `K8S_NS` | `dietiestate25` | Namespace Kubernetes usato da `seed:up/down` |
 
@@ -56,7 +59,7 @@ Credenziali dell'Admin creato dal seed:
 | Campo | Valore |
 |---|---|
 | Email | `admin_manual@test.com` |
-| Password | `Test1234!` |
+| Password | `Password123!` |
 
 ## Flusso completo (primo utilizzo)
 
@@ -64,30 +67,48 @@ Credenziali dell'Admin creato dal seed:
 # 1. Seed bootstrap (una-tantum — idempotente)
 ./test-manual.sh seed:up
 
-# 2. Login come Admin per ottenere STAFF_TOKEN
-export STAFF_EMAIL="admin_manual@test.com"
+# 2. Fissa il TEST_RUN_ID per tutta la sessione — tutte le email rimangono coerenti
+export TEST_RUN_ID=$(date +%s)   # bash
+# set -gx TEST_RUN_ID (date +%s) # fish
+
+# 3. Login come Admin per ottenere STAFF_TOKEN
 ./test-manual.sh auth:login-staff
-export STAFF_TOKEN="eyJ..."
+export STAFF_TOKEN="eyJ..."      # bash
+# set -gx STAFF_TOKEN "eyJ..."   # fish
 
-# 3. Registra un nuovo cliente e uno staff via API
-./test-manual.sh auth:register          # usa CLIENT_EMAIL generata dal TEST_RUN_ID
-./test-manual.sh auth:register-staff    # crea un AgenteImmobiliare
+# 4. Admin registra un Gestore nella propria agenzia (9999)
+./test-manual.sh auth:register-gestore
 
-# 4. Login cliente
+# 5. Login come Gestore per ottenere GESTORE_TOKEN
+./test-manual.sh auth:login-gestore
+export GESTORE_TOKEN="eyJ..."    # bash
+# set -gx GESTORE_TOKEN "eyJ..." # fish
+
+# 6. Gestore registra un AgenteImmobiliare nella propria agenzia (9999)
+./test-manual.sh auth:register-agente
+
+# 7. Registra un cliente e fai login
+./test-manual.sh auth:register
 ./test-manual.sh auth:login
-export TOKEN="eyJ..."
+export TOKEN="eyJ..."            # bash
+# set -gx TOKEN "eyJ..."         # fish
 
-# 5. Crea un immobile con lo staff
+# 8. Crea un immobile con il token Admin/staff
 ./test-manual.sh immobile:crea
 export IMMOBILE_ID=<id dall'output>
 
-# 6. Test offerte e visite
+# 9. Test offerte e visite
 ./test-manual.sh offerta:aggiungi
 ./test-manual.sh visita:prenota
 
-# 7. Pulizia seed a fine sessione (opzionale)
+# 10. Pulizia seed a fine sessione (opzionale)
 ./test-manual.sh seed:down
 ```
+
+> **Importante:** esporta sempre `TEST_RUN_ID` all'inizio della sessione. Senza di esso ogni chiamata genera un timestamp diverso, producendo email differenti tra `register` e `login`.
+>
+> `auth:login-staff` è generico: imposta `STAFF_EMAIL` prima di chiamarlo per loggare con qualsiasi ruolo staff.
+> Il default è `admin_manual@test.com` (Admin da seed). Per loggare come Gestore: `export STAFF_EMAIL="$GESTORE_EMAIL"`.
 
 ## Comandi
 
@@ -102,11 +123,13 @@ export IMMOBILE_ID=<id dall'output>
 
 | Comando | Endpoint | HTTP atteso | Note |
 |---|---|---|---|
-| `auth:register` | `POST /auth/register` | 201 | Registra un cliente — email univoca per `TEST_RUN_ID` |
-| `auth:register-staff` | `POST /auth/register-staff` | 201 | Registra uno staff — richiede `STAFF_TOKEN` |
+| `auth:register` | `POST /auth/register` | 200 | Registra un cliente — email univoca per `TEST_RUN_ID` |
 | `auth:login` | `POST /auth/login` | 200 | Login cliente → esporta `TOKEN` |
-| `auth:login-staff` | `POST /auth/login` | 200 | Login staff → esporta `STAFF_TOKEN` |
-| `auth:login-bad` | `POST /auth/login` | 404 | Password errata — verifica il rifiuto |
+| `auth:login-staff` | `POST /auth/login` | 200 | Login generico staff (Admin / Gestore / Agente) → esporta `STAFF_TOKEN` |
+| `auth:register-gestore` | `POST /auth/register-staff` | 200 | Admin registra un Gestore — richiede `STAFF_TOKEN` (Admin) |
+| `auth:login-gestore` | `POST /auth/login` | 200 | Login come Gestore → esporta `GESTORE_TOKEN` |
+| `auth:register-agente` | `POST /auth/register-staff` | 200 | Gestore registra un AgenteImmobiliare — richiede `GESTORE_TOKEN` |
+| `auth:login-bad` | `POST /auth/login` | 401 | Password errata — verifica il rifiuto |
 | `auth` | tutti i precedenti | — | Esegue l'intera sezione in sequenza |
 
 ### `immobile`
@@ -116,7 +139,7 @@ export IMMOBILE_ID=<id dall'output>
 | `immobile:cerca` | `GET /immobile/cerca` | 200 | Ricerca pubblica per comune |
 | `immobile:cerca-filtri` | `GET /immobile/cerca` | 200 | Ricerca con filtri (prezzo, bagni, tipologia) |
 | `immobile:cerca-bad` | `GET /immobile/cerca` | 400 | `prezzoMin > prezzoMax` — verifica validazione |
-| `immobile:crea` | `POST /immobile/crea` | 201 | Creazione immobile — richiede `STAFF_TOKEN` |
+| `immobile:crea` | `POST /immobile/crea` | 200 | Creazione immobile — richiede `STAFF_TOKEN` |
 | `immobile:personali` | `GET /immobile/personali` | 200 | Lista immobili dello staff autenticato |
 | `immobile` | tutti i precedenti | — | Esegue l'intera sezione in sequenza |
 
@@ -124,7 +147,7 @@ export IMMOBILE_ID=<id dall'output>
 
 | Comando | Endpoint | HTTP atteso | Note |
 |---|---|---|---|
-| `offerta:aggiungi` | `POST /offerta/aggiungi` | 201 | Nuova offerta su `IMMOBILE_ID` — richiede `TOKEN` |
+| `offerta:aggiungi` | `POST /offerta/aggiungi` | 200 | Nuova offerta su `IMMOBILE_ID` — richiede `TOKEN` |
 | `offerta:accetta` | `PATCH /offerta/aggiorna` | 200 | Transizione → `Accettata` su `OFFERTA_ID` |
 | `offerta:rifiuta` | `PATCH /offerta/aggiorna` | 200 | Transizione → `Rifiutata` su `OFFERTA_ID` |
 | `offerta:riepilogo-cliente` | `GET /offerta/riepilogoCliente` | 200 | Offerte del cliente autenticato |
@@ -135,7 +158,7 @@ export IMMOBILE_ID=<id dall'output>
 
 | Comando | Endpoint | HTTP atteso | Note |
 |---|---|---|---|
-| `visita:prenota` | `POST /visita/prenota` | 201 | Prenota su `IMMOBILE_ID` / `VISITA_DATE` — richiede `TOKEN` |
+| `visita:prenota` | `POST /visita/prenota` | 200 | Prenota su `IMMOBILE_ID` / `VISITA_DATE` — richiede `TOKEN` |
 | `visita:prenota-bad` | `POST /visita/prenota` | 400 | Ora fuori range (22:00) — verifica validazione |
 | `visita:conferma` | `PATCH /visita/aggiorna` | 200 | Transizione → `Confermata` su `VISITA_ID` |
 | `visita:rifiuta` | `PATCH /visita/aggiorna` | 200 | Transizione → `Rifiutata` su `VISITA_ID` |
@@ -163,4 +186,4 @@ export IMMOBILE_ID=<id dall'output>
 
 Esegue in sequenza: `auth` → `immobile` → `offerta` → `visita` → `geodata` → `meteo`.
 
-> I test delle sezioni `offerta` e `visita` richiedono che `TOKEN`, `STAFF_TOKEN` e `IMMOBILE_ID` siano già impostati prima di lanciare `all`.
+> I test delle sezioni `offerta` e `visita` richiedono che `TOKEN`, `STAFF_TOKEN`, `GESTORE_TOKEN` e `IMMOBILE_ID` siano già impostati prima di lanciare `all`.
