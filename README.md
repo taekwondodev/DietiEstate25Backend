@@ -1346,17 +1346,16 @@ Suite di **12 test** — WSTG-INPV-05, WSTG-ATHZ-02, WSTG-INPV-01, WSTG-BUSL-07,
 
 #### 6.6.5 UtenteAgenziaPostgresDaoSecurityTests (`security/dao/`)
 
-Suite di **4 test** — WSTG-INPV-05, WSTG-ATHZ-02
+Suite di **3 test** — WSTG-INPV-05, WSTG-ATHZ-02
 
 **SQL Injection (WSTG-INPV-05)**
 - `testGetIdAgenzia_WithOrInjection_ShouldThrowNotFoundException` — OR injection → `NotFoundException(ADMIN_NOT_FOUND)` (nessun utente corrisponde alla stringa iniettata)
 - `testGetIdAgenzia_WithUnionInjection_ShouldThrowNotFoundException` — UNION injection → `NotFoundException(ADMIN_NOT_FOUND)`
 
 **Authorization Bypass (WSTG-ATHZ-02)**
-- `testGetIdAgenzia_WithNonAdminRole_ShouldThrowUnauthorizedException` — Utente con ruolo Cliente → `UnauthorizedException(INSUFFICIENT_PERMISSIONS)` prima di esporre qualsiasi dato agenzia
 - `testGetIdAgenzia_WithNonExistentUid_ShouldThrowNotFoundException` — UID inesistente → `NotFoundException(ADMIN_NOT_FOUND)` senza leak di dettagli DB
 
-**Outcome**: SQL injection neutralizzato. Il DAO verifica il ruolo Admin prima di restituire qualsiasi informazione sull'agenzia.
+**Outcome**: SQL injection neutralizzato. Il controllo RBAC su `/auth/register-staff` è delegato al controller (`checkIfAdminOrGestore()`), già coperto da `AdminBoundaryTests`.
 
 #### 6.6.6 Bug Risolti durante il Testing
 
@@ -1379,8 +1378,8 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 | **Authorization & Access Control** | 91 test | RBAC, endpoint protection, data isolation, brute force, account lockout |
 | **Data Protection & Cryptography** | 42 test | JWT integrity, password hashing, token tampering, password policy |
 | **Business Logic Security** | 125 test | State machine validation, exception handling, error message safety, service input validation |
-| **DAO Integration Security** | 49 test | SQL injection at DB level, data isolation at query level, referential integrity, state persistence |
-| **TOTALE** | **345 test** |
+| **DAO Integration Security** | 48 test | SQL injection at DB level, data isolation at query level, referential integrity, state persistence |
+| **TOTALE** | **344 test** |
 
 #### Conformità OWASP Testing Guide
 
@@ -1391,7 +1390,7 @@ Durante la scrittura dei test di integrazione DAO sono stati identificati e corr
 | **WSTG-AUTHN-03** | Password Policy / Lockout Mechanism | ✓ Compliant | `PasswordPolicySecurityTests` (15 test), `UtentePostgresDaoSecurityTests` (1 test) |
 | **WSTG-AUTHN-04** | Weak Authentication Mechanisms | ✓ Compliant | `AuthServiceSecurityTests` (8 test) |
 | **WSTG-AUTHZ-01** | Directory Traversal/RBAC | ✓ Compliant | `AdminBoundaryTests` (6 test), `UtenteAgenziaBoundaryTests` (10 test), `GeodataBoundaryTests` (5 test), `MeteoBoundaryTests` (5 test), `OffertaBoundaryTests` (10 test), `VisitaBoundaryTests` (10 test) |
-| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (11 test), `VisitaPrivacyTests` (10 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (3 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test), `OffertaServiceInputValidationTests` (1 test) |
+| **WSTG-AUTHZ-02** | Privilege Escalation / Data Isolation | ✓ Compliant | `ImmobileOwnershipTests` (7 test), `OffertaPrivacyTests` (11 test), `VisitaPrivacyTests` (10 test), `ImmobilePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (3 test), `VisitaPostgresDaoSecurityTests` (2 test), `UtenteAgenziaPostgresDaoSecurityTests` (1 test), `OffertaServiceInputValidationTests` (1 test) |
 | **WSTG-IA-06** | Forced Browsing/Endpoint Discovery | ✓ Compliant | `PublicEndpointTests` (7 test) |
 | **WSTG-INPV-01** | Input Validation — identity/boundary | ✓ Compliant | `ImmobileServiceInputValidationTests` (10 test), `OffertaServiceInputValidationTests` (9 test), `VisitaServiceInputValidationTests` (10 test), `MeteoServiceSecurityTests` (8 test), `GeoDataExceptionHandlingTests` (1 test), `UtentePostgresDaoSecurityTests` (1 test), `OffertaPostgresDaoSecurityTests` (2 test), `VisitaPostgresDaoSecurityTests` (1 test) |
 | **WSTG-INPV-05** | SQL Injection | ✓ Compliant | `MalformedPayloadTests` (13 test), `LoginRequestValidationTests` (10 test), `OffertaServiceInputValidationTests` (2 test), `VisitaServiceInputValidationTests` (2 test), `UtentePostgresDaoSecurityTests` (5 test), `ImmobilePostgresDaoSecurityTests` (7 test), `OffertaPostgresDaoSecurityTests` (8 test), `VisitaPostgresDaoSecurityTests` (7 test), `UtenteAgenziaPostgresDaoSecurityTests` (2 test) |

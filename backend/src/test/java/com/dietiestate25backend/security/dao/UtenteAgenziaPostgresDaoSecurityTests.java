@@ -4,7 +4,6 @@ import com.dietiestate25backend.BaseIntegrationTest;
 import com.dietiestate25backend.dao.modelinterface.UtenteAgenziaDao;
 import com.dietiestate25backend.error.ErrorCode;
 import com.dietiestate25backend.error.exception.NotFoundException;
-import com.dietiestate25backend.error.exception.UnauthorizedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,17 +52,6 @@ class UtenteAgenziaPostgresDaoSecurityTests extends BaseIntegrationTest {
     // OWASP WSTG-ATHZ-02: Testing for Bypassing Authorization Schema
     // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/02-Testing_for_Bypassing_Authorization_Schema
     // ============================================================================
-
-    @Test
-    @DisplayName("Authorization - Non-Admin role in getIdAgenzia must be rejected with INSUFFICIENT_PERMISSIONS")
-    void testGetIdAgenzia_WithNonAdminRole_ShouldThrowUnauthorizedException() {
-        UnauthorizedException exception = assertThrows(UnauthorizedException.class,
-                () -> utenteAgenziaDao.getIdAgenzia("uid-cliente-001"),
-                "DAO must reject non-Admin users before exposing agency information");
-
-        assertEquals(ErrorCode.INSUFFICIENT_PERMISSIONS, exception.getErrorCode(),
-                "Error code must be INSUFFICIENT_PERMISSIONS to prevent privilege escalation");
-    }
 
     @Test
     @DisplayName("Authorization - Non-existent uid in getIdAgenzia must throw NotFoundException")
