@@ -1,4 +1,4 @@
-name: SonarQube Analysis
+name: SAST/DAST
 
 on:
   workflow_run:
