@@ -2,14 +2,13 @@ name: OWASP ZAP DAST
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 env:
   IMAGE_TAG: dietiestate25-backend:dast
 
 jobs:
-  zap-baseline:
-    name: Baseline Scan (Passive)
+  zap:
+    name: ZAP Scan
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -64,56 +63,6 @@ jobs:
           issue_title: ZAP Baseline Scan - Security Findings
           fail_action: false
           artifact_name: zap-baseline-report
-
-      - name: Tear down environment
-        if: always()
-        run: docker compose -f compose.dast.yaml down -v
-
-  zap-full-scan:
-    name: Full Scan (Active)
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Cache Docker layers
-        uses: actions/cache@v5
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-dast-${{ hashFiles('backend/pom.xml', 'backend/Dockerfile') }}
-          restore-keys: ${{ runner.os }}-buildx-dast-
-
-      - name: Build production image
-        run: |
-          docker buildx build \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            --load -t ${{ env.IMAGE_TAG }} \
-            -f backend/Dockerfile backend/
-          rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-      - name: Start DAST environment
-        run: docker compose -f compose.dast.yaml up -d
-
-      - name: Wait for application ready
-        run: |
-          for i in $(seq 1 24); do
-            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
-              echo "Application is healthy"
-              exit 0
-            fi
-            echo "Attempt $i/24, waiting 5s..."
-            sleep 5
-          done
-          echo "Application failed to start, dumping logs:"
-          docker compose -f compose.dast.yaml logs backend
-          exit 1
 
       - name: ZAP Full Scan
         uses: zaproxy/action-full-scan@v0.13.0

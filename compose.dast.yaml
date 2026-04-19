@@ -13,6 +13,14 @@ services:
     volumes:
       - ./db-init:/docker-entrypoint-initdb.d
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     image: dietiestate25-backend:dast
     ports:
@@ -20,5 +28,18 @@ services:
     depends_on:
       postgres-test:
         condition: service_healthy
+      mailhog:
+        condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-test:5432/test_db
+      SPRING_DATASOURCE_USERNAME: test
+      SPRING_DATASOURCE_PASSWORD: test
+      JWT_SECRET: V8XUeNVRbwHx4B5vHd6iDCpHtYtWBL7piqLrko0+Anw=
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_USERNAME: test@test.com
+      MAIL_PASSWORD: password
+      GEO_KEY: test-geo-api-key
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: false
