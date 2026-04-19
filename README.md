@@ -6,6 +6,7 @@
 [![Trivy Security Scan](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=alert_status&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=coverage&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
+[![OWASP ZAP DAST](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/dast.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/dast.yml)
 ![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?style=flat-square&logo=dependabot&logoColor=white)
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
@@ -143,6 +144,7 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 | **Open Meteo** | REST API | Previsioni meteo per coordinate GPS |
 | **Trivy** | v0.35.0 | Scansione CVE su filesystem e immagine Docker (HIGH/CRITICAL) |
 | **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura |
+| **OWASP ZAP** | v0.15.0 / v0.13.0 | Dynamic Application Security Testing (DAST) — baseline passivo e full scan attivo |
 | **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions |
 
 ### 3.1 Dipendenze (pom.xml)
@@ -1438,7 +1440,11 @@ Per il setup completo, i comandi di deploy e le istruzioni operative vedere [`k8
 
 ### 7.4 GitHub Actions
 
-La configurazione di GitHub Actions è composta da quattro file in `.github/`:
+La configurazione di GitHub Actions è composta da cinque file in `.github/`. La catena di esecuzione è:
+
+```
+Test ──► SonarQube Analysis ──► OWASP ZAP DAST
+```
 
 **`workflows/test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
 1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
@@ -1449,8 +1455,17 @@ La configurazione di GitHub Actions è composta da quattro file in `.github/`:
 1. Download del report JaCoCo prodotto dal workflow precedente.
 2. Compilazione dei sorgenti con Maven (dipendenze cachate) per rendere disponibili le classi compilate all'analisi.
 3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
+4. Al termine dell'analisi statica, invoca `dast.yml` tramite `workflow_call` per l'analisi dinamica.
 
-I due workflow appaiono come pipeline distinte nella dashboard di GitHub Actions, con storico e stato indipendenti.
+**`workflows/dast.yml`** — richiamato da `sonar.yml` via `workflow_call` al termine dell'analisi statica; attivabile anche manualmente tramite `workflow_dispatch`. Esegue due job in parallelo su runner separati:
+
+- **Baseline Scan** (`zap-baseline`): avvia l'immagine di produzione (`Dockerfile`) insieme a PostgreSQL tramite `compose.dast.yaml`, con `SPRING_PROFILES_ACTIVE=test` per usare il database e le credenziali di test già disponibili nel repository. Esegue una scansione **passiva** con [OWASP ZAP](https://www.zaproxy.org/): intercetta e analizza il traffico HTTP verso l'applicazione senza inviare payload aggressivi. Individua vulnerabilità di configurazione, header di sicurezza mancanti, informazioni esposte e altri problemi rilevabili in sola lettura. Tipicamente completa in 2–5 minuti.
+
+- **Full Scan** (`zap-full-scan`): stessa infrastruttura del baseline, ma esegue una scansione **attiva**: invia payload di attacco reali verso ogni endpoint scoperto (SQLi, XSS, path traversal, CSRF, injection di header, ecc.) per verificare se l'applicazione risponde in modo vulnerabile. Più lento (15–30+ minuti) e genera un numero maggiore di findings, inclusi potenziali falsi positivi da revisionare manualmente.
+
+Entrambi i job pubblicano i risultati in una **GitHub Issue** (creata o aggiornata ad ogni run con titolo fisso) e archiviano i report HTML/JSON come artifact del workflow. L'ambiente Docker viene abbattuto con `-v` al termine, indipendentemente dall'esito della scansione.
+
+I tre workflow (`test.yml`, `sonar.yml`, `dast.yml`) appaiono come pipeline distinte nella dashboard di GitHub Actions, con storico e stato indipendenti.
 
 **`dependabot.yml`** — configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecosistemi:
 
