@@ -6,7 +6,7 @@
 [![Trivy Security Scan](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/trivy.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=alert_status&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=taekwondodev_DietiEstate25Backend&metric=coverage&token=cff8cce96bb693f472e72257a51e903ed0e2416a)](https://sonarcloud.io/summary/new_code?id=taekwondodev_DietiEstate25Backend)
-[![SAST/DAST](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/sonar.yml/badge.svg?branch=security)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/sonar.yml)
+[![SAST/DAST](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/sonar.yml/badge.svg)](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/sonar.yml)
 ![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?style=flat-square&logo=dependabot&logoColor=white)
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
@@ -1459,13 +1459,15 @@ Test ──► SAST/DAST
 3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
 4. Al termine dell'analisi statica, invoca `dast.yml` tramite `workflow_call` per l'analisi dinamica.
 
-**`workflows/dast.yml`** — richiamato esclusivamente da `sonar.yml` via `workflow_call`. Esegue due job in parallelo su runner separati:
+**`workflows/dast.yml`** — richiamato esclusivamente da `sonar.yml` via `workflow_call`. Esegue un singolo job (`zap`) che condivide setup e teardown tra le due scansioni:
 
-- **Baseline Scan** (`zap-baseline`): avvia l'immagine di produzione (`Dockerfile`) insieme a PostgreSQL e MailHog (SMTP mock) tramite `compose.dast.yaml`. Esegue una scansione **passiva** con [OWASP ZAP](https://www.zaproxy.org/): intercetta e analizza il traffico HTTP verso l'applicazione senza inviare payload aggressivi. Individua vulnerabilità di configurazione, header di sicurezza mancanti, informazioni esposte e altri problemi rilevabili in sola lettura. Tipicamente completa in 2–5 minuti.
+1. Build dell'immagine di produzione con Docker BuildKit (cache condivisa con la chiave `buildx-dast-*`).
+2. Avvio di PostgreSQL e MailHog (SMTP mock) tramite `compose.dast.yaml`, con tutte le variabili d'ambiente necessarie iniettate direttamente nel container.
+3. **Baseline Scan**: scansione **passiva** con [OWASP ZAP](https://www.zaproxy.org/) — intercetta e analizza il traffico HTTP senza inviare payload aggressivi. Individua vulnerabilità di configurazione, header di sicurezza mancanti e informazioni esposte. Tipicamente completa in 2–5 minuti.
+4. **Full Scan**: scansione **attiva** sullo stesso ambiente già avviato — invia payload di attacco reali verso ogni endpoint scoperto (SQLi, XSS, path traversal, CSRF, injection di header, ecc.) per verificare se l'applicazione risponde in modo vulnerabile. Più lento (15–30+ minuti).
+5. Tear down dell'ambiente con `-v`, eseguito sempre indipendentemente dall'esito.
 
-- **Full Scan** (`zap-full-scan`): stessa infrastruttura del baseline, ma esegue una scansione **attiva**: invia payload di attacco reali verso ogni endpoint scoperto (SQLi, XSS, path traversal, CSRF, injection di header, ecc.) per verificare se l'applicazione risponde in modo vulnerabile. Più lento (15–30+ minuti) e genera un numero maggiore di findings, inclusi potenziali falsi positivi da revisionare manualmente.
-
-Entrambi i job pubblicano i risultati in una **GitHub Issue** (creata o aggiornata ad ogni run con titolo fisso) e archiviano i report HTML/JSON come artifact del workflow. L'ambiente Docker viene abbattuto con `-v` al termine, indipendentemente dall'esito della scansione.
+Entrambe le scansioni pubblicano i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run) e archiviano i report HTML/JSON come artifact del workflow.
 
 Nella dashboard di GitHub Actions appaiono due pipeline distinte: **Test** e **SAST/DAST**. Il workflow `dast.yml` non compare come voce separata poiché è privo di trigger autonomi — viene eseguito interamente all'interno della pipeline SAST/DAST.
 
