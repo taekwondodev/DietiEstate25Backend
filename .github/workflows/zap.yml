@@ -75,15 +75,16 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: ZAP Full Scan (Cliente)
-        uses: zaproxy/action-full-scan@v0.13.0
+      - name: ZAP API Scan (Cliente)
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: http://localhost:8080
+          target: 'backend/openapi.yaml'
+          format: openapi
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: true
-          issue_title: ZAP Full Scan - Cliente - Security Findings
+          issue_title: ZAP API Scan - Cliente - Security Findings
           fail_action: false
-          artifact_name: zap-full-scan-cliente
+          artifact_name: zap-api-scan-cliente
           cmd_options: >-
             -config replacer.full_list(0).description=auth
             -config replacer.full_list(0).enabled=true
@@ -101,15 +102,16 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: ZAP Full Scan (AgenteImmobiliare)
-        uses: zaproxy/action-full-scan@v0.13.0
+      - name: ZAP API Scan (AgenteImmobiliare)
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: http://localhost:8080
+          target: 'backend/openapi.yaml'
+          format: openapi
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: true
-          issue_title: ZAP Full Scan - AgenteImmobiliare - Security Findings
+          issue_title: ZAP API Scan - AgenteImmobiliare - Security Findings
           fail_action: false
-          artifact_name: zap-full-scan-agente
+          artifact_name: zap-api-scan-agente
           cmd_options: >-
             -config replacer.full_list(0).description=auth
             -config replacer.full_list(0).enabled=true
@@ -127,15 +129,16 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: ZAP Full Scan (Admin)
-        uses: zaproxy/action-full-scan@v0.13.0
+      - name: ZAP API Scan (Admin)
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
-          target: http://localhost:8080
+          target: 'backend/openapi.yaml'
+          format: openapi
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: true
-          issue_title: ZAP Full Scan - Admin - Security Findings
+          issue_title: ZAP API Scan - Admin - Security Findings
           fail_action: false
-          artifact_name: zap-full-scan-admin
+          artifact_name: zap-api-scan-admin
           cmd_options: >-
             -config replacer.full_list(0).description=auth
             -config replacer.full_list(0).enabled=true

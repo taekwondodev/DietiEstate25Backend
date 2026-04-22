@@ -144,7 +144,7 @@ Il sistema suddivide gli utenti in quattro categorie principali:
 | **Open Meteo** | REST API | Previsioni meteo per coordinate GPS |
 | **Trivy** | v0.35.0 | Scansione CVE su filesystem e immagine Docker (HIGH/CRITICAL) |
 | **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura |
-| **OWASP ZAP** | v0.15.0 / v0.13.0 | Dynamic Application Security Testing (DAST) — baseline passivo e tre full scan autenticati per ruolo (Cliente, AgenteImmobiliare, Admin) |
+| **OWASP ZAP** | v0.15.0 / v0.10.0 | Dynamic Application Security Testing (DAST) — baseline passivo e tre API scan autenticati per ruolo (Cliente, AgenteImmobiliare, Admin), alimentati dallo spec OpenAPI |
 | **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions |
 
 ### 3.1 Dipendenze (pom.xml)
@@ -1445,9 +1445,9 @@ La configurazione di GitHub Actions è composta da cinque file in `.github/`. La
 ```
 Test ──► SAST/DAST
               ├── SonarQube (SAST)
-              └── OWASP ZAP (DAST): Baseline + Full Scan (Cliente)
-                                                        + Full Scan (AgenteImmobiliare)
-                                                        + Full Scan (Admin)
+              └── OWASP ZAP (DAST): Baseline + API Scan (Cliente)
+                                                        + API Scan (AgenteImmobiliare)
+                                                        + API Scan (Admin)
 ```
 
 **`workflows/test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
@@ -1466,12 +1466,12 @@ Test ──► SAST/DAST
 1. Build dell'immagine di produzione con Docker BuildKit (cache condivisa con la chiave `buildx-dast-*`).
 2. Avvio di PostgreSQL e MailHog (SMTP mock) tramite `compose.dast.yaml`, con tutte le variabili d'ambiente necessarie iniettate direttamente nel container. Il DB viene inizializzato con le fixture di test in `db-init/02_test_data.sql`, che includono utenti precostituiti per ogni ruolo.
 3. **Baseline Scan**: scansione **passiva** con [OWASP ZAP](https://www.zaproxy.org/) — intercetta e analizza il traffico HTTP senza inviare payload aggressivi. Individua vulnerabilità di configurazione, header di sicurezza mancanti e informazioni esposte. Tipicamente completa in 2–5 minuti.
-4. **Full Scan (Cliente / AgenteImmobiliare / Admin)**: tre scansioni **attive** sequenziali, ciascuna autenticata con un ruolo diverso. Prima di ogni scan, uno step dedicato effettua il login tramite `POST /auth/login` con le credenziali del ruolo corrispondente, maschera il token JWT nei log con `::add-mask::` e lo inietta in tutte le richieste ZAP tramite il Replacer add-on (`Authorization: Bearer <token>`). In questo modo ZAP raggiunge e testa gli endpoint protetti da RBAC che sarebbero altrimenti irraggiungibili. I finding comuni a più ruoli emergono in più report, aumentando la priorità percepita. Ogni full scan invia payload di attacco reali (SQLi, XSS, path traversal, CSRF, header injection, ecc.) verso ogni endpoint scoperto per verificare se l'applicazione risponde in modo vulnerabile.
+4. **API Scan (Cliente / AgenteImmobiliare / Admin)**: tre scansioni **attive** sequenziali, ciascuna autenticata con un ruolo diverso. ZAP legge `backend/openapi.yaml` per scoprire tutti gli endpoint definiti nell'API — anziché affidarsi allo spider — garantendo coverage completa anche sugli endpoint protetti da JWT che risponderebbero altrimenti con `401`. Prima di ogni scan, uno step dedicato effettua il login tramite `POST /auth/login` con le credenziali del ruolo corrispondente, maschera il token JWT nei log con `::add-mask::` e lo inietta in tutte le richieste ZAP tramite il Replacer add-on (`Authorization: Bearer <token>`). In questo modo ZAP raggiunge e testa gli endpoint protetti da RBAC che sarebbero altrimenti irraggiungibili. I finding comuni a più ruoli emergono in più report, aumentando la priorità percepita. Ogni API scan invia payload di attacco reali (SQLi, XSS, path traversal, CSRF, header injection, ecc.) verso ogni endpoint per verificare se l'applicazione risponde in modo vulnerabile.
 5. Tear down dell'ambiente con `-v`, eseguito sempre indipendentemente dall'esito.
 
 I finding noti e intenzionali vengono soppressi tramite `.zap/rules.tsv` in tutte le scansioni: `10049` (Non-Storable Content — `Cache-Control: no-store` è il comportamento corretto per un backend API) e `40042` (Spring Actuator Health — endpoint liveness/readiness intenzionale per Kubernetes).
 
-Ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run) e archivia i report HTML/JSON come artifact separato del workflow (`zap-baseline-report`, `zap-full-scan-cliente`, `zap-full-scan-agente`, `zap-full-scan-admin`).
+Ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run) e archivia i report HTML/JSON come artifact separato del workflow (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`).
 
 Nella dashboard di GitHub Actions appaiono due pipeline distinte: **Test** e **SAST/DAST**. Il workflow `dast.yml` non compare come voce separata poiché è privo di trigger autonomi — viene eseguito interamente all'interno della pipeline SAST/DAST.
 
