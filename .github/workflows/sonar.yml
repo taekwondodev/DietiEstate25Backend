@@ -48,7 +48,7 @@ jobs:
   dast:
     name: DAST
     needs: sonar
-    uses: ./.github/workflows/dast.yml
+    uses: ./.github/workflows/zap.yml
     secrets: inherit
     permissions:
       issues: write
