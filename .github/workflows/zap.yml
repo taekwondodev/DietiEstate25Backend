@@ -1,0 +1,148 @@
+name: OWASP ZAP
+
+on:
+  workflow_call:
+
+env:
+  IMAGE_TAG: dietiestate25-backend:dast
+
+jobs:
+  zap:
+    name: ZAP Scan
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Cache Docker layers
+        uses: actions/cache@v5
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-dast-${{ hashFiles('backend/pom.xml', 'backend/Dockerfile') }}
+          restore-keys: ${{ runner.os }}-buildx-dast-
+
+      - name: Build production image
+        run: |
+          docker buildx build \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --load -t ${{ env.IMAGE_TAG }} \
+            -f backend/Dockerfile backend/
+          rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Start DAST environment
+        run: docker compose -f compose.dast.yaml up -d
+
+      - name: Wait for application ready
+        run: |
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "Application is healthy"
+              exit 0
+            fi
+            echo "Attempt $i/24, waiting 5s..."
+            sleep 5
+          done
+          echo "Application failed to start, dumping logs:"
+          docker compose -f compose.dast.yaml logs backend
+          exit 1
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://localhost:8080
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: true
+          issue_title: ZAP Baseline Scan - Security Findings
+          fail_action: false
+          artifact_name: zap-baseline-report
+
+      - name: Get auth token (Cliente)
+        id: get-token-cliente
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8080/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"cliente1@test.it","password":"Test1234!"}' \
+            | jq -r '.token')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: ZAP Full Scan (Cliente)
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: http://localhost:8080
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: true
+          issue_title: ZAP Full Scan - Cliente - Security Findings
+          fail_action: false
+          artifact_name: zap-full-scan-cliente
+          cmd_options: >-
+            -config replacer.full_list(0).description=auth
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Authorization
+            -config "replacer.full_list(0).replacement=Bearer ${{ steps.get-token-cliente.outputs.token }}"
+
+      - name: Get auth token (AgenteImmobiliare)
+        id: get-token-agente
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8080/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"agente1@test.it","password":"Test1234!"}' \
+            | jq -r '.token')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: ZAP Full Scan (AgenteImmobiliare)
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: http://localhost:8080
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: true
+          issue_title: ZAP Full Scan - AgenteImmobiliare - Security Findings
+          fail_action: false
+          artifact_name: zap-full-scan-agente
+          cmd_options: >-
+            -config replacer.full_list(0).description=auth
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Authorization
+            -config "replacer.full_list(0).replacement=Bearer ${{ steps.get-token-agente.outputs.token }}"
+
+      - name: Get auth token (Admin)
+        id: get-token-admin
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8080/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"admin@test.it","password":"Test1234!"}' \
+            | jq -r '.token')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: ZAP Full Scan (Admin)
+        uses: zaproxy/action-full-scan@v0.13.0
+        with:
+          target: http://localhost:8080
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: true
+          issue_title: ZAP Full Scan - Admin - Security Findings
+          fail_action: false
+          artifact_name: zap-full-scan-admin
+          cmd_options: >-
+            -config replacer.full_list(0).description=auth
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Authorization
+            -config "replacer.full_list(0).replacement=Bearer ${{ steps.get-token-admin.outputs.token }}"
+
+      - name: Tear down environment
+        if: always()
+        run: docker compose -f compose.dast.yaml down -v
