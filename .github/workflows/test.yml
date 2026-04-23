@@ -1,11 +1,7 @@
 name: Test
 
 on:
-  push:
-    branches:
-      - security
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_call:
 
 jobs:
   test:

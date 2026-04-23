@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - security
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  sast:
+    needs: test
+    uses: ./.github/workflows/sonar.yml
+    secrets: inherit
+
+  dast:
+    needs: sast
+    uses: ./.github/workflows/zap.yml
+    secrets: inherit
+    permissions:
+      issues: write
+      contents: read
+
+  trivy:
+    needs: dast
+    uses: ./.github/workflows/trivy.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
