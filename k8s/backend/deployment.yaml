@@ -31,8 +31,8 @@ spec:
                   key: POSTGRES_USER
       containers:
         - name: backend
-          image: localhost/dietiestate25-backend:latest
-          imagePullPolicy: Never
+          image: taekwondodev/dietiestate25-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

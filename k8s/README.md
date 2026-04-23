@@ -71,19 +71,12 @@ kubectl cluster-info --context kind-dietiestate25
 
 ---
 
-## Build e caricamento immagine
+## Immagine di produzione
 
-Kind usa il proprio daemon container isolato da Podman.
-L'immagine va esportata da Podman e caricata manualmente nel cluster.
-Il Deployment usa `imagePullPolicy: Never` — non tenta pull da registry esterni.
-
-```bash
-podman build -t localhost/dietiestate25-backend:latest ./backend
-podman save localhost/dietiestate25-backend:latest -o /tmp/backend.tar
-KIND_EXPERIMENTAL_PROVIDER=podman kind load image-archive /tmp/backend.tar --name dietiestate25
-```
-
-> Ripeti questo step ogni volta che modifichi il codice.
+L'immagine di produzione viene pubblicata automaticamente su Docker Hub dalla pipeline CI/CD
+(`taekwondodev/dietiestate25-backend:latest`) al termine di tutti i check di qualità e sicurezza.
+Il Deployment usa `imagePullPolicy: Always` — kind la scarica direttamente dal registry ad ogni avvio.
+Non è necessaria nessuna operazione manuale di build o caricamento.
 
 ---
 
@@ -225,27 +218,31 @@ kind delete cluster --name dietiestate25
 
 ## Recap — Avvio produzione
 
+L'immagine di produzione viene scaricata automaticamente da Docker Hub (`imagePullPolicy: Always`).
+Non è necessaria nessuna build locale.
+
 ```bash
 # 1. Avvia Podman Machine e crea il cluster (solo la prima volta)
 podman machine start
 KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name dietiestate25
 
-# 2. Build e carica immagine nel cluster
-podman build -t localhost/dietiestate25-backend:latest ./backend
-podman save localhost/dietiestate25-backend:latest -o /tmp/backend.tar
-KIND_EXPERIMENTAL_PROVIDER=podman kind load image-archive /tmp/backend.tar --name dietiestate25
-
-# 3. Applica i manifesti
+# 2. Applica i manifesti (l'immagine viene scaricata da Docker Hub)
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/postgres/
 kubectl apply -f k8s/backend/
 
-# 4. Verifica che i Pod siano Running
+# 3. Verifica che i Pod siano Running
 kubectl get pods -n dietiestate25
 
-# 5. Accedi all'API tramite port-forward
+# 4. Accedi all'API tramite port-forward
 kubectl port-forward -n dietiestate25 deployment/backend 8080:8080
 # http://localhost:8080
+```
+
+Per aggiornare all'ultima immagine pubblicata dalla pipeline:
+
+```bash
+kubectl rollout restart deployment/backend -n dietiestate25
 ```
 
 ---

@@ -1423,11 +1423,9 @@ Le variabili d'ambiente sono iniettate tramite Kubernetes Secret, e sono documen
 
 Il progetto utilizza due Dockerfile distinti, entrambi basati sull'immagine `maven:3.9-eclipse-temurin-21`:
 
-- **`Dockerfile`**: build multi-stage che produce un'immagine runtime minimale con solo il JAR dell'applicazione. Utilizzata per costruire l'immagine di produzione da caricare nel cluster Kubernetes.
+- **`Dockerfile`**: build multi-stage che produce un'immagine runtime minimale con solo il JAR dell'applicazione. Pubblicata automaticamente su **Docker Hub** (`taekwondodev/dietiestate25-backend`) dalla pipeline di deploy al termine di tutti i check di qualità e sicurezza.
 
-- **`Dockerfile.test`**: immagine dedicata che esegue l'intera suite di test tramite `mvn clean test` e termina. Utilizzata dal Job Kubernetes nell'ambiente di test.
-
-Le immagini non vengono pubblicate su un registry esterno — vengono caricate direttamente nel nodo kind tramite `kind load image-archive`.
+- **`Dockerfile.test`**: immagine dedicata che esegue l'intera suite di test tramite `mvn clean test` e termina. Utilizzata dal Job Kubernetes nell'ambiente di test — non viene pubblicata su alcun registry esterno, viene caricata direttamente nel nodo kind tramite `kind load image-archive`.
 
 ### 7.3 Kubernetes
 
@@ -1443,23 +1441,29 @@ Per il setup completo, i comandi di deploy e le istruzioni operative vedere [`k8
 La configurazione di GitHub Actions è composta da cinque file in `.github/`. La catena di esecuzione è:
 
 ```
-Test ──► SAST/DAST
-              ├── SonarQube (SAST)
-              └── OWASP ZAP (DAST): Baseline + API Scan (Cliente)
-                                                        + API Scan (AgenteImmobiliare)
-                                                        + API Scan (Admin)
+push → Test ────────────────────────────────────────────────────────┐
+              (workflow_run on Test success)                         │
+        └─► SAST/DAST                                               │
+                 ├── SonarQube (SAST)                               │
+                 └── OWASP ZAP (DAST) ──────────────┐              │
+                       Baseline + API Scan x3        │              │
+                                                     ▼              ▼
+push → Trivy ───────────────────── (check-trivy gate) ──► Deploy → Docker Hub
 ```
+
+Il deploy viene eseguito solo se **tutte** le pipeline precedenti completano con successo sullo stesso SHA: test, analisi statica, DAST e scansione Trivy.
 
 **`workflows/test.yml`** — si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue i seguenti step:
 1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se `pom.xml` e `Dockerfile.test` non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
 2. Esecuzione dei test tramite `docker compose up`. Al termine, il report di coverage generato da JaCoCo viene estratto dal container con `docker compose cp`, evitando conflitti con `mvn clean` che non può eliminare una directory montata come volume.
 3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
 
-**`workflows/sonar.yml`** (dashboard: **SAST/DAST**) — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Esegue:
-1. Download del report JaCoCo prodotto dal workflow precedente.
-2. Compilazione dei sorgenti con Maven (dipendenze cachate) per rendere disponibili le classi compilate all'analisi.
-3. Analisi SonarQube che include la test coverage reale, precedentemente non disponibile perché i test richiedono il database PostgreSQL per essere eseguiti.
-4. Al termine dell'analisi statica, invoca `dast.yml` tramite `workflow_call` per l'analisi dinamica.
+**`workflows/sonar.yml`** (dashboard: **SAST/DAST**) — si attiva automaticamente tramite `workflow_run` al completamento con successo di `test.yml`. Contiene quattro job:
+
+1. **`sonar`**: scarica il report JaCoCo, compila i sorgenti con Maven e lancia l'analisi SonarQube con coverage reale (non disponibile senza database PostgreSQL).
+2. **`dast`**: invoca `zap.yml` tramite `workflow_call` per l'analisi dinamica, in sequenza dopo `sonar`.
+3. **`check-trivy`**: parte in parallelo a `sonar`. Interroga la GitHub API con polling ogni 30 secondi (timeout 10 minuti) per verificare che il workflow `Trivy Security Scan` abbia completato con `success` sullo stesso SHA. Fallisce il deploy se Trivy non è passato o non termina entro il timeout.
+4. **`deploy`**: parte solo se `dast` e `check-trivy` sono entrambi completati con successo (`needs: [dast, check-trivy]`). Builda l'immagine di produzione con Docker BuildKit e la pubblica su Docker Hub con due tag: `latest` e il SHA del commit (`taekwondodev/dietiestate25-backend:<sha>`), garantendo tracciabilità e possibilità di rollback. Richiede i secret `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` configurati nel repository.
 
 **`workflows/zap.yml`** — richiamato esclusivamente da `sonar.yml` via `workflow_call`. Esegue un singolo job (`zap`) che condivide setup e teardown tra tutte le scansioni:
 
@@ -1473,7 +1477,7 @@ I finding noti e intenzionali vengono soppressi tramite `.zap/rules.tsv` in tutt
 
 Ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run) e archivia i report HTML/JSON come artifact separato del workflow (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`).
 
-Nella dashboard di GitHub Actions appaiono due pipeline distinte: **Test** e **SAST/DAST**. Il workflow `dast.yml` non compare come voce separata poiché è privo di trigger autonomi — viene eseguito interamente all'interno della pipeline SAST/DAST.
+Nella dashboard di GitHub Actions appaiono due pipeline distinte: **Test** e **SAST/DAST**. Il workflow `zap.yml` non compare come voce separata poiché è privo di trigger autonomi — viene eseguito interamente all'interno della pipeline SAST/DAST.
 
 **`dependabot.yml`** — configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecosistemi:
 
@@ -1499,10 +1503,20 @@ Trivy e Dependabot coprono superfici complementari: Dependabot aggiorna automati
 
 ### 8.1 Prerequisiti
 
+**Sviluppo locale (Docker Compose)**
 - **Java 21+** (SDK)
 - **Maven 3.8+**
 - **Docker** e **Docker Compose**
 - **OpenSSL** (per generare JWT secret)
+
+**Produzione (Kubernetes)**
+- **Podman** — runtime container alternativo a Docker, usato da kind su macOS
+- **kind** — crea cluster Kubernetes dentro container Podman
+- **kubectl** — CLI per interagire con il cluster
+
+```bash
+brew install podman kind kubectl
+```
 
 ### 8.2 Setup Iniziale
 
@@ -1571,6 +1585,12 @@ docker compose -f compose.test.yaml up --build --abort-on-container-exit 2>&1 \
       | sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g' \
       | grep -E '^(\[)?backend-test(\])?[[:space:]]*\|.*(ERROR|FAILED|Caused by|Tests run:|BUILD SUCCESS|BUILD FAILURE|Started)'
 ```
+
+### 8.5 Avvio in Produzione (Kubernetes)
+
+L'ambiente di produzione gira su un cluster kind gestito con Podman. L'immagine viene scaricata automaticamente da Docker Hub (`taekwondodev/dietiestate25-backend:latest`) — non è necessaria nessuna build locale.
+
+Per setup, comandi di deploy e istruzioni operative vedere [`k8s/README.md`](k8s/README.md).
 
 ---
 
