@@ -162,7 +162,9 @@ Autenticazione migrata da AWS Cognito a Spring Security in-house: JWT emessi e v
 
 ## Pipeline
 
-guarda readme docs
+Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitHub Actions per l'orchestrazione di test, analisi statica (SonarCloud), DAST (OWASP ZAP), scansione CVE (Trivy) e deploy automatico su Docker Hub al completamento di tutti i check. Dependabot monitora dipendenze Maven, Docker e Actions.
+
+→ [docs/pipeline/README.md](docs/pipeline/README.md)
 
 ## Configurazione Progetto
 
