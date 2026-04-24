@@ -50,13 +50,13 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 2. Esecuzione dei test tramite `docker compose up`. Al termine, il report di coverage generato da JaCoCo viene estratto dal container con `docker compose cp`, evitando conflitti con `mvn clean` che non può eliminare una directory montata come volume.
 3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
 
-**Output:** artifact `jacoco.xml` passato a [`sonar.yml`](../../.github/workflows/sonar.yml#L4) nella stessa workflow run. Non pubblicato esternamente — consumato e scartato dopo 1 giorno.
+**Output:** artifact [`jacoco.xml`](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) passato a [`sonar.yml`](../../.github/workflows/sonar.yml#L4) nella stessa workflow run. Non pubblicato esternamente — scade dopo 1 giorno *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
 Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `test`. Scarica il report JaCoCo prodotto nella stessa run, compila i sorgenti con Maven e lancia l'analisi SonarQube con coverage reale (non disponibile senza database PostgreSQL).
 
-**Output:** analisi pubblicata su SonarCloud. Risultati attuali:
+**Output:** analisi pubblicata su [SonarCloud](https://sonarcloud.io/project/overview?id=taekwondodev_DietiEstate25Backend). Risultati attuali:
 
 | Metrica | Valore |
 |---------|--------|
@@ -84,11 +84,15 @@ Reusable workflow (`workflow_call`), richiamato da [`ci.yml`](../../.github/work
 4. **API Scan (Cliente / AgenteImmobiliare / Admin)**: tre scansioni **attive** sequenziali, ciascuna autenticata con un ruolo diverso. ZAP legge [`openapi.yaml`](../../backend/openapi.yaml#L1) per scoprire tutti gli endpoint definiti nell'API — anziché affidarsi allo spider — garantendo coverage completa anche sugli endpoint protetti da JWT che risponderebbero altrimenti con `401`. Prima di ogni scan, uno step dedicato effettua il login tramite `POST /auth/login` con le credenziali del ruolo corrispondente, maschera il token JWT nei log con `::add-mask::` e lo inietta in tutte le richieste ZAP tramite il Replacer add-on (`Authorization: Bearer <token>`). In questo modo ZAP raggiunge e testa gli endpoint protetti da RBAC che sarebbero altrimenti irraggiungibili. I finding comuni a più ruoli emergono in più report, aumentando la priorità percepita. Ogni API scan invia payload di attacco reali (SQLi, XSS, path traversal, CSRF, header injection, ecc.) verso ogni endpoint per verificare se l'applicazione risponde in modo vulnerabile.
 5. Tear down dell'ambiente con `-v`, eseguito sempre indipendentemente dall'esito.
 
-**Output:** ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run) e archivia i report HTML/JSON come artifact separato del workflow (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`).
+**Output:** ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run): [ZAP Baseline](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+Baseline), [ZAP API Scan – Cliente](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Cliente), [ZAP API Scan – AgenteImmobiliare](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+AgenteImmobiliare), [ZAP API Scan – Admin](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Admin). I report HTML/JSON sono archiviati come artifact separati nella [CI workflow page](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`) — scadono dopo 90 giorni *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
 
-**Finding gestiti:** due regole soppresse tramite [`.zap/rules.tsv`](../../.zap/rules.tsv#L1) in tutte le scansioni:
+**Finding gestiti:**
+
+Regola soppressa tramite [`.zap/rules.tsv`](../../.zap/rules.tsv#L1) in tutte le scansioni:
 - `10049` — Non-Storable Content: `Cache-Control: no-store` è il comportamento corretto per un backend API stateless, non una vulnerabilità.
-- `40042` — Spring Actuator Health: l'endpoint `/actuator/health` è intenzionale, esposto per i health check Kubernetes, non un'esposizione accidentale.
+
+Vulnerabilità corretta:
+- `40042` — Spring Actuator Health (Medium): ZAP rilevava `/actuator/health` esposto sulla porta applicativa 8080, raggiungibile tramite il `Service` NodePort insieme al resto delle API. **Prima:** l'endpoint di health era accessibile da chiunque raggiungesse il cluster sulla porta 8080, nella stessa superficie esposta all'esterno. **Soluzione:** `management.server.port=8081` in [`application.properties`](../../backend/src/main/resources/application.properties#L17) separa il management server dalla porta applicativa. **Dopo:** il Kubernetes readiness probe punta a 8081 ([`deployment.yaml`](../../k8s/backend/deployment.yaml#L43)); la porta 8081 non è dichiarata nel `Service` NodePort, quindi non è raggiungibile dall'esterno del cluster — solo dal piano di controllo Kubernetes per i probe interni.
 
 #### [`trivy.yml`](../../.github/workflows/trivy.yml#L3)
 
@@ -99,11 +103,16 @@ Si attiva ad ogni push sul branch `security` e ad ogni pull request. Esegue due 
 
 Entrambi i job falliscono con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge.
 
-**Output:** risultati pubblicati nel tab *Security → Code scanning alerts* di GitHub in formato SARIF — separatamente per filesystem scan e image scan.
+**Output:** risultati pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF — separatamente per filesystem scan e image scan.
 
-**Finding gestiti:** i falsi positivi accettati sono soppressi tramite [`.trivyignore.yaml`](../../.trivyignore.yaml#L1) con scope limitato ai file specifici, senza disabilitare la regola globalmente:
+**Finding gestiti:**
+
+Falsi positivi accettati, soppressi tramite [`.trivyignore.yaml`](../../.trivyignore.yaml#L1) con scope limitato ai file specifici, senza disabilitare la regola globalmente:
 - Credenziali hardcoded in [`application-test.properties`](../../backend/src/test/resources/application-test.properties#L9): credenziali di test locali, non di produzione — non versionabili con valori reali per definizione.
 - Credenziali nei manifest [`postgres-test-deployment.yaml`](../../k8s/test/postgres-test-deployment.yaml#L1): ambiente di test effimero con credenziali fisse (`test`/`test`), non raggiungibile dall'esterno.
+
+Vulnerabilità di librerie di sistema corrette:
+Trivy Image Scan ha riportato CVE HIGH su package OS dell'immagine base `eclipse-temurin:25-jre-alpine` (librerie di sistema non aggiornate nello strato fornito dall'upstream). **Prima:** l'immagine runtime ereditava i package nella versione frozen dell'immagine base, con CVE noti presenti al momento della build. **Soluzione:** `RUN apk upgrade --no-cache` nello stage runtime del [`Dockerfile`](../../backend/Dockerfile#L21) aggiorna tutti i package OS a ogni build, applicando le patch disponibili indipendentemente dalla versione dell'immagine base. L'`ARG BUILD_WEEK` ([L20](../../backend/Dockerfile#L20)) invalida questo layer settimanalmente in CI — senza di esso Docker riutilizzerebbe il layer dalla cache, rendendo l'upgrade un no-op tra build ravvicinate. **Dopo:** le scan successive non riportano più CVE HIGH/CRITICAL con fix disponibile sui package di sistema.
 
 Trivy e Dependabot coprono superfici complementari: Dependabot aggiorna automaticamente le dipendenze dichiarate in [`pom.xml`](../../backend/pom.xml#L1), Trivy copre anche i package OS dell'immagine base, i secrets nei file e le misconfiguration IaC — superfici che Dependabot non monitora.
 

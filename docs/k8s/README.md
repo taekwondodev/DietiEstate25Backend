@@ -51,3 +51,11 @@ La separazione evita tre problemi: i test scrivono e cancellano dati liberamente
 ## ReadinessProbe su PostgreSQL
 
 [`k8s/postgres/deployment.yaml`](../../k8s/postgres/deployment.yaml) definisce una `readinessProbe` che esegue `pg_isready` ogni 5 secondi. Kubernetes segna il pod PostgreSQL come `Ready` solo quando il database accetta connessioni effettive. Il backend aspetta che la probe sia soddisfatta prima di avviarsi, evitando `CrashLoopBackOff` da connessione fallita durante lo startup.
+
+---
+
+## Separazione della porta di management (8081)
+
+`management.server.port=8081` in [`application.properties`](../../backend/src/main/resources/application.properties) fa partire il management server di Spring Boot su una porta separata rispetto alla porta applicativa 8080. La readiness probe in [`k8s/backend/deployment.yaml`](../../k8s/backend/deployment.yaml) punta a 8081 — Kubernetes raggiunge questa porta direttamente sul pod tramite la rete interna del cluster.
+
+La porta 8081 è dichiarata come `containerPort` nel deployment (informativa per il cluster) ma è intenzionalmente assente dal [`k8s/backend/service.yaml`](../../k8s/backend/service.yaml): il `Service` di tipo `NodePort` espone solo la porta 8080 verso l'esterno. Di conseguenza `/actuator/health` non è raggiungibile da fuori il cluster — né via NodePort né via nessun altro path esposto. Questa separazione è la mitigazione diretta del finding Medium `40042` rilevato da OWASP ZAP, che segnalava l'endpoint di health accessibile sulla stessa superficie esterna delle API applicative.
