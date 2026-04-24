@@ -8,6 +8,10 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  secrets:
+    uses: ./.github/workflows/gitguardian.yml
+    secrets: inherit
+
   test:
     uses: ./.github/workflows/test.yml
     secrets: inherit
@@ -17,8 +21,13 @@ jobs:
     uses: ./.github/workflows/sonar.yml
     secrets: inherit
 
+  sca:
+    needs: test
+    uses: ./.github/workflows/snyk.yml
+    secrets: inherit
+
   dast:
-    needs: sast
+    needs: [sast, sca]
     uses: ./.github/workflows/zap.yml
     secrets: inherit
     permissions:

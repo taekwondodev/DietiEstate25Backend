@@ -1,0 +1,16 @@
+# Snyk license policy
+# Licenses listed here cause snyk-license job to fail.
+version: v1.25.0
+ignore: {}
+patch: {}
+license:
+  severity: high
+  instructions: ''
+  disallow:
+    - GPL-2.0
+    - GPL-3.0
+    - AGPL-3.0
+    - LGPL-2.0
+    - LGPL-2.1
+    - LGPL-3.0
+    - SSPL-1.0

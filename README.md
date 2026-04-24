@@ -66,7 +66,9 @@ DietiEstates25 è una piattaforma per la gestione e commercializzazione di propr
 | **curl + jq** | Latest | Testing manuale delle API via `test-manual.sh`                                                                                              |
 | **Geoapify** | REST API | Punti di interesse e dati geospaziali                                                                                                       |
 | **Open Meteo** | REST API | Previsioni meteo per coordinate GPS                                                                                                         |
-| **Trivy** | v0.35.0 | Scansione CVE su filesystem e immagine Docker (HIGH/CRITICAL)                                                                               |
+| **GitGuardian** | gg-shield | Secrets detection — API key, token, credenziali hardcoded nel codice e nella git history                                                    |
+| **Snyk** | Cloud | SCA — CVE su dipendenze Maven con remediation advice + license compliance (GPL/AGPL detection)                                              |
+| **Trivy** | v0.35.0 | Scansione CVE sui package OS dell'immagine Docker (HIGH/CRITICAL)                                                                           |
 | **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura                                                                                        |
 | **OWASP ZAP** | v0.15.0 / v0.10.0 | Analisi dinamica — baseline passivo e tre API scan autenticati per ruolo (Cliente, AgenteImmobiliare, Admin), alimentati dallo spec OpenAPI |
 | **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions                                                                                  |
@@ -162,7 +164,7 @@ Autenticazione migrata da AWS Cognito a Spring Security in-house: JWT emessi e v
 
 ## Pipeline
 
-Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitHub Actions per l'orchestrazione di test, analisi statica (SonarCloud), DAST (OWASP ZAP), scansione CVE (Trivy) e deploy automatico su Docker Hub al completamento di tutti i check. Dependabot monitora dipendenze Maven, Docker e Actions.
+Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitHub Actions per l'orchestrazione di sei domini di sicurezza distinti — secrets detection (GitGuardian), analisi statica (SonarCloud), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy image scan) — più deploy automatico su Docker Hub al completamento di tutti i check. Dependabot monitora dipendenze Maven, Docker e Actions.
 
 → [docs/pipeline/README.md](docs/pipeline/README.md)
 

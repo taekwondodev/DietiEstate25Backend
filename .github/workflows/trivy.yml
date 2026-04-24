@@ -7,35 +7,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  trivy-fs:
-    name: Filesystem Scan
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.35.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: sarif
-          output: trivy-fs.sarif
-          severity: HIGH,CRITICAL
-          exit-code: '1'
-          ignore-unfixed: true
-          trivyignores: .trivyignore.yaml
-
-      - name: Upload SARIF to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-filesystem
-
   trivy-image:
     name: Docker Image Scan
     runs-on: ubuntu-latest
