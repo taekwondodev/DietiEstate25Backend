@@ -62,7 +62,7 @@ A differenza di Trivy (che segnala credenziali solo come parte di una scansione 
 
 Il workflow fallisce (`exit-code: 1`) se viene rilevato un secret non ignorato, bloccando il merge prima ancora che la build sia completata.
 
-**Output:** finding riportati direttamente nel log del job con tipo di secret, file e riga. Richiede il secret `GITGUARDIAN_API_KEY` configurato nel repository.
+**Output:** finding riportati direttamente nel log del job con tipo di secret, file e riga.
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
@@ -96,7 +96,7 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 **Separazione dei domini rispetto a Trivy:** Trivy image scan rimane responsabile dei CVE nei package OS dell'immagine base (`eclipse-temurin:25-jre-alpine`) — superficie che Snyk non copre per default con `snyk test`. Snyk copre le dipendenze Maven (incluse le transitive) con remediation advice e la compliance delle licenze. Il job `trivy-fs` è stato rimosso per eliminare la ridondanza sulla scansione del `pom.xml`.
 
-**Output:** finding riportati nel log del job con severità, CVE ID e fix consigliato. Richiede il secret `SNYK_TOKEN` configurato nel repository.
+**Output:** finding riportati nel log del job con severità, CVE ID e fix consigliato.
 
 #### [`zap.yml`](../../.github/workflows/zap.yml#L4)
 
