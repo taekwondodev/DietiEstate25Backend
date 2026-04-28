@@ -23,7 +23,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high --fail-on=upgradable
+          args: --file=backend/pom.xml --severity-threshold=high --fail-on=upgradable
 
   snyk-license:
     name: License Compliance
@@ -45,4 +45,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --print-deps --policy-path=.snyk
+          args: --file=backend/pom.xml --print-deps --policy-path=.snyk

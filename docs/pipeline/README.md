@@ -36,7 +36,7 @@ push / pull_request
         ├── 3. sast    → SonarQube        ┐ (dopo test)          │
         ├── 4. sca     → Snyk             ┘ (dopo test)          │
         ├── 5. dast    → OWASP ZAP (dopo sast + sca)             │
-        └── 6. trivy   → image scan (dopo dast)                 ▼
+        └── 6. trivy   → image scan (dopo dast)                  ▼
                                                            Deploy → Docker Hub
 ```
 
