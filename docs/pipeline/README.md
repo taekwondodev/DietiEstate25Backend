@@ -56,13 +56,19 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 #### [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `test` — non richiede build né compilazione. Usa l'action ufficiale `gitguardian/gg-shield-action` per scansionare il repository alla ricerca di **secrets hardcodati**: API key, token di accesso, credenziali database, certificati privati e qualsiasi stringa che corrisponda ai pattern di oltre 400 provider noti. La scansione copre sia i file presenti nel commit corrente sia, in modalità PR, tutti i commit aggiunti dal branch — garantendo che un secret introdotto in un commit intermedio non sfugga anche se rimosso in un commit successivo.
+Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `test` — non richiede build né compilazione. Usa l'action ufficiale [`GitGuardian/ggshield/actions/secret@v1.49.0`](https://github.com/GitGuardian/ggshield) per scansionare il repository alla ricerca di **secrets hardcodati**: API key, token di accesso, credenziali database, certificati privati e qualsiasi stringa che corrisponda ai pattern di oltre 500 provider noti.
+
+La copertura della scansione dipende dal tipo di evento:
+- **Push** (`GITHUB_PUSH_BEFORE_SHA` + `GITHUB_PUSH_BASE_SHA`): scansiona solo i commit del push corrente.
+- **Pull Request** (`GITHUB_PULL_BASE_SHA`): scansiona tutti i commit aggiunti dal branch rispetto alla base — garantendo che un secret introdotto in un commit intermedio non sfugga anche se rimosso in un commit successivo.
 
 A differenza di Trivy (che segnala credenziali solo come parte di una scansione CVE su file statici) e di SonarQube (che cerca pattern generici di hardcoded credentials), GitGuardian è specializzato esclusivamente nel secrets detection: mantiene un database continuamente aggiornato di pattern per provider specifici (AWS, GCP, GitHub, database, servizi di terze parti) con tasso di falsi positivi molto basso.
 
 Il workflow fallisce (`exit-code: 1`) se viene rilevato un secret non ignorato, bloccando il merge prima ancora che la build sia completata.
 
-**Output:** finding riportati direttamente nel log del job con tipo di secret, file e riga.
+**Output:** finding riportati direttamente nel log del job con tipo di secret, file e riga. Nessun dashboard esterno — l'integrazione usa solo API key senza GitHub App; per la dashboard su app.gitguardian.com sarebbe necessaria l'installazione della GitHub App sul repository.
+
+**Risultato:** nessun secret rilevato in tutte le run eseguite sul branch `security`.
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
@@ -90,13 +96,17 @@ I 66 code smells sono avvisi di maintainability (naming conventions, complessit�
 
 Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `sonar` dopo il completamento di `test`. Esegue due job distinti:
 
-1. **Open Source / SCA** (`snyk-oss`): scansiona [`pom.xml`](../../backend/pom.xml#L1) con `snyk test` — confronta ogni dipendenza Maven contro il database Snyk di vulnerabilità note. A differenza di Trivy (che riporta CVE senza indicare una correzione praticabile), Snyk fornisce per ogni finding: il percorso di dipendenza transitiva che introduce la vulnerabilità, la versione corretta disponibile e, dove possibile, un fix automatico via PR. Fallisce in presenza di vulnerabilità HIGH o CRITICAL senza fix disponibile.
+1. **Open Source / SCA** (`snyk-oss`): scansiona [`pom.xml`](../../backend/pom.xml#L1) con `snyk test` — confronta ogni dipendenza Maven contro il database Snyk di vulnerabilità note. A differenza di Trivy (che riporta CVE senza indicare una correzione praticabile), Snyk fornisce per ogni finding: il percorso di dipendenza transitiva che introduce la vulnerabilità, la versione corretta disponibile e, dove possibile, un fix automatico via PR. Fallisce (`--fail-on=upgradable`) solo in presenza di vulnerabilità HIGH o CRITICAL con fix disponibile.
 
 2. **License Compliance** (`snyk-license`): esegue `snyk test --print-deps` con policy configurata in [`.snyk`](../../.snyk#L1) per bloccare licenze incompatibili con il progetto (GPL-2.0, GPL-3.0, AGPL-3.0). Questo controllo non è coperto né da Trivy né da SonarQube — entrambi operano su CVE, non su license metadata.
 
 **Separazione dei domini rispetto a Trivy:** Trivy image scan rimane responsabile dei CVE nei package OS dell'immagine base (`eclipse-temurin:25-jre-alpine`) — superficie che Snyk non copre per default con `snyk test`. Snyk copre le dipendenze Maven (incluse le transitive) con remediation advice e la compliance delle licenze. Il job `trivy-fs` è stato rimosso per eliminare la ridondanza sulla scansione del `pom.xml`.
 
-**Output:** finding riportati nel log del job con severità, CVE ID e fix consigliato.
+**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto le categorie `snyk-oss` e `snyk-license`. Se non vengono rilevate vulnerabilità o violazioni di licenza, il job passa senza produrre alert.
+
+**Finding rilevati e corretti:**
+
+**Prima:** Spring Boot 4.0.5 e Spring Security 7.0.4 presentavano 5 vulnerabilità (1 Critical, 4 High) con fix disponibile, rilevate da `snyk-oss` al primo run e bloccanti per la pipeline. **Soluzione:** aggiornamento a Spring Boot 4.0.6 e Spring Security 7.0.5 in [`pom.xml`](../../backend/pom.xml#L8). **Dopo:** nessun finding HIGH o CRITICAL con fix disponibile nelle run successive.
 
 #### [`zap.yml`](../../.github/workflows/zap.yml#L4)
 
@@ -108,7 +118,7 @@ Reusable workflow (`workflow_call`), richiamato da [`ci.yml`](../../.github/work
 4. **API Scan (Cliente / AgenteImmobiliare / Admin)**: tre scansioni **attive** sequenziali, ciascuna autenticata con un ruolo diverso. ZAP legge [`openapi.yaml`](../../backend/openapi.yaml#L1) per scoprire tutti gli endpoint definiti nell'API — anziché affidarsi allo spider — garantendo coverage completa anche sugli endpoint protetti da JWT che risponderebbero altrimenti con `401`. Prima di ogni scan, uno step dedicato effettua il login tramite `POST /auth/login` con le credenziali del ruolo corrispondente, maschera il token JWT nei log con `::add-mask::` e lo inietta in tutte le richieste ZAP tramite il Replacer add-on (`Authorization: Bearer <token>`). In questo modo ZAP raggiunge e testa gli endpoint protetti da RBAC che sarebbero altrimenti irraggiungibili. I finding comuni a più ruoli emergono in più report, aumentando la priorità percepita. Ogni API scan invia payload di attacco reali (SQLi, XSS, path traversal, CSRF, header injection, ecc.) verso ogni endpoint per verificare se l'applicazione risponde in modo vulnerabile.
 5. Tear down dell'ambiente con `-v`, eseguito sempre indipendentemente dall'esito.
 
-**Output:** ogni scansione pubblica i risultati in una **GitHub Issue** dedicata (creata o aggiornata ad ogni run): [ZAP Baseline](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+Baseline), [ZAP API Scan – Cliente](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Cliente), [ZAP API Scan – AgenteImmobiliare](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+AgenteImmobiliare), [ZAP API Scan – Admin](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Admin). I report HTML/JSON sono archiviati come artifact separati nella [CI workflow page](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`) — scadono dopo 90 giorni *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
+**Output:** in presenza di finding, ogni scansione pubblica i risultati in una **GitHub Issue** dedicata: [ZAP Baseline](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+Baseline), [ZAP API Scan – Cliente](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Cliente), [ZAP API Scan – AgenteImmobiliare](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+AgenteImmobiliare), [ZAP API Scan – Admin](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Admin). Se non vengono rilevati finding, nessuna issue viene creata e il job passa. I report HTML/JSON sono archiviati come artifact separati nella [CI workflow page](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`) — scadono dopo 90 giorni *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
 
 **Finding gestiti:**
 
@@ -126,7 +136,7 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 Il job `trivy-fs` (scansione del filesystem e di `pom.xml`) è stato rimosso perché la sua responsabilità è ora suddivisa tra strumenti specializzati: GitGuardian copre i secrets nei file, Snyk copre le dipendenze Maven con remediation advice. Trivy rimane l'unico responsabile della superficie OS dell'immagine Docker — superficie non coperta né da Snyk né da GitGuardian.
 
-**Output:** risultati pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `trivy-image`.
+**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `trivy-image`. Se non vengono rilevati CVE HIGH o CRITICAL con fix disponibile, il job passa senza produrre alert.
 
 **Finding gestiti:**
 
@@ -149,4 +159,13 @@ Configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecos
 
 Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI ([`ci.yml`](../../.github/workflows/ci.yml#L3)) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
 
-**Output:** PR automatiche su GitHub, ciascuna associata a un diff di versione e ai risultati CI prima del merge.
+**Output:** PR automatiche su GitHub, ciascuna associata a un diff di versione e ai risultati CI prima del merge. Le PR aperte e mergeate da Dependabot sul branch `security` sono state:
+
+| PR | Ecosistema | Aggiornamento |
+|----|------------|---------------|
+| [#3](https://github.com/taekwondodev/DietiEstate25Backend/pull/3) | GitHub Actions | `actions/download-artifact` 7 → 8 |
+| [#4](https://github.com/taekwondodev/DietiEstate25Backend/pull/4) | Maven | `org.jacoco:jacoco-maven-plugin` 0.8.12 → 0.8.14 |
+| [#5](https://github.com/taekwondodev/DietiEstate25Backend/pull/5) | Maven | `org.springframework.security:spring-security-oauth2-jose` → 7.0.4 |
+| [#6](https://github.com/taekwondodev/DietiEstate25Backend/pull/6) | Docker | `maven` → `3.9.13-eclipse-temurin-25` (Dockerfile.test) |
+| [#7](https://github.com/taekwondodev/DietiEstate25Backend/pull/7) | Maven | `org.springframework.boot:spring-boot-starter-parent` 3.4.1 → 4.0.5 |
+| [#8](https://github.com/taekwondodev/DietiEstate25Backend/pull/8) | Docker | `eclipse-temurin` 21-jre-jammy → 25-jre-jammy (Dockerfile) |
