@@ -25,6 +25,9 @@ jobs:
     needs: test
     uses: ./.github/workflows/snyk.yml
     secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
 
   dast:
     needs: [sast, sca]

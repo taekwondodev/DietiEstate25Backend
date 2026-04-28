@@ -7,6 +7,9 @@ jobs:
   snyk-oss:
     name: Dependency Vulnerabilities
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v6
@@ -23,6 +26,19 @@ jobs:
 
       - name: Snyk dependency scan
         working-directory: backend
+        run: snyk test --severity-threshold=high --fail-on=upgradable --sarif-file-output=snyk-oss.sarif
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: backend/snyk-oss.sarif
+          category: snyk-oss
+
+      - name: Fail on upgradable vulnerabilities
+        working-directory: backend
         run: snyk test --severity-threshold=high --fail-on=upgradable
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -30,6 +46,9 @@ jobs:
   snyk-license:
     name: License Compliance
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v6
@@ -46,6 +65,13 @@ jobs:
 
       - name: Snyk license check
         working-directory: backend
-        run: snyk test --print-deps --policy-path=../.snyk
+        run: snyk test --print-deps --policy-path=../.snyk --sarif-file-output=snyk-license.sarif
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: backend/snyk-license.sarif
+          category: snyk-license
