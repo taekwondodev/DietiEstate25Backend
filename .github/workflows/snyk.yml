@@ -18,14 +18,16 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Resolve Maven dependencies
-        run: mvn -f backend/pom.xml dependency:resolve -q
+      - name: Build Maven project
+        working-directory: backend
+        run: mvn package -DskipTests -q
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
       - name: Snyk dependency scan
-        run: snyk test --file=backend/pom.xml --severity-threshold=high --fail-on=upgradable
+        working-directory: backend
+        run: snyk test --severity-threshold=high --fail-on=upgradable
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -43,13 +45,15 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Resolve Maven dependencies
-        run: mvn -f backend/pom.xml dependency:resolve -q
+      - name: Build Maven project
+        working-directory: backend
+        run: mvn package -DskipTests -q
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
       - name: Snyk license check
-        run: snyk test --file=backend/pom.xml --print-deps --policy-path=.snyk
+        working-directory: backend
+        run: snyk test --print-deps --policy-path=../.snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
