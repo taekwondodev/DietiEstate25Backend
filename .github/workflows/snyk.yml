@@ -27,7 +27,7 @@ jobs:
 
       - name: Snyk dependency scan
         working-directory: backend
-        run: snyk test --severity-threshold=high --fail-on=upgradable
+        run: snyk test -d --severity-threshold=high --fail-on=upgradable
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -54,6 +54,6 @@ jobs:
 
       - name: Snyk license check
         working-directory: backend
-        run: snyk test --print-deps --policy-path=../.snyk
+        run: snyk test -d --print-deps --policy-path=../.snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
