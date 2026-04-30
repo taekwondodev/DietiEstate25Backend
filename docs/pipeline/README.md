@@ -97,7 +97,7 @@ Non è richiesto alcun token (`SEMGREP_APP_TOKEN`) per l'esecuzione con ruleset 
 
 **Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `semgrep`. La scansione usa `continue-on-error: true`: i finding non bloccano il job, ma vengono comunque pubblicati come alert per revisione. Se non vengono rilevati finding, il job passa senza produrre alert.
 
-**Finding gestiti:** nessun finding rilevato nelle run iniziali. La codebase era già stata analizzata con SonarQube (zero vulnerabilità, zero security hotspot) prima dell'introduzione di Semgrep.
+**Finding gestiti:** nessun finding rilevato. La prima run ha scansionato 57 file Java con 65 regole attive (60 `p/java` + 5 `<multilang>` da `p/owasp-top-ten`): 0 findings, 0 blocking.
 
 #### [`snyk.yml`](../../.github/workflows/snyk.yml#L1)
 
@@ -113,7 +113,9 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 **Finding rilevati e corretti:**
 
-**Prima:** Spring Boot 4.0.5 e Spring Security 7.0.4 presentavano 5 vulnerabilità (1 Critical, 4 High) con fix disponibile, rilevate da `snyk-oss` al primo run e bloccanti per la pipeline. **Soluzione:** aggiornamento a Spring Boot 4.0.6 e Spring Security 7.0.5 in [`pom.xml`](../../backend/pom.xml#L8). **Dopo:** nessun finding HIGH o CRITICAL con fix disponibile nelle run successive.
+**Prima:** Spring Boot 4.0.5 e Spring Security 7.0.4 presentavano 5 vulnerabilità (1 Critical, 4 High) con fix disponibile, rilevate da `snyk-oss` al primo run e bloccanti per la pipeline. **Soluzione:** aggiornamento a Spring Boot 4.0.6 e Spring Security 7.0.5 in [`pom.xml`](../../backend/pom.xml#L8).
+
+**Prima:** il database Snyk ha ricevuto un aggiornamento tra una run e la successiva, aggiungendo [SNYK-JAVA-ORGPOSTGRESQL-16321668](https://security.snyk.io/vuln/SNYK-JAVA-ORGPOSTGRESQL-16321668) (High) su `org.postgresql:postgresql@42.7.10` — versione fissata dal BOM di Spring Boot 4.0.6. Il finding era bloccante perché `--fail-on=upgradable` e la versione corretta `42.7.11` era disponibile. **Soluzione:** override della proprietà `<postgresql.version>42.7.11</postgresql.version>` in [`pom.xml`](../../backend/pom.xml#L20) per sovrascrivere il valore del BOM in attesa del rilascio di Spring Boot 4.0.7.
 
 #### [`zap.yml`](../../.github/workflows/zap.yml#L4)
 
