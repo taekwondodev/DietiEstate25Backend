@@ -1,0 +1,35 @@
+version: 2
+secret:
+  ignored-matches:
+    # --- False positives: test data ---
+    - name: "password_test in SQL test fixtures - plaintext test seed, not a credential"
+      match: "9989c34dede1b0406f8c6785750ff7076b49dca386b4ca7b72c8694c7e7ea490"
+
+    - name: "JWT tokens in JwtServiceSecurityTests - expired, intentionally wrong signature"
+      match: "b93a083b3684ae8478aa7979ba8d5dbfa2976e3e732d919c32b072756ac05353"
+
+    - name: "BCrypt hash comment in 02_test_data.sql - documents hash algorithm, not a secret"
+      match: "01759f35d865ad3c42211695441289d00c7dd0ba63c52bb7692fdd5c902184a8"
+
+    - name: "README setup instructions with placeholder values (<TUA_EMAIL>, <TUA_APP_PASSWORD>)"
+      match: "5d47949495e88496faa0ecfab5b050727dcc2a55854c2642ed827aae8bbbe107"
+
+    # --- Test environment secret ---
+    - name: "app.jwt.secret in application-test.properties - test-only signing key, ephemeral DB, no production data"
+      match: "13e5aeb73fbc98c757e4d60765cbd3003daca573606519504a85bebd63483b15"
+
+    # --- Historical secrets: removed and invalidated ---
+    - name: "AWS Cognito credentials - removed after Cognito migration, app no longer exists"
+      match: "aa027ea7f50d2c8280fea3d305bc705032f9452f881e50e5476c833cf5463cbd"
+
+    - name: "AWS IAM keys - removed, Validity: Invalid confirmed by ggshield"
+      match: "114ae1aff7348a87e4e1663af165df22c42f05939037087029bffb352ace8607"
+
+    - name: "SMTP credentials in application.properties - removed in subsequent commit (f8e1e86)"
+      match: "1f11ae533eee6e359596f00a01fd229b02ca4bf1a0040eacad4dcd8944dc3830"
+
+    - name: "DB datasource credentials in application.properties - removed in subsequent commit (f8e1e86)"
+      match: "6a32095d88bfd90a7e65c1fbbdc28dd8c4051ecf75801786a3f8a07b1fa121d1"
+
+    - name: "Postgres password in credentials.env - removed in commit 9cca5e5"
+      match: "ab591cce0c662180f6c0514749ff4f5063b623e2f9855f3150ddb769b421acdc"

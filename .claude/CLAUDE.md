@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Description
 
-DietiEstates25 is a real estate management platform. Features: property search/creation, visit booking, offer management, geospatial integration (Geoapify), weather forecasts (Open Meteo), and a multi-tenant agency system with role-based access.
+DietiEstates25 is a university project — a real estate management platform. Features: property search/creation, visit booking, offer management, geospatial integration (Geoapify), weather forecasts (Open Meteo), and a multi-tenant agency system with role-based access.
+
+**Active branch:** `security` — default working branch, dedicated to security refactoring. Goal: produce a final security report for academic evaluation. The final security report is the `README.md` at the root of the project (`/README.md`).
 
 ## Stack
 
@@ -115,3 +117,12 @@ Schema in `db-init/01_schema.sql`, test fixtures in `db-init/02_test_data.sql`. 
 - Brute-force protection: account lockout after repeated failed logins
 - Stateless sessions (no server-side session state)
 - Structured test coverage tracked via JaCoCo + SonarQube (CI in `.github/workflows/`)
+
+## Security Report Rules
+
+Rules for writing and maintaining `/README.md` (the final security report).
+
+- **Link over repeat:** When referencing tests, test names, or code, provide a direct `file_path:line_number` link. Never reproduce code inline if a link suffices.
+- **Split large sections:** Sections with substantial content must live in a dedicated `README.md` under `docs/<section-name>/`. The main `/README.md` links to them; it does not inline their content.
+- **Justify every security choice explicitly:** For each security decision, always explain: (1) what the problem/risk was before, (2) what the chosen solution is and why, (3) what changes concretely now. Never describe only what was implemented — always describe the before/after and the motivation.
+- **GitHub Actions workflows — outcomes required:** For each workflow described in the report, always document its results: what reports it produces, where they are published, and how findings were acted upon (accepted, fixed, suppressed with justification). Never describe a workflow without its outcome.

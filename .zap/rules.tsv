@@ -1,2 +1,1 @@
 10049	IGNORE	(Non-Storable Content - REST API backend, cache-control: no-store is correct behavior)
-40042	IGNORE	(Spring Actuator Health - intentional liveness/readiness endpoint for Kubernetes)

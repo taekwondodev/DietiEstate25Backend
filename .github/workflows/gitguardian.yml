@@ -1,0 +1,37 @@
+name: GitGuardian Secrets Scan
+
+on:
+  workflow_call:
+
+jobs:
+  secrets:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install ggshield
+        run: pip install ggshield
+
+      - name: GitGuardian scan (SARIF)
+        run: ggshield secret scan path . --recursive --format sarif --output gitguardian.sarif || true
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+      - name: Upload SARIF to GitHub Security tab
+        if: hashFiles('gitguardian.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gitguardian.sarif
+          category: gitguardian
+
+      - name: Fail on detected secrets (full history)
+        run: ggshield secret scan repo .
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}

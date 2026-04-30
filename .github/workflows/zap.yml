@@ -8,7 +8,7 @@ env:
 
 jobs:
   zap:
-    name: ZAP Scan
+    name: ZAP API Scan
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -44,7 +44,7 @@ jobs:
       - name: Wait for application ready
         run: |
           for i in $(seq 1 24); do
-            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8081/actuator/health > /dev/null 2>&1; then
               echo "Application is healthy"
               exit 0
             fi

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - security
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  secrets:
+    uses: ./.github/workflows/gitguardian.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
+
+  test:
+    needs: secrets
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  sast:
+    needs: test
+    uses: ./.github/workflows/sonar.yml
+    secrets: inherit
+
+  sca:
+    needs: test
+    uses: ./.github/workflows/snyk.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
+
+  semgrep:
+    needs: test
+    uses: ./.github/workflows/semgrep.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
+
+  dast:
+    needs: [sast, semgrep, sca]
+    uses: ./.github/workflows/zap.yml
+    secrets: inherit
+    permissions:
+      issues: write
+      contents: read
+
+  trivy:
+    needs: dast
+    uses: ./.github/workflows/trivy.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
