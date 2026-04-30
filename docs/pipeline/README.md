@@ -72,25 +72,18 @@ Il workflow fallisce (`exit-code: 1`) se viene rilevato un secret non ignorato, 
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `test`. Scarica il report JaCoCo prodotto nella stessa run, compila i sorgenti con Maven e lancia l'analisi SonarQube con coverage reale (non disponibile senza database PostgreSQL).
+Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `test`. Scarica il report JaCoCo prodotto nella stessa run, compila i sorgenti con Maven e lancia l'analisi SonarCloud con coverage reale (non disponibile senza database PostgreSQL). Il flag `-Dsonar.qualitygate.wait=true` blocca il job finché SonarCloud non pubblica il risultato del quality gate — se il gate non passa, il job fallisce e blocca il merge.
 
-**Output:** analisi pubblicata su [SonarCloud](https://sonarcloud.io/project/overview?id=taekwondodev_DietiEstate25Backend). Risultati attuali:
+Il quality gate è configurato su SonarCloud con sole quattro condizioni: `Security Rating`, `Bugs`, `Vulnerabilities`, `Security Hotspots Reviewed`. Metriche non legate alla sicurezza (coverage, code smells, duplications) sono escluse dal gate.
+
+**Output:** analisi pubblicata su [SonarCloud](https://sonarcloud.io/project/overview?id=taekwondodev_DietiEstate25Backend). Risultati attuali sulle metriche tracciate dal quality gate:
 
 | Metrica | Valore |
 |---------|--------|
-| **Reliability Rating** | A |
 | **Security Rating** | A |
-| **Maintainability Rating** | A |
 | **Bugs** | 0 |
 | **Vulnerabilities** | 0 |
 | **Security Hotspots** | 0 |
-| **Code Smells** | 66 |
-| **Duplications** | 0.0% |
-| **Coverage (SonarCloud)** | 80.7% |
-
-I 66 code smells sono avvisi di maintainability (naming conventions, complessità ciclomatica) che non impattano correttezza o sicurezza — accettati senza intervento.
-
-> **Discrepanza di coverage:** SonarCloud riporta **80.7%** contro **82.9%** di JaCoCo. SonarCloud esclude classi generate automaticamente (Lombok, modelli) o calcola su un sottoinsieme diverso di linee — atteso e non actionable.
 
 #### [`snyk.yml`](../../.github/workflows/snyk.yml#L1)
 
@@ -148,6 +141,20 @@ Trivy Image Scan ha riportato CVE HIGH su package OS dell'immagine base `eclipse
 Si attiva tramite `workflow_run` al completamento con successo di `CI`. Contiene un singolo job che builda l'immagine di produzione con Docker BuildKit e la pubblica su Docker Hub con due tag: `latest` e il SHA del commit (`taekwondodev/dietiestate25-backend:<sha>`), garantendo tracciabilità e possibilità di rollback. Richiede i secret `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` configurati nel repository.
 
 **Output:** immagine pubblicata su [Docker Hub](https://hub.docker.com/r/taekwondodev/dietiestate25-backend) con tag `latest` e `<commit-sha>`. Il tag SHA permette rollback deterministico a qualsiasi build precedente.
+
+#### Docker Scout
+
+Docker Scout è abilitato sull'immagine di produzione pubblicata su Docker Hub (`taekwondodev/dietiestate25-backend`) e analizza in modo continuo i CVE presenti nell'immagine dopo ogni push, complementando la scansione Trivy eseguita in CI prima del deploy.
+
+**Finding gestiti:**
+
+Docker Scout ha rilevato due vulnerabilità Medium su package Alpine dell'immagine pubblicata:
+
+- **CVE-2025-60876** (`busybox 1.37.0-r30`): `busybox wget` accetta caratteri di controllo CR/LF nel request-target HTTP, permettendo HTTP header injection. **Status Alpine:** nessuna versione fixata disponibile su nessuna branch (3.19 → 3.23 → edge) — né `apk upgrade` né un aggiornamento dell'immagine base risolvono il finding. **Accettato:** `wget` non viene eseguito a runtime dall'applicazione; Spring Boot non lo invoca in nessun path operativo, quindi la superficie di attacco è zero.
+
+- **CVE-2016-2781** (`coreutils 9.8-r1`): il comando `chroot --userspec` è vulnerabile a un escape via `TIOCSTI ioctl`, che permetterebbe a un utente locale di iniettare input nel terminale del processo padre. **Status Alpine:** CVE mai patchato dal 2016 su nessuna branch. **Accettato:** Docker blocca `TIOCSTI` tramite il suo seccomp profile di default (attivo sin da Docker 1.10), neutralizzando l'exploit a livello runtime senza alcuna modifica al container.
+
+L'unica alternativa alla risk acceptance sarebbe sostituire l'immagine base con una distroless o scratch, eliminando fisicamente i package incriminati. Questa scelta introdurrebbe complessità di build sproporzionata rispetto al rischio effettivo, che è zero in entrambi i casi per le ragioni sopra indicate.
 
 #### [`dependabot.yml`](../../.github/dependabot.yml#L4)
 
