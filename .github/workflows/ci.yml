@@ -11,6 +11,9 @@ jobs:
   secrets:
     uses: ./.github/workflows/gitguardian.yml
     secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
 
   test:
     needs: secrets
