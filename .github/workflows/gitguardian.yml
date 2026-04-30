@@ -20,12 +20,12 @@ jobs:
         run: pip install ggshield
 
       - name: GitGuardian scan (SARIF)
-        run: ggshield secret scan path . --recursive --format sarif --output gitguardian.sarif
-        continue-on-error: true
+        run: ggshield secret scan path . --recursive --format sarif --output gitguardian.sarif || true
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
       - name: Upload SARIF to GitHub Security tab
+        if: hashFiles('gitguardian.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gitguardian.sarif
