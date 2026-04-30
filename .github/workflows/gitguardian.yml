@@ -20,7 +20,7 @@ jobs:
         run: pip install ggshield
 
       - name: GitGuardian scan (SARIF)
-        run: ggshield secret scan repo . --format sarif --output gitguardian.sarif
+        run: ggshield secret scan path . --recursive --format sarif --output gitguardian.sarif
         continue-on-error: true
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
@@ -31,7 +31,7 @@ jobs:
           sarif_file: gitguardian.sarif
           category: gitguardian
 
-      - name: Fail on detected secrets
+      - name: Fail on detected secrets (full history)
         run: ggshield secret scan repo .
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
