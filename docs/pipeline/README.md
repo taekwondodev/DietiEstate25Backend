@@ -1,6 +1,6 @@
 ## Pipeline
 
-Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze. La pipeline copre sei domini di sicurezza distinti: secrets detection (GitGuardian), SAST (SonarQube), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy) e aggiornamento automatico dipendenze (Dependabot).
+Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze. La pipeline copre sette domini di sicurezza distinti: secrets detection (GitGuardian), SAST dataflow (SonarCloud), SAST pattern-based (Semgrep), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy) e aggiornamento automatico dipendenze (Dependabot).
 
 ### Docker
 
@@ -32,17 +32,18 @@ push / pull_request
         ▼
        CI ──────────────────────────────────────────── (workflow_run on CI success)
         ├── 1. secrets → GitGuardian (secrets scan)              │
-        ├── 2. test    → build + test + JaCoCo                   │
-        ├── 3. sast    → SonarQube        ┐ (dopo test)          │
-        ├── 4. sca     → Snyk             ┘ (dopo test)          │
-        ├── 5. dast    → OWASP ZAP (dopo sast + sca)             │
-        └── 6. trivy   → image scan (dopo dast)                  ▼
+        ├── 2. test    → build + test + JaCoCo (dopo secrets)    │
+        ├── 3. sast    → SonarQube        ┐                      │
+        ├── 4. semgrep → Semgrep          ┤ (dopo test)          │
+        ├── 5. sca     → Snyk             ┘                      │
+        ├── 6. dast    → OWASP ZAP (dopo sast + semgrep + sca)   │
+        └── 7. trivy   → image scan (dopo dast)                  ▼
                                                            Deploy → Docker Hub
 ```
 
-Il deploy viene eseguito solo se **tutti** gli step di CI completano con successo. Nella dashboard di GitHub Actions appaiono **due pipeline distinte**: **CI** e **Deploy**. I workflow [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1), [`test.yml`](../../.github/workflows/test.yml#L4), [`sonar.yml`](../../.github/workflows/sonar.yml#L4), [`snyk.yml`](../../.github/workflows/snyk.yml#L1), [`zap.yml`](../../.github/workflows/zap.yml#L4) e [`trivy.yml`](../../.github/workflows/trivy.yml#L3) sono privi di trigger autonomi e vengono eseguiti come reusable workflow orchestrati da [`ci.yml`](../../.github/workflows/ci.yml#L3); [`deploy.yml`](../../.github/workflows/deploy.yml#L4) è invece autonomo con trigger `workflow_run` su `CI`.
+Il deploy viene eseguito solo se **tutti** gli step di CI completano con successo. Nella dashboard di GitHub Actions appaiono **due pipeline distinte**: **CI** e **Deploy**. I workflow [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1), [`test.yml`](../../.github/workflows/test.yml#L4), [`sonar.yml`](../../.github/workflows/sonar.yml#L4), [`semgrep.yml`](../../.github/workflows/semgrep.yml#L1), [`snyk.yml`](../../.github/workflows/snyk.yml#L1), [`zap.yml`](../../.github/workflows/zap.yml#L4) e [`trivy.yml`](../../.github/workflows/trivy.yml#L3) sono privi di trigger autonomi e vengono eseguiti come reusable workflow orchestrati da [`ci.yml`](../../.github/workflows/ci.yml#L3); [`deploy.yml`](../../.github/workflows/deploy.yml#L4) è invece autonomo con trigger `workflow_run` su `CI`.
 
-**[`ci.yml`](../../.github/workflows/ci.yml#L3)** — orchestratore della pipeline di verifica. Si attiva ad ogni push sul branch `security` e ad ogni pull request. Coordina sei workflow riutilizzabili in un grafo di dipendenze parzialmente parallelo: `secrets` (GitGuardian) e `test` partono in parallelo senza dipendenze; `sast` (SonarQube) e `sca` (Snyk) partono dopo `test` in parallelo tra loro; `dast` (ZAP) parte solo dopo che entrambi `sast` e `sca` completano; `trivy` (image scan) segue `dast`.
+**[`ci.yml`](../../.github/workflows/ci.yml#L3)** — orchestratore della pipeline di verifica. Si attiva ad ogni push sul branch `security` e ad ogni pull request. Coordina sette workflow riutilizzabili in un grafo di dipendenze sequenziale-parallelo: `secrets` (GitGuardian) parte per primo senza dipendenze — nessuna build viene avviata se un secret è rilevato; `test` parte solo dopo `secrets`; `sast` (SonarQube), `semgrep` e `sca` (Snyk) partono dopo `test` in parallelo tra loro; `dast` (ZAP) parte solo dopo che `sast`, `semgrep` e `sca` completano; `trivy` (image scan) segue `dast`.
 
 #### [`test.yml`](../../.github/workflows/test.yml#L4)
 
@@ -58,15 +59,13 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `test` — non richiede build né compilazione. Usa l'action ufficiale [`GitGuardian/ggshield/actions/secret@v1.49.0`](https://github.com/GitGuardian/ggshield) per scansionare il repository alla ricerca di **secrets hardcodati**: API key, token di accesso, credenziali database, certificati privati e qualsiasi stringa che corrisponda ai pattern di oltre 500 provider noti.
 
-La copertura della scansione dipende dal tipo di evento:
-- **Push** (`GITHUB_PUSH_BEFORE_SHA` + `GITHUB_PUSH_BASE_SHA`): scansiona solo i commit del push corrente.
-- **Pull Request** (`GITHUB_PULL_BASE_SHA`): scansiona tutti i commit aggiunti dal branch rispetto alla base — garantendo che un secret introdotto in un commit intermedio non sfugga anche se rimosso in un commit successivo.
+Usa `ggshield secret scan repo` — scansione **globale** dell'intera git history del repository, non incrementale. Ogni run analizza tutti i commit su tutti i branch: un secret introdotto mesi fa e poi rimosso rimane rilevabile nella history. Il flag `fetch-depth: 0` nel checkout garantisce che l'intera history sia disponibile al runner.
 
 A differenza di Trivy (che segnala credenziali solo come parte di una scansione CVE su file statici) e di SonarQube (che cerca pattern generici di hardcoded credentials), GitGuardian è specializzato esclusivamente nel secrets detection: mantiene un database continuamente aggiornato di pattern per provider specifici (AWS, GCP, GitHub, database, servizi di terze parti) con tasso di falsi positivi molto basso.
 
-Il workflow fallisce (`exit-code: 1`) se viene rilevato un secret non ignorato, bloccando il merge prima ancora che la build sia completata.
+Il workflow fallisce se viene rilevato un secret non ignorato, bloccando la build prima ancora che i test partano.
 
-**Output:** finding riportati direttamente nel log del job con tipo di secret, file e riga. Nessun dashboard esterno — l'integrazione usa solo API key senza GitHub App; per la dashboard su app.gitguardian.com sarebbe necessaria l'installazione della GitHub App sul repository.
+**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `gitguardian`. Se non vengono rilevati secret, il job passa senza produrre alert.
 
 **Risultato:** nessun secret rilevato in tutte le run eseguite sul branch `security`.
 
@@ -84,6 +83,21 @@ Il quality gate è configurato su SonarCloud con sole quattro condizioni: `Secur
 | **Bugs** | 0 |
 | **Vulnerabilities** | 0 |
 | **Security Hotspots** | 0 |
+
+#### [`semgrep.yml`](../../.github/workflows/semgrep.yml#L1)
+
+Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `sast` e `sca` dopo il completamento di `test`. Installa Semgrep OSS via `pip` ed esegue una scansione statica sui sorgenti in `backend/src/main/java/` con due ruleset ufficiali:
+
+- **`p/java`** — pattern di sicurezza specifici per Java: deserializzazione non sicura, SSRF, path traversal, injection via API standard (`Runtime.exec`, `ProcessBuilder`, JDBC, JNDI).
+- **`p/owasp-top-ten`** — mapping diretto alle 10 categorie OWASP Top 10 (A01–A10): broken access control, injection, insecure design, security misconfiguration, vulnerable components, identification and authentication failures, SSRF, ecc.
+
+**Separazione dei domini rispetto a SonarQube:** SonarQube usa analisi dataflow (taint tracking) e rileva bug di sicurezza tracciando il flusso dei dati attraverso il codice, applicando regole personalizzate e quality gate legati a metriche di qualità. Semgrep è complementare: usa pattern matching su AST con regole esplicite e trasparenti, specializzate per vulnerabilità note (OWASP Top 10) senza dipendere dalla configurazione del quality gate. I due strumenti operano con engine diversi su superfici parzialmente sovrapposte — la doppia copertura aumenta la probabilità di intercettare finding che un singolo strumento potrebbe perdere.
+
+Non è richiesto alcun token (`SEMGREP_APP_TOKEN`) per l'esecuzione con ruleset pubblici `p/` — Semgrep OSS accede ai ruleset dalla registry pubblica senza autenticazione.
+
+**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `semgrep`. La scansione usa `continue-on-error: true`: i finding non bloccano il job, ma vengono comunque pubblicati come alert per revisione. Se non vengono rilevati finding, il job passa senza produrre alert.
+
+**Finding gestiti:** nessun finding rilevato nelle run iniziali. La codebase era già stata analizzata con SonarQube (zero vulnerabilità, zero security hotspot) prima dell'introduzione di Semgrep.
 
 #### [`snyk.yml`](../../.github/workflows/snyk.yml#L1)
 

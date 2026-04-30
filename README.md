@@ -70,6 +70,7 @@ DietiEstates25 è una piattaforma per la gestione e commercializzazione di propr
 | **Snyk** | Cloud | SCA — CVE su dipendenze Maven con remediation advice + license compliance (GPL/AGPL detection)                                              |
 | **Trivy** | v0.35.0 | Scansione CVE sui package OS dell'immagine Docker (HIGH/CRITICAL)                                                                           |
 | **SonarCloud** | Cloud | Analisi statica del codice, quality gate e copertura                                                                                        |
+| **Semgrep** | OSS | SAST pattern-based — ruleset `p/java` e `p/owasp-top-ten` per vulnerability pattern matching su sorgenti Java                               |
 | **OWASP ZAP** | v0.15.0 / v0.10.0 | Analisi dinamica — baseline passivo e tre API scan autenticati per ruolo (Cliente, AgenteImmobiliare, Admin), alimentati dallo spec OpenAPI |
 | **Dependabot** | GitHub | Aggiornamento automatico dipendenze Maven e GitHub Actions                                                                                  |
 
@@ -164,17 +165,13 @@ Autenticazione migrata da AWS Cognito a Spring Security in-house: JWT emessi e v
 
 ## Pipeline
 
-Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitHub Actions per l'orchestrazione di sei domini di sicurezza distinti — secrets detection (GitGuardian), analisi statica (SonarCloud), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy image scan) — più deploy automatico su Docker Hub al completamento di tutti i check. Dependabot monitora dipendenze Maven, Docker e Actions.
+Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitHub Actions per l'orchestrazione di sette domini di sicurezza distinti — secrets detection (GitGuardian), analisi statica dataflow (SonarCloud), analisi statica pattern-based (Semgrep), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy image scan) — più deploy automatico su Docker Hub al completamento di tutti i check. Dependabot monitora dipendenze Maven, Docker e Actions.
 
 → [docs/pipeline/README.md](docs/pipeline/README.md)
 
-## Configurazione Progetto
+## Secrets
 
-[`application.properties`](backend/src/main/resources/application.properties) legge tutte le variabili d'ambiente — il file è versionato senza valori sensibili. I valori reali sono iniettati a runtime tramite Kubernetes Secrets (codificati in base64, non versionati). 
-
-In caso di variabile mancante l'applicazione fallisce allo startup — approccio **Fail-Fast**: nessuno stato indefinito viene propagato.
-
-[`application-test.properties`](backend/src/test/resources/application-test.properties) è usato esclusivamente dai test: punta al database `postgres-test:5432/test_db` con credenziali fisse (`test`/`test`), hardcoded perché il namespace di test è isolato e non esposto.
+Variabili d'ambiente sensibili (DB, JWT, SMTP, Geoapify) iniettate a runtime tramite Kubernetes Secrets non versionati. Variabile mancante → crash allo startup (Fail-Fast). Lista completa, generazione e setup locale → [docs/secrets/README.md](docs/secrets/README.md).
 
 ---
 

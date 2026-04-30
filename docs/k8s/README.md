@@ -34,9 +34,7 @@ Scelta basata sul principio del minimo privilegio applicato a livello di rete: o
 
 ## Gestione dei Secret
 
-Tutte le credenziali (password PostgreSQL, JWT secret, datasource URL) sono iniettate come variabili d'ambiente tramite Kubernetes Secrets (`k8s/postgres/secret.yaml`, `k8s/backend/secret.yaml`). I file `secret.yaml` non sono version controllati.
-
-I Secret vengono montati nei pod a runtime senza mai toccare il filesystem dell'host o il repository. L'encoding base64 è il formato richiesto da Kubernetes — non è cifratura. La protezione reale è data dal fatto che il file non è versionato e l'accesso al cluster è ristretto.
+I file `secret.yaml` non sono version controllati. Variabili, generazione e meccanismo di iniezione → [docs/secrets/README.md](../secrets/README.md).
 
 ---
 

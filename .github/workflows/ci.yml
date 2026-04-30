@@ -13,6 +13,7 @@ jobs:
     secrets: inherit
 
   test:
+    needs: secrets
     uses: ./.github/workflows/test.yml
     secrets: inherit
 
@@ -29,8 +30,16 @@ jobs:
       security-events: write
       contents: read
 
+  semgrep:
+    needs: test
+    uses: ./.github/workflows/semgrep.yml
+    secrets: inherit
+    permissions:
+      security-events: write
+      contents: read
+
   dast:
-    needs: [sast, sca]
+    needs: [sast, semgrep, sca]
     uses: ./.github/workflows/zap.yml
     secrets: inherit
     permissions:

@@ -74,7 +74,7 @@ Poiché il JWT è auto-contenuto e firmato, il server estrae i claim direttament
 openssl rand -base64 32
 ```
 
-Il risultato (32 byte = 256 bit) viene iniettato come variabile d'ambiente `app.jwt.secret` tramite un Kubernetes Secret definito in `k8s/backend/secret.yaml`, non version controllato. Mai hardcoded nel codice.
+Il risultato (32 byte = 256 bit) viene iniettato come variabile d'ambiente `JWT_SECRET` tramite Kubernetes Secret — generazione e iniezione → [docs/secrets/README.md](../secrets/README.md).
 
 ---
 
