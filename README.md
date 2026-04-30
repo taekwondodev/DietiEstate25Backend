@@ -171,7 +171,9 @@ Pipeline CI strutturata su due livelli: Docker per ambienti riproducibili e GitH
 
 ## Secrets
 
-Variabili d'ambiente sensibili (DB, JWT, SMTP, Geoapify) iniettate a runtime tramite Kubernetes Secrets non versionati. Variabile mancante → crash allo startup (Fail-Fast). Lista completa, generazione e setup locale → [docs/secrets/README.md](docs/secrets/README.md).
+Variabili d'ambiente sensibili (DB, JWT, SMTP, Geoapify) iniettate a runtime tramite Kubernetes Secrets non versionati. Variabile mancante → crash allo startup (Fail-Fast). 
+
+Lista completa, generazione e setup locale → [docs/secrets/README.md](docs/secrets/README.md).
 
 ---
 
