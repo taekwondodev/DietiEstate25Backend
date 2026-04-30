@@ -67,7 +67,7 @@ Il workflow fallisce se viene rilevato un secret non ignorato, bloccando la buil
 
 **Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `gitguardian`. Se non vengono rilevati secret, il job passa senza produrre alert.
 
-**Risultato:** nessun secret rilevato in tutte le run eseguite sul branch `security`.
+**Finding gestiti:** la scansione globale della git history ha rilevato dieci incident classificati in tre categorie: falsi positivi su dati di test, secret di test environment committati intenzionalmente, e secret storici già rimossi e invalidati. Ogni soppressione è documentata con giustificazione in [`.gitguardian.yaml`](../../.gitguardian.yaml#L1).
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
