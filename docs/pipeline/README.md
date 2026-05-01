@@ -30,20 +30,20 @@ La configurazione di GitHub Actions è composta da sei file in `.github/`. Un or
 push / pull_request
         │
         ▼
-       CI ──────────────────────────────────────────── (workflow_run on CI success)
-        ├── 1. secrets → GitGuardian (secrets scan)              │
-        ├── 2. test    → build + test + JaCoCo (dopo secrets)    │
-        ├── 3. sast    → SonarQube        ┐                      │
-        ├── 4. semgrep → Semgrep          ┤ (dopo test)          │
-        ├── 5. sca     → Snyk             ┘                      │
-        ├── 6. dast    → OWASP ZAP (dopo sast + semgrep + sca)   │
-        └── 7. trivy   → image scan (dopo dast)                  ▼
-                                                           Deploy → Docker Hub
+       CI ────────────────────────────────────────────────────────────────────── (workflow_run on CI success)
+        ├── 1. secrets → GitGuardian (secrets scan)                                         │
+        ├── 2. test    → build + test + JaCoCo (dopo secrets)                               │
+        ├── 3. sast    → SonarQube        ┐                                                 │
+        ├── 4. semgrep → Semgrep          ┤ (dopo test)                                     │
+        ├── 5. sca     → Snyk             ┘                                                 │
+        ├── 6. dast    → OWASP ZAP   ┐ (dopo sast + semgrep + sca, in parallelo)            |
+        └── 7. trivy   → image scan  ┘                                                      ▼
+                                                                                     Deploy → Docker Hub
 ```
 
 Il deploy viene eseguito solo se **tutti** gli step di CI completano con successo. Nella dashboard di GitHub Actions appaiono **due pipeline distinte**: **CI** e **Deploy**. I workflow [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1), [`test.yml`](../../.github/workflows/test.yml#L4), [`sonar.yml`](../../.github/workflows/sonar.yml#L4), [`semgrep.yml`](../../.github/workflows/semgrep.yml#L1), [`snyk.yml`](../../.github/workflows/snyk.yml#L1), [`zap.yml`](../../.github/workflows/zap.yml#L4) e [`trivy.yml`](../../.github/workflows/trivy.yml#L3) sono privi di trigger autonomi e vengono eseguiti come reusable workflow orchestrati da [`ci.yml`](../../.github/workflows/ci.yml#L3); [`deploy.yml`](../../.github/workflows/deploy.yml#L4) è invece autonomo con trigger `workflow_run` su `CI`.
 
-**[`ci.yml`](../../.github/workflows/ci.yml#L3)** — orchestratore della pipeline di verifica. Si attiva ad ogni push sul branch `security` e ad ogni pull request. Coordina sette workflow riutilizzabili in un grafo di dipendenze sequenziale-parallelo: `secrets` (GitGuardian) parte per primo senza dipendenze — nessuna build viene avviata se un secret è rilevato; `test` parte solo dopo `secrets`; `sast` (SonarQube), `semgrep` e `sca` (Snyk) partono dopo `test` in parallelo tra loro; `dast` (ZAP) parte solo dopo che `sast`, `semgrep` e `sca` completano; `trivy` (image scan) segue `dast`.
+**[`ci.yml`](../../.github/workflows/ci.yml#L3)** — orchestratore della pipeline di verifica. Si attiva ad ogni push sul branch `security` e ad ogni pull request. Coordina sette workflow riutilizzabili in un grafo di dipendenze sequenziale-parallelo: `secrets` (GitGuardian) parte per primo senza dipendenze — nessuna build viene avviata se un secret è rilevato; `test` parte solo dopo `secrets`; `sast` (SonarQube), `semgrep` e `sca` (Snyk) partono dopo `test` in parallelo tra loro; `dast` (ZAP) e `trivy` (image scan) partono entrambi dopo che `sast`, `semgrep` e `sca` completano, in parallelo tra loro.
 
 #### [`test.yml`](../../.github/workflows/test.yml#L4)
 
@@ -61,7 +61,7 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 Usa `ggshield secret scan repo` — scansione **globale** dell'intera git history del repository, non incrementale. Ogni run analizza tutti i commit su tutti i branch: un secret introdotto mesi fa e poi rimosso rimane rilevabile nella history. Il flag `fetch-depth: 0` nel checkout garantisce che l'intera history sia disponibile al runner.
 
-A differenza di Trivy (che segnala credenziali solo come parte di una scansione CVE su file statici) e di SonarQube (che cerca pattern generici di hardcoded credentials), GitGuardian è specializzato esclusivamente nel secrets detection: mantiene un database continuamente aggiornato di pattern per provider specifici (AWS, GCP, GitHub, database, servizi di terze parti) con tasso di falsi positivi molto basso.
+A differenza di SonarQube (che cerca pattern generici di hardcoded credentials), GitGuardian è specializzato esclusivamente nel secrets detection: mantiene un database continuamente aggiornato di pattern per provider specifici (AWS, GCP, GitHub, database, servizi di terze parti) con tasso di falsi positivi molto basso.
 
 Il workflow fallisce se viene rilevato un secret non ignorato, bloccando la build prima ancora che i test partano.
 
@@ -107,7 +107,7 @@ Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workfl
 
 2. **License Compliance** (`snyk-license`): esegue `snyk test --print-deps` con policy configurata in [`.snyk`](../../.snyk#L1) per bloccare licenze incompatibili con il progetto (GPL-2.0, GPL-3.0, AGPL-3.0). Questo controllo non è coperto né da Trivy né da SonarQube — entrambi operano su CVE, non su license metadata.
 
-**Separazione dei domini rispetto a Trivy:** Trivy image scan rimane responsabile dei CVE nei package OS dell'immagine base (`eclipse-temurin:25-jre-alpine`) — superficie che Snyk non copre per default con `snyk test`. Snyk copre le dipendenze Maven (incluse le transitive) con remediation advice e la compliance delle licenze. Il job `trivy-fs` è stato rimosso per eliminare la ridondanza sulla scansione del `pom.xml`.
+**Separazione dei domini rispetto a Trivy:** Trivy image scan rimane responsabile dei CVE nei package OS dell'immagine base (`eclipse-temurin:25-jre-alpine`) — superficie che Snyk non copre per default con `snyk test`. Snyk copre le dipendenze Maven (incluse le transitive) con remediation advice e la compliance delle licenze.
 
 **Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto le categorie `snyk-oss` e `snyk-license`. Se non vengono rilevate vulnerabilità o violazioni di licenza, il job passa senza produrre alert.
 
@@ -141,9 +141,9 @@ Vulnerabilità corretta:
 
 Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `dast`. Esegue un singolo job focalizzato esclusivamente sulla **sicurezza del container**:
 
-- **Image Scan** (`trivy-image`): builda l'immagine di produzione ([`Dockerfile`](../../backend/Dockerfile#L2)) e scansiona i package OS del layer runtime (`eclipse-temurin:25-jre-alpine`) — librerie di sistema, glibc, OpenSSL e qualsiasi package Alpine presente nell'immagine finale. Sfrutta la stessa strategia di cache Docker BuildKit usata in [`test.yml`](../../.github/workflows/test.yml#L4), con una chiave separata per evitare collisioni. Il job fallisce con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge.
+- **Image Scan** (`trivy-image`): builda l'immagine di produzione ([`Dockerfile`](../../backend/Dockerfile#L2)) e scansiona i package OS del layer runtime (`eclipse-temurin:25-jre-alpine`) — librerie di sistema, glibc, OpenSSL e qualsiasi package Alpine presente nell'immagine finale — confrontandoli contro il database di CVE noti (NVD, OSV, GitHub Advisory). Sfrutta la stessa strategia di cache Docker BuildKit usata in [`test.yml`](../../.github/workflows/test.yml#L4), con una chiave separata per evitare collisioni. Il job fallisce con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge.
 
-Il job `trivy-fs` (scansione del filesystem e di `pom.xml`) è stato rimosso perché la sua responsabilità è ora suddivisa tra strumenti specializzati: GitGuardian copre i secrets nei file, Snyk copre le dipendenze Maven con remediation advice. Trivy rimane l'unico responsabile della superficie OS dell'immagine Docker — superficie non coperta né da Snyk né da GitGuardian.
+Trivy è l'unico strumento della pipeline responsabile della superficie OS dell'immagine Docker: né Snyk (focalizzato sulle dipendenze Maven) né SonarQube/Semgrep (SAST sui sorgenti) coprono i package di sistema del container runtime.
 
 **Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `trivy-image`. Se non vengono rilevati CVE HIGH o CRITICAL con fix disponibile, il job passa senza produrre alert.
 

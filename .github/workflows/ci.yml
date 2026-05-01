@@ -50,7 +50,7 @@ jobs:
       contents: read
 
   trivy:
-    needs: dast
+    needs: [sast, semgrep, sca]
     uses: ./.github/workflows/trivy.yml
     secrets: inherit
     permissions:
