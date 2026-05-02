@@ -1,6 +1,6 @@
 version: 2
 secret:
-  ignored-matches:
+  ignored_matches:
     # --- False positives: test data ---
     - name: "password_test in SQL test fixtures - plaintext test seed, not a credential"
       match: "9989c34dede1b0406f8c6785750ff7076b49dca386b4ca7b72c8694c7e7ea490"

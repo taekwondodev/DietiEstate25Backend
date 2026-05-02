@@ -170,7 +170,9 @@ Docker Scout ha rilevato due vulnerabilità Medium su package Alpine dell'immagi
 
 - **CVE-2016-2781** (`coreutils 9.8-r1`): il comando `chroot --userspec` è vulnerabile a un escape via `TIOCSTI ioctl`, che permetterebbe a un utente locale di iniettare input nel terminale del processo padre. **Status Alpine:** CVE mai patchato dal 2016 su nessuna branch. **Accettato:** Docker blocca `TIOCSTI` tramite il suo seccomp profile di default (attivo sin da Docker 1.10), neutralizzando l'exploit a livello runtime senza alcuna modifica al container.
 
-L'unica alternativa alla risk acceptance sarebbe sostituire l'immagine base con una distroless o scratch, eliminando fisicamente i package incriminati. Questa scelta introdurrebbe complessità di build sproporzionata rispetto al rischio effettivo, che è zero in entrambi i casi per le ragioni sopra indicate.
+- **CVE-2026-23865** (`freetype 2.14.1-r0`): integer overflow in `tt_var_load_item_variation_store` che consente un'operazione di lettura out-of-bounds durante il parsing di tabelle HVAR/VVAR/MVAR in font OpenType variabili. CVSS 5.3 Medium. **Status Alpine:** nessuna patch disponibile su nessuna branch (edge inclusa rimane su 2.14.1-r0/r1) — `apk upgrade` non risolve il finding. **Accettato:** Spring Boot non elabora font; FreeType è una dipendenza di sistema transitiva mai invocata nel path operativo dell'applicazione. La superficie di attacco è zero.
+
+L'unica alternativa alla risk acceptance sarebbe sostituire l'immagine base con una distroless o scratch, eliminando fisicamente i package incriminati. Questa scelta introdurrebbe complessità di build sproporzionata rispetto al rischio effettivo, che è zero in tutti i casi per le ragioni sopra indicate.
 
 #### [`dependabot.yml`](../../.github/dependabot.yml#L4)
 
@@ -182,6 +184,8 @@ Configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecos
 
 Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI ([`ci.yml`](../../.github/workflows/ci.yml#L3)) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
 
+**Secrets:** GitHub tratta i workflow triggherati da Dependabot come fork — i repository secrets sono inaccessibili. I secret `GITGUARDIAN_API_KEY`, `SNYK_TOKEN`, `SONAR_TOKEN`, `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` devono essere configurati anche nella sezione dedicata Settings → Security → Secrets and variables → **Dependabot**, separata da quella di Actions.
+
 **Output:** PR automatiche su GitHub, ciascuna associata a un diff di versione e ai risultati CI prima del merge. Le PR aperte e mergeate da Dependabot sul branch `security` sono state:
 
 | PR | Ecosistema | Aggiornamento |
@@ -192,3 +196,6 @@ Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggio
 | [#6](https://github.com/taekwondodev/DietiEstate25Backend/pull/6) | Docker | `maven` → `3.9.13-eclipse-temurin-25` (Dockerfile.test) |
 | [#7](https://github.com/taekwondodev/DietiEstate25Backend/pull/7) | Maven | `org.springframework.boot:spring-boot-starter-parent` 3.4.1 → 4.0.5 |
 | [#8](https://github.com/taekwondodev/DietiEstate25Backend/pull/8) | Docker | `eclipse-temurin` 21-jre-jammy → 25-jre-jammy (Dockerfile) |
+| [#16](https://github.com/taekwondodev/DietiEstate25Backend/pull/16) | GitHub Actions | `aquasecurity/trivy-action` 0.35.0 → 0.36.0 |
+| [#17](https://github.com/taekwondodev/DietiEstate25Backend/pull/17) | GitHub Actions | `docker/login-action` 3 → 4 |
+| [#18](https://github.com/taekwondodev/DietiEstate25Backend/pull/18) | Docker | `maven` 3.9.13-eclipse-temurin-25 → 3.9.14-eclipse-temurin-25 (Dockerfile.test) |
