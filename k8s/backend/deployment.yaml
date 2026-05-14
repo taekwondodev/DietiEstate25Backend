@@ -32,7 +32,7 @@ spec:
       containers:
         - name: backend
           image: taekwondodev/dietiestate25-backend:latest
-          imagePullPolicy: Always
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
             - containerPort: 8081

@@ -14,6 +14,8 @@ brew install kubectl
 
 ```
 k8s/
+  deploy.sh                               ← Setup iniziale: pull immagine, carica in Kind, applica manifesti
+  update.sh                               ← Aggiornamento: pull nuova immagine, carica in Kind, riavvia deployment
   namespace.yaml                          ← Namespace "dietiestate25"
   postgres/
     configmap-init.yaml                   ← Script SQL montati su /docker-entrypoint-initdb.d/
@@ -71,10 +73,10 @@ echo -n "il-tuo-valore" | base64
 
 ## Deploy
 
+Kind con Podman su macOS non può raggiungere Docker Hub dall'interno dei nodi: l'immagine va scaricata localmente e caricata nel cluster prima di applicare i manifesti. Lo script `k8s/deploy.sh` automatizza l'intero processo.
+
 ```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/postgres/
-kubectl apply -f k8s/backend/
+bash k8s/deploy.sh
 ```
 
 Verifica che i Pod siano Running:
@@ -156,5 +158,5 @@ kind delete cluster --name dietiestate25
 podman machine stop
 
 # Per aggiornare all'ultima immagine pubblicata dalla pipeline
-kubectl rollout restart deployment/backend -n dietiestate25
+bash k8s/update.sh
 ```
