@@ -1,6 +1,22 @@
 ## Pipeline
 
-Il progetto adotta una pipeline CI strutturata su due livelli: containerizzazione con Docker per garantire ambienti riproducibili, e automazione con GitHub Actions per l'esecuzione dei test, l'analisi della qualità del codice e l'aggiornamento automatico delle dipendenze. La pipeline copre sette domini di sicurezza distinti: secrets detection (GitGuardian), SAST dataflow (SonarCloud), SAST pattern-based (Semgrep), SCA con license compliance (Snyk), DAST (OWASP ZAP), container security (Trivy) e aggiornamento automatico dipendenze (Dependabot).
+Pipeline CI su due livelli: containerizzazione Docker per ambienti riproducibili, GitHub Actions per test, analisi sicurezza e aggiornamento dipendenze. Sette domini di sicurezza coperti da tool distinti e non sovrapposti.
+
+### Overview
+
+| Strumento | Dominio | Finding | Status |
+|-----------|---------|---------|--------|
+| [Test Suite](#testyml) | Security testing (OWASP WSTG) | [docs/testing/](../testing/README.md) | Pass |
+| [GitGuardian](#gitguardianymL) | Secrets detection | 10 rilevati — soppressi con giustificazione | Pass |
+| [SonarQube](#sonaryml) | SAST dataflow | 0 | Pass |
+| [Semgrep](#semgrepyml) | SAST pattern-based | 0 | Pass |
+| [Snyk](#snykyml) | SCA + license compliance | 3 batch CVE — corretti | Pass |
+| [OWASP ZAP](#zapyml) | DAST | 1 corretto, 1 soppresso | Pass |
+| [Trivy](#trivyyml) | Container security | CVE HIGH su package Alpine OS layer — corretti | Pass |
+| [Docker Scout](#docker-scout) | Post-deploy CVE | 3 Medium — accettati (no fix disponibile) | Pass |
+| [Dependabot](#dependabotyml) | Deps aggiornamento | 9 PR automatiche mergeate | Merged |
+
+---
 
 ### Docker
 
@@ -8,196 +24,208 @@ Il progetto usa due Dockerfile distinti con scopi e profili di sicurezza diversi
 
 #### [`Dockerfile`](../../backend/Dockerfile#L2) — produzione
 
-**Build multi-stage** ([L2–L16](../../backend/Dockerfile#L2)): la fase di build usa `maven:3.9.13-eclipse-temurin-25` (Maven + JDK completo) per compilare e pacchettizzare. La fase di runtime parte da zero con `eclipse-temurin:25-jre-alpine` e copia solo il JAR compilato. Maven, il JDK, i sorgenti, i file di test e le dipendenze di build non entrano nell'immagine finale — eliminando una classe intera di strumenti che un attaccante potrebbe sfruttare per compilare o eseguire codice arbitrario.
+Build **multi-stage** ([L2–L16](../../backend/Dockerfile#L2)):
 
-**JRE Alpine** ([L16](../../backend/Dockerfile#L16)): Alpine Linux ha una superficie OS drasticamente ridotta rispetto a Debian o Ubuntu — meno package installati significa meno CVE potenziali da gestire. Combinato con il solo JRE (senza `javac`, `jshell`, strumenti di debug), l'immagine espone solo ciò che è strettamente necessario all'esecuzione.
-
-**Aggiornamento proattivo dei package** ([L20–21](../../backend/Dockerfile#L20)): `apk upgrade --no-cache` aggiorna tutti i package OS a ogni build, patchando CVE noti nell'immagine base senza aspettare un aggiornamento upstream. Il parametro `BUILD_WEEK` invalida questo layer settimanalmente in CI: senza questo meccanismo, Docker riutilizzerebbe il layer dalla cache indefinitamente, rendendo l'upgrade di fatto un no-op tra build ravvicinate.
-
-**Utente non privilegiato** ([L24–33](../../backend/Dockerfile#L24)): l'applicazione gira come `appuser` (sistema, no-login) nel gruppo `appgroup`. Un processo root dentro un container, in caso di escape, ottiene privilegi root sull'host — un processo non-root riduce drasticamente l'impatto di una compromissione. Il JAR viene copiato con `--chown=appuser:appgroup` per garantire che l'utente possa leggerlo senza permessi aggiuntivi.
-
-**Nessun secret nell'immagine**: nessuna variabile d'ambiente, credenziale o configurazione sensibile è hardcoded nel Dockerfile. Tutti i valori runtime (datasource, JWT secret, SMTP) sono iniettati dall'esterno — via Kubernetes Secrets in produzione, via Docker Compose in test.
+- **Stage build:** `maven:3.9.13-eclipse-temurin-25` — compila e pacchettizza
+- **Stage runtime:** `eclipse-temurin:25-jre-alpine` — copia solo il JAR; Maven, JDK, sorgenti e dipendenze di build esclusi dall'immagine finale
+- **Alpine + solo JRE** ([L16](../../backend/Dockerfile#L16)): superficie OS minima, nessun `javac`/`jshell`/strumenti di debug
+- **`apk upgrade --no-cache`** ([L20–21](../../backend/Dockerfile#L20)): patcha CVE OS a ogni build; `ARG BUILD_WEEK` invalida il layer settimanalmente in CI (senza: Docker riutilizza cache → upgrade no-op)
+- **Utente non privilegiato** ([L24–33](../../backend/Dockerfile#L24)): `appuser` (sistema, no-login); root in container = root su host in caso di escape
+- **Nessun secret hardcoded**: tutti i valori runtime iniettati esternamente (Kubernetes Secrets in prod, Docker Compose in test)
 
 #### [`Dockerfile.test`](../../backend/Dockerfile.test#L3) — test
 
-Immagine a singolo stage basata su `maven:3.9.13-eclipse-temurin-25`: esegue `mvn clean test` e termina. Non applica le stesse restrizioni del Dockerfile di produzione (nessun utente non-root, nessun upgrade OS) perché il suo ciclo di vita è effimero — viene creata, usata per la durata dei test e distrutta. Non viene mai pubblicata su alcun registry esterno.
+Single-stage su `maven:3.9.13-eclipse-temurin-25`: esegue `mvn clean test` e termina. Ciclo di vita effimero — mai pubblicata su registry esterno; restrizioni di produzione non applicabili.
+
+---
 
 ### GitHub Actions
 
-La configurazione di GitHub Actions è composta da sei file in `.github/`. Un orchestratore centrale [`ci.yml`](../../.github/workflows/ci.yml#L3) chiama quattro workflow in sequenza; il deploy è separato e si attiva al completamento di CI:
+[`ci.yml`](../../.github/workflows/ci.yml#L3) orchestra sette workflow riutilizzabili in un grafo sequenziale-parallelo. [`deploy.yml`](../../.github/workflows/deploy.yml#L4) è autonomo con trigger `workflow_run` su CI completata con successo.
 
 ```
 push / pull_request
         │
         ▼
-       CI ────────────────────────────────────────────────────────────────────── (workflow_run on CI success)
-        ├── 1. secrets → GitGuardian (secrets scan)                                         │
-        ├── 2. test    → build + test + JaCoCo (dopo secrets)                               │
-        ├── 3. sast    → SonarQube        ┐                                                 │
-        ├── 4. semgrep → Semgrep          ┤ (dopo test)                                     │
-        ├── 5. sca     → Snyk             ┘                                                 │
-        ├── 6. dast    → OWASP ZAP   ┐ (dopo sast + semgrep + sca, in parallelo)            |
-        └── 7. trivy   → image scan  ┘                                                      ▼
-                                                                                     Deploy → Docker Hub
+       CI ──────────────────────────────────────────────────── (workflow_run on CI success)
+        ├── 1. secrets → GitGuardian                                      │
+        ├── 2. test    → build + test + JaCoCo (dopo secrets)             │
+        ├── 3. sast    → SonarCloud        ┐                              │
+        ├── 4. semgrep → Semgrep           ┤ (dopo test, in parallelo)    │
+        ├── 5. sca     → Snyk             ┘                              │
+        ├── 6. dast    → OWASP ZAP   ┐ (dopo sast+semgrep+sca)           │
+        └── 7. trivy   → image scan  ┘ (in parallelo)                    ▼
+                                                               Deploy → Docker Hub
 ```
 
-Il deploy viene eseguito solo se **tutti** gli step di CI completano con successo. Nella dashboard di GitHub Actions appaiono **due pipeline distinte**: **CI** e **Deploy**. I workflow [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1), [`test.yml`](../../.github/workflows/test.yml#L4), [`sonar.yml`](../../.github/workflows/sonar.yml#L4), [`semgrep.yml`](../../.github/workflows/semgrep.yml#L1), [`snyk.yml`](../../.github/workflows/snyk.yml#L1), [`zap.yml`](../../.github/workflows/zap.yml#L4) e [`trivy.yml`](../../.github/workflows/trivy.yml#L3) sono privi di trigger autonomi e vengono eseguiti come reusable workflow orchestrati da [`ci.yml`](../../.github/workflows/ci.yml#L3); [`deploy.yml`](../../.github/workflows/deploy.yml#L4) è invece autonomo con trigger `workflow_run` su `CI`.
+Il deploy parte solo se **tutti** gli step CI completano con successo.
 
-**[`ci.yml`](../../.github/workflows/ci.yml#L3)** — orchestratore della pipeline di verifica. Si attiva ad ogni push sul branch `security` e ad ogni pull request. Coordina sette workflow riutilizzabili in un grafo di dipendenze sequenziale-parallelo: `secrets` (GitGuardian) parte per primo senza dipendenze — nessuna build viene avviata se un secret è rilevato; `test` parte solo dopo `secrets`; `sast` (SonarQube), `semgrep` e `sca` (Snyk) partono dopo `test` in parallelo tra loro; `dast` (ZAP) e `trivy` (image scan) partono entrambi dopo che `sast`, `semgrep` e `sca` completano, in parallelo tra loro.
-
-#### [`test.yml`](../../.github/workflows/test.yml#L4)
-
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3). Esegue i seguenti step:
-
-1. Build dell'immagine Docker di test con **Docker BuildKit**, sfruttando la cache dei layer su GitHub Actions: se [`pom.xml`](../../backend/pom.xml#L1) e [`Dockerfile.test`](../../backend/Dockerfile.test#L3) non sono cambiati, il layer con le dipendenze Maven viene ripristinato dalla cache, evitando di riscaricarlo ad ogni run.
-2. Esecuzione dei test tramite `docker compose up`. Al termine, il report di coverage generato da JaCoCo viene estratto dal container con `docker compose cp`, evitando conflitti con `mvn clean` che non può eliminare una directory montata come volume.
-3. Upload del report `jacoco.xml` come artifact temporaneo (retention 1 giorno), reso disponibile al workflow successivo.
-
-**Output:** artifact [`jacoco.xml`](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) passato a [`sonar.yml`](../../.github/workflows/sonar.yml#L4) nella stessa workflow run. Non pubblicato esternamente — scade dopo 1 giorno *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
+---
 
 #### [`gitguardian.yml`](../../.github/workflows/gitguardian.yml#L1)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `test` — non richiede build né compilazione. Usa l'action ufficiale [`GitGuardian/ggshield/actions/secret@v1.49.0`](https://github.com/GitGuardian/ggshield) per scansionare il repository alla ricerca di **secrets hardcodati**: API key, token di accesso, credenziali database, certificati privati e qualsiasi stringa che corrisponda ai pattern di oltre 500 provider noti.
+Scansione **globale** dell'intera git history (`fetch-depth: 0`) con [`ggshield secret scan repo`](https://github.com/GitGuardian/ggshield). Rileva secrets hardcodati su 500+ provider noti. Parte prima di qualsiasi build — un secret rilevato blocca tutto il resto. Finding pubblicati in [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) (categoria `gitguardian`).
 
-Usa `ggshield secret scan repo` — scansione **globale** dell'intera git history del repository, non incrementale. Ogni run analizza tutti i commit su tutti i branch: un secret introdotto mesi fa e poi rimosso rimane rilevabile nella history. Il flag `fetch-depth: 0` nel checkout garantisce che l'intera history sia disponibile al runner.
+**Finding: 10 incident**
 
-A differenza di SonarQube (che cerca pattern generici di hardcoded credentials), GitGuardian è specializzato esclusivamente nel secrets detection: mantiene un database continuamente aggiornato di pattern per provider specifici (AWS, GCP, GitHub, database, servizi di terze parti) con tasso di falsi positivi molto basso.
+| Categoria | Azione |
+|-----------|--------|
+| Falsi positivi su dati di test | Soppressi in [`.gitguardian.yaml`](../../.gitguardian.yaml#L1) |
+| Secret di test environment committati intenzionalmente | Soppressi in [`.gitguardian.yaml`](../../.gitguardian.yaml#L1) |
+| Secret storici rimossi e invalidati | Soppressi in [`.gitguardian.yaml`](../../.gitguardian.yaml#L1) |
 
-Il workflow fallisce se viene rilevato un secret non ignorato, bloccando la build prima ancora che i test partano.
+Ogni soppressione documentata con giustificazione nel file di configurazione.
 
-**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `gitguardian`. Se non vengono rilevati secret, il job passa senza produrre alert.
+---
 
-**Finding gestiti:** la scansione globale della git history ha rilevato dieci incident classificati in tre categorie: falsi positivi su dati di test, secret di test environment committati intenzionalmente, e secret storici già rimossi e invalidati. Ogni soppressione è documentata con giustificazione in [`.gitguardian.yaml`](../../.gitguardian.yaml#L1).
+#### [`test.yml`](../../.github/workflows/test.yml#L4)
+
+Build immagine di test con Docker BuildKit (cache layer su [`pom.xml`](../../backend/pom.xml#L1) + [`Dockerfile.test`](../../backend/Dockerfile.test#L3)), esecuzione via `docker compose up`, estrazione report JaCoCo con `docker compose cp`. Artifact `jacoco.xml` passato a `sonar.yml` nella stessa run (retention 1 giorno).
+
+Esegue 344 security test distribuiti su 5 aree OWASP WSTG — finding e bug corretti in [docs/testing/](../testing/README.md).
+
+**Output:** [artifact `jacoco.xml`](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) passato a `sonar.yml` (scade dopo 1 giorno).
+
+---
 
 #### [`sonar.yml`](../../.github/workflows/sonar.yml#L4)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `test`. Scarica il report JaCoCo prodotto nella stessa run, compila i sorgenti con Maven e lancia l'analisi SonarCloud con coverage reale (non disponibile senza database PostgreSQL). Il flag `-Dsonar.qualitygate.wait=true` blocca il job finché SonarCloud non pubblica il risultato del quality gate — se il gate non passa, il job fallisce e blocca il merge.
+SAST dataflow con taint tracking. Scarica il report JaCoCo, compila con Maven, lancia analisi SonarCloud con `-Dsonar.qualitygate.wait=true` — il job blocca il merge se il quality gate non passa. Gate configurato su sole quattro condizioni di sicurezza (metriche di qualità escluse).
 
-Il quality gate è configurato su SonarCloud con sole quattro condizioni: `Security Rating`, `Bugs`, `Vulnerabilities`, `Security Hotspots Reviewed`. Metriche non legate alla sicurezza (coverage, code smells, duplications) sono escluse dal gate.
+**Finding: nessuno.**
 
-**Output:** analisi pubblicata su [SonarCloud](https://sonarcloud.io/project/overview?id=taekwondodev_DietiEstate25Backend). Risultati attuali sulle metriche tracciate dal quality gate:
+| Metrica quality gate | Valore |
+|----------------------|--------|
+| Security Rating | A |
+| Bugs | 0 |
+| Vulnerabilities | 0 |
+| Security Hotspots Reviewed | 0 |
 
-| Metrica | Valore |
-|---------|--------|
-| **Security Rating** | A |
-| **Bugs** | 0 |
-| **Vulnerabilities** | 0 |
-| **Security Hotspots** | 0 |
+Output: analisi su [SonarCloud](https://sonarcloud.io/project/overview?id=taekwondodev_DietiEstate25Backend).
+
+---
 
 #### [`semgrep.yml`](../../.github/workflows/semgrep.yml#L1)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `sast` e `sca` dopo il completamento di `test`. Installa Semgrep OSS via `pip` ed esegue una scansione statica sui sorgenti in `backend/src/main/java/` con due ruleset ufficiali:
+SAST pattern-based su AST con due ruleset ufficiali:
+- **`p/java`** — deserializzazione, SSRF, path traversal, injection (`Runtime.exec`, `ProcessBuilder`, JDBC, JNDI)
+- **`p/owasp-top-ten`** — mapping OWASP A01–A10
 
-- **`p/java`** — pattern di sicurezza specifici per Java: deserializzazione non sicura, SSRF, path traversal, injection via API standard (`Runtime.exec`, `ProcessBuilder`, JDBC, JNDI).
-- **`p/owasp-top-ten`** — mapping diretto alle 10 categorie OWASP Top 10 (A01–A10): broken access control, injection, insecure design, security misconfiguration, vulnerable components, identification and authentication failures, SSRF, ecc.
+Complementare a SonarQube: engine diversi su superfici parzialmente sovrapposte. `continue-on-error: true` — finding non bloccano ma vengono pubblicati in [Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) (categoria `semgrep`).
 
-**Separazione dei domini rispetto a SonarQube:** SonarQube usa analisi dataflow (taint tracking) e rileva bug di sicurezza tracciando il flusso dei dati attraverso il codice, applicando regole personalizzate e quality gate legati a metriche di qualità. Semgrep è complementare: usa pattern matching su AST con regole esplicite e trasparenti, specializzate per vulnerabilità note (OWASP Top 10) senza dipendere dalla configurazione del quality gate. I due strumenti operano con engine diversi su superfici parzialmente sovrapposte — la doppia copertura aumenta la probabilità di intercettare finding che un singolo strumento potrebbe perdere.
+**Finding: nessuno.** 57 file Java scansionati, 65 regole attive (60 `p/java` + 5 `<multilang>`), 0 risultati.
 
-Non è richiesto alcun token (`SEMGREP_APP_TOKEN`) per l'esecuzione con ruleset pubblici `p/` — Semgrep OSS accede ai ruleset dalla registry pubblica senza autenticazione.
-
-**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `semgrep`. La scansione usa `continue-on-error: true`: i finding non bloccano il job, ma vengono comunque pubblicati come alert per revisione. Se non vengono rilevati finding, il job passa senza produrre alert.
-
-**Finding gestiti:** nessun finding rilevato. La prima run ha scansionato 57 file Java con 65 regole attive (60 `p/java` + 5 `<multilang>` da `p/owasp-top-ten`): 0 findings, 0 blocking.
+---
 
 #### [`snyk.yml`](../../.github/workflows/snyk.yml#L1)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) in parallelo con `sonar` dopo il completamento di `test`. Esegue due job distinti:
+Due job distinti: **SCA** (`snyk test --fail-on=upgradable` su [`pom.xml`](../../backend/pom.xml#L1)) e **License Compliance** (`snyk test --print-deps` con policy in [`.snyk`](../../.snyk#L1) che blocca GPL-2.0/3.0, AGPL-3.0). Snyk copre dipendenze Maven transitive + remediation advice; Trivy copre il layer OS. Finding pubblicati in [Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) (categorie `snyk-oss`, `snyk-license`).
 
-1. **Open Source / SCA** (`snyk-oss`): scansiona [`pom.xml`](../../backend/pom.xml#L1) con `snyk test` — confronta ogni dipendenza Maven contro il database Snyk di vulnerabilità note. A differenza di Trivy (che riporta CVE senza indicare una correzione praticabile), Snyk fornisce per ogni finding: il percorso di dipendenza transitiva che introduce la vulnerabilità, la versione corretta disponibile e, dove possibile, un fix automatico via PR. Fallisce (`--fail-on=upgradable`) solo in presenza di vulnerabilità HIGH o CRITICAL con fix disponibile.
+**Finding: 3 batch di CVE corretti, 0 violazioni di licenza.**
 
-2. **License Compliance** (`snyk-license`): esegue `snyk test --print-deps` con policy configurata in [`.snyk`](../../.snyk#L1) per bloccare licenze incompatibili con il progetto (GPL-2.0, GPL-3.0, AGPL-3.0). Questo controllo non è coperto né da Trivy né da SonarQube — entrambi operano su CVE, non su license metadata.
+| Componente | Severità | Versione vulnerabile | Fix applicato |
+|------------|----------|----------------------|---------------|
+| Spring Boot + Spring Security | 1 Critical, 4 High | 4.0.5 / 7.0.4 | → 4.0.6 / 7.0.5 in [`pom.xml`](../../backend/pom.xml#L8) |
+| `org.postgresql:postgresql` ([SNYK-JAVA-ORGPOSTGRESQL-16321668](https://security.snyk.io/vuln/SNYK-JAVA-ORGPOSTGRESQL-16321668)) | High | 42.7.10 (BOM Spring Boot 4.0.6) | override `<postgresql.version>42.7.11</postgresql.version>` in [`pom.xml`](../../backend/pom.xml#L20) |
+| `tomcat-embed-core` / `tomcat-embed-websocket` | 1 Critical, 1 High, 5 Medium | 11.0.21 | override `<tomcat.version>11.0.22</tomcat.version>` in [`pom.xml`](../../backend/pom.xml#L20) |
 
-**Separazione dei domini rispetto a Trivy:** Trivy image scan rimane responsabile dei CVE nei package OS dell'immagine base (`eclipse-temurin:25-jre-alpine`) — superficie che Snyk non copre per default con `snyk test`. Snyk copre le dipendenze Maven (incluse le transitive) con remediation advice e la compliance delle licenze.
+<details>
+<summary>CVE Tomcat 11.0.21 → 11.0.22 (dettaglio)</summary>
 
-**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto le categorie `snyk-oss` e `snyk-license`. Se non vengono rilevate vulnerabilità o violazioni di licenza, il job passa senza produrre alert.
+| CVE | Severità | Descrizione |
+|-----|----------|-------------|
+| [CVE-2026-43512](https://nvd.nist.gov/vuln/detail/CVE-2026-43512) | Critical | Digest Authenticator autentica utenti sconosciuti con password `null` |
+| [CVE-2026-41284](https://nvd.nist.gov/vuln/detail/CVE-2026-41284) | High | DoS via lettura illimitata in WebDAV LOCK/PROPFIND |
+| [CVE-2026-42498](https://nvd.nist.gov/vuln/detail/CVE-2026-42498) | Medium | Esposizione header autenticazione WebSocket dopo redirect |
+| [CVE-2026-43513](https://nvd.nist.gov/vuln/detail/CVE-2026-43513) | Medium | LockOutRealm case-sensitive sui nomi utente — riduce protezione brute-force |
+| [CVE-2026-41293](https://nvd.nist.gov/vuln/detail/CVE-2026-41293) | Medium | Header HTTP/2 non validati |
+| [CVE-2026-43515](https://nvd.nist.gov/vuln/detail/CVE-2026-43515) | Medium | Security constraint non applicato con vincoli multipli sullo stesso pattern |
+| [CVE-2026-43514](https://nvd.nist.gov/vuln/detail/CVE-2026-43514) | Medium | Confronto segreto AJP non in tempo costante (timing attack) |
 
-**Finding rilevati e corretti:**
+</details>
 
-**Prima:** Spring Boot 4.0.5 e Spring Security 7.0.4 presentavano 5 vulnerabilità (1 Critical, 4 High) con fix disponibile, rilevate da `snyk-oss` al primo run e bloccanti per la pipeline. **Soluzione:** aggiornamento a Spring Boot 4.0.6 e Spring Security 7.0.5 in [`pom.xml`](../../backend/pom.xml#L8).
-
-**Prima:** il database Snyk ha ricevuto un aggiornamento tra una run e la successiva, aggiungendo [SNYK-JAVA-ORGPOSTGRESQL-16321668](https://security.snyk.io/vuln/SNYK-JAVA-ORGPOSTGRESQL-16321668) (High) su `org.postgresql:postgresql@42.7.10` — versione fissata dal BOM di Spring Boot 4.0.6. Il finding era bloccante perché `--fail-on=upgradable` e la versione corretta `42.7.11` era disponibile. **Soluzione:** override della proprietà `<postgresql.version>42.7.11</postgresql.version>` in [`pom.xml`](../../backend/pom.xml#L20) per sovrascrivere il valore del BOM in attesa del rilascio di Spring Boot 4.0.7.
-
-**Prima:** Snyk ha rilevato 7 vulnerabilità (1 Critical, 1 High, 5 Medium) su `org.apache.tomcat.embed:tomcat-embed-core` e `tomcat-embed-websocket` alla versione `11.0.21`, con fix disponibile in `11.0.22` — bloccanti per `--fail-on=upgradable`. Le vulnerabilità riguardano: autenticazione errata nel Digest Authenticator che autentica utenti sconosciuti con password `null` (CVE-2026-43512, Critical); DoS via lettura illimitata in WebDAV LOCK/PROPFIND (CVE-2026-41284, High); esposizione dell'header di autenticazione WebSocket dopo redirect (CVE-2026-42498); LockOutRealm case-sensitive sui nomi utente che riduce la protezione brute-force (CVE-2026-43513); header HTTP/2 non validati (CVE-2026-41293); security constraint non applicato correttamente con vincoli multipli sullo stesso pattern (CVE-2026-43515); confronto del segreto AJP non in tempo costante — timing attack (CVE-2026-43514). **Soluzione:** override della proprietà `<tomcat.version>11.0.22</tomcat.version>` in [`pom.xml`](../../backend/pom.xml#L20) per sovrascrivere la versione Tomcat fissata dal BOM di Spring Boot 4.0.6 in attesa di Spring Boot 4.0.7.
+---
 
 #### [`zap.yml`](../../.github/workflows/zap.yml#L4)
 
-Reusable workflow (`workflow_call`), richiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3). Esegue un singolo job (`zap`) che condivide setup e teardown tra tutte le scansioni:
+DAST con quattro scansioni sequenziali sullo stesso ambiente (PostgreSQL + MailHog via [`compose.dast.yaml`](../../compose.dast.yaml#L1), fixture [`02_test_data.sql`](../../db-init/02_test_data.sql#L28)):
 
-1. Build dell'immagine di produzione con Docker BuildKit (cache condivisa con la chiave `buildx-dast-*`).
-2. Avvio di PostgreSQL e MailHog (SMTP mock) tramite [`compose.dast.yaml`](../../compose.dast.yaml#L1), con tutte le variabili d'ambiente necessarie iniettate direttamente nel container. Il DB viene inizializzato con le fixture di test in [`02_test_data.sql`](../../db-init/02_test_data.sql#L28), che includono utenti precostituiti per ogni ruolo.
-3. **Baseline Scan**: scansione **passiva** con [OWASP ZAP](https://www.zaproxy.org/) — intercetta e analizza il traffico HTTP senza inviare payload aggressivi. Individua vulnerabilità di configurazione, header di sicurezza mancanti e informazioni esposte. Tipicamente completa in 2–5 minuti.
-4. **API Scan (Cliente / AgenteImmobiliare / Admin)**: tre scansioni **attive** sequenziali, ciascuna autenticata con un ruolo diverso. ZAP legge [`openapi.yaml`](../../backend/openapi.yaml#L1) per scoprire tutti gli endpoint definiti nell'API — anziché affidarsi allo spider — garantendo coverage completa anche sugli endpoint protetti da JWT che risponderebbero altrimenti con `401`. Prima di ogni scan, uno step dedicato effettua il login tramite `POST /auth/login` con le credenziali del ruolo corrispondente, maschera il token JWT nei log con `::add-mask::` e lo inietta in tutte le richieste ZAP tramite il Replacer add-on (`Authorization: Bearer <token>`). In questo modo ZAP raggiunge e testa gli endpoint protetti da RBAC che sarebbero altrimenti irraggiungibili. I finding comuni a più ruoli emergono in più report, aumentando la priorità percepita. Ogni API scan invia payload di attacco reali (SQLi, XSS, path traversal, CSRF, header injection, ecc.) verso ogni endpoint per verificare se l'applicazione risponde in modo vulnerabile.
-5. Tear down dell'ambiente con `-v`, eseguito sempre indipendentemente dall'esito.
+1. **Baseline Scan** — scansione passiva; intercetta traffico, rileva header mancanti e configurazioni errate
+2. **API Scan × 3 ruoli** (Cliente / AgenteImmobiliare / Admin) — scansione attiva guidata da [`openapi.yaml`](../../backend/openapi.yaml#L1); ogni run fa login, maschera il JWT con `::add-mask::` e lo inietta via Replacer add-on per raggiungere endpoint RBAC-protetti; payload: SQLi, XSS, path traversal, CSRF, header injection
 
-**Output:** in presenza di finding, ogni scansione pubblica i risultati in una **GitHub Issue** dedicata: [ZAP Baseline](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+Baseline), [ZAP API Scan – Cliente](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Cliente), [ZAP API Scan – AgenteImmobiliare](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+AgenteImmobiliare), [ZAP API Scan – Admin](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Admin). Se non vengono rilevati finding, nessuna issue viene creata e il job passa. I report HTML/JSON sono archiviati come artifact separati nella [CI workflow page](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) (`zap-baseline-report`, `zap-api-scan-cliente`, `zap-api-scan-agente`, `zap-api-scan-admin`) — scadono dopo 90 giorni *(il link rimanda alla pagina delle run CI; il download diretto potrebbe non essere attivo se l'artifact è scaduto)*.
+Finding pubblicati come **GitHub Issue** dedicate: [ZAP Baseline](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+Baseline) · [Cliente](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Cliente) · [AgenteImmobiliare](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+AgenteImmobiliare) · [Admin](https://github.com/taekwondodev/DietiEstate25Backend/issues?q=is%3Aissue+ZAP+API+Admin). Report HTML/JSON come artifact (90 giorni) nella [CI workflow page](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml).
 
-**Finding gestiti:**
+**Finding: 1 corretto, 1 soppresso.**
 
-Regola soppressa tramite [`.zap/rules.tsv`](../../.zap/rules.tsv#L1) in tutte le scansioni:
-- `10049` — Non-Storable Content: `Cache-Control: no-store` è il comportamento corretto per un backend API stateless, non una vulnerabilità.
+| ID | Finding | Severità | Azione |
+|----|---------|----------|--------|
+| `40042` | Spring Actuator Health esposto su porta applicativa | Medium | **Corretto** |
+| `10049` | Non-Storable Content (`Cache-Control: no-store`) | Info | **Soppresso** — comportamento corretto per API stateless |
 
-Vulnerabilità corretta:
-- `40042` — Spring Actuator Health (Medium): ZAP rilevava `/actuator/health` esposto sulla porta applicativa 8080, raggiungibile tramite il `Service` NodePort insieme al resto delle API. **Prima:** l'endpoint di health era accessibile da chiunque raggiungesse il cluster sulla porta 8080, nella stessa superficie esposta all'esterno. **Soluzione:** `management.server.port=8081` in [`application.properties`](../../backend/src/main/resources/application.properties#L17) separa il management server dalla porta applicativa. **Dopo:** il Kubernetes readiness probe punta a 8081 ([`deployment.yaml`](../../k8s/backend/deployment.yaml#L43)); la porta 8081 non è dichiarata nel `Service` NodePort, quindi non è raggiungibile dall'esterno del cluster — solo dal piano di controllo Kubernetes per i probe interni.
+**Fix `40042`:**
+
+| | Dettaglio |
+|-|-----------|
+| **Prima** | `/actuator/health` raggiungibile sulla porta 8080, stessa superficie esposta all'esterno del cluster |
+| **Soluzione** | `management.server.port=8081` in [`application.properties`](../../backend/src/main/resources/application.properties#L17) |
+| **Dopo** | Readiness probe Kubernetes punta a 8081 ([`deployment.yaml`](../../k8s/backend/deployment.yaml#L43)); porta 8081 non dichiarata nel `Service` NodePort — irraggiungibile dall'esterno |
+
+---
 
 #### [`trivy.yml`](../../.github/workflows/trivy.yml#L3)
 
-Reusable workflow (`workflow_call`), chiamato da [`ci.yml`](../../.github/workflows/ci.yml#L3) dopo `dast`. Esegue un singolo job focalizzato esclusivamente sulla **sicurezza del container**:
+Image scan sulla superficie OS dell'immagine di produzione ([`Dockerfile`](../../backend/Dockerfile#L2)): package Alpine, glibc, OpenSSL confrontati contro NVD/OSV/GitHub Advisory. Fallisce con `exit-code: 1` su CVE HIGH/CRITICAL con fix disponibile. Unico strumento della pipeline responsabile del layer OS — né Snyk né SonarQube/Semgrep coprono questa superficie. Finding pubblicati in [Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) (categoria `trivy-image`).
 
-- **Image Scan** (`trivy-image`): builda l'immagine di produzione ([`Dockerfile`](../../backend/Dockerfile#L2)) e scansiona i package OS del layer runtime (`eclipse-temurin:25-jre-alpine`) — librerie di sistema, glibc, OpenSSL e qualsiasi package Alpine presente nell'immagine finale — confrontandoli contro il database di CVE noti (NVD, OSV, GitHub Advisory). Sfrutta la stessa strategia di cache Docker BuildKit usata in [`test.yml`](../../.github/workflows/test.yml#L4), con una chiave separata per evitare collisioni. Il job fallisce con `exit-code: 1` in presenza di CVE HIGH o CRITICAL con fix disponibile, bloccando il merge.
+**Finding: CVE HIGH su package OS — corretti.**
 
-Trivy è l'unico strumento della pipeline responsabile della superficie OS dell'immagine Docker: né Snyk (focalizzato sulle dipendenze Maven) né SonarQube/Semgrep (SAST sui sorgenti) coprono i package di sistema del container runtime.
+| | Dettaglio |
+|-|-----------|
+| **Prima** | Package Alpine frozen nell'immagine base `eclipse-temurin:25-jre-alpine`; CVE HIGH presenti al momento della build |
+| **Soluzione** | `RUN apk upgrade --no-cache` nello stage runtime ([`Dockerfile`](../../backend/Dockerfile#L21)); `ARG BUILD_WEEK` ([L20](../../backend/Dockerfile#L20)) invalida il layer settimanalmente in CI |
+| **Dopo** | 0 CVE HIGH/CRITICAL con fix disponibile nelle scan successive |
 
-**Output:** in presenza di finding, gli alert vengono pubblicati nel tab [Security → Code scanning alerts](https://github.com/taekwondodev/DietiEstate25Backend/security/code-scanning) di GitHub in formato SARIF sotto la categoria `trivy-image`. Se non vengono rilevati CVE HIGH o CRITICAL con fix disponibile, il job passa senza produrre alert.
-
-**Finding gestiti:**
-
-Vulnerabilità di librerie di sistema corrette:
-Trivy Image Scan ha riportato CVE HIGH su package OS dell'immagine base `eclipse-temurin:25-jre-alpine` (librerie di sistema non aggiornate nello strato fornito dall'upstream). **Prima:** l'immagine runtime ereditava i package nella versione frozen dell'immagine base, con CVE noti presenti al momento della build. **Soluzione:** `RUN apk upgrade --no-cache` nello stage runtime del [`Dockerfile`](../../backend/Dockerfile#L21) aggiorna tutti i package OS a ogni build, applicando le patch disponibili indipendentemente dalla versione dell'immagine base. L'`ARG BUILD_WEEK` ([L20](../../backend/Dockerfile#L20)) invalida questo layer settimanalmente in CI — senza di esso Docker riutilizzerebbe il layer dalla cache, rendendo l'upgrade un no-op tra build ravvicinate. **Dopo:** le scan successive non riportano più CVE HIGH/CRITICAL con fix disponibile sui package di sistema.
-
-#### [`deploy.yml`](../../.github/workflows/deploy.yml#L4)
-
-Si attiva tramite `workflow_run` al completamento con successo di `CI`. Contiene un singolo job che builda l'immagine di produzione con Docker BuildKit e la pubblica su Docker Hub con due tag: `latest` e il SHA del commit (`taekwondodev/dietiestate25-backend:<sha>`), garantendo tracciabilità e possibilità di rollback. Richiede i secret `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` configurati nel repository.
-
-**Output:** immagine pubblicata su [Docker Hub](https://hub.docker.com/r/taekwondodev/dietiestate25-backend) con tag `latest` e `<commit-sha>`. Il tag SHA permette rollback deterministico a qualsiasi build precedente.
+---
 
 #### Docker Scout
 
-Docker Scout è abilitato sull'immagine di produzione pubblicata su Docker Hub (`taekwondodev/dietiestate25-backend`) e analizza in modo continuo i CVE presenti nell'immagine dopo ogni push, complementando la scansione Trivy eseguita in CI prima del deploy.
+Analisi continua post-deploy sull'immagine `taekwondodev/dietiestate25-backend` su Docker Hub, complementare a Trivy.
 
-**Finding gestiti:**
+**Finding: 3 Medium accettati (nessun fix disponibile su Alpine).**
 
-Docker Scout ha rilevato due vulnerabilità Medium su package Alpine dell'immagine pubblicata:
+| CVE | Package | Motivo accettazione |
+|-----|---------|---------------------|
+| CVE-2025-60876 | `busybox 1.37.0-r30` | Nessun fix disponibile su Alpine |
+| CVE-2016-2781 | `coreutils 9.8-r1` | Nessun fix disponibile su Alpine |
+| CVE-2026-23865 | `freetype 2.14.1-r0` | Nessun fix disponibile su Alpine |
 
-- **CVE-2025-60876** (`busybox 1.37.0-r30`): `busybox wget` accetta caratteri di controllo CR/LF nel request-target HTTP, permettendo HTTP header injection. **Status Alpine:** nessuna versione fixata disponibile su nessuna branch (3.19 → 3.23 → edge) — né `apk upgrade` né un aggiornamento dell'immagine base risolvono il finding. **Accettato:** `wget` non viene eseguito a runtime dall'applicazione; Spring Boot non lo invoca in nessun path operativo, quindi la superficie di attacco è zero.
+Alternativa: sostituire immagine base con distroless/scratch. Complessità di build sproporzionata rispetto al rischio effettivo.
 
-- **CVE-2016-2781** (`coreutils 9.8-r1`): il comando `chroot --userspec` è vulnerabile a un escape via `TIOCSTI ioctl`, che permetterebbe a un utente locale di iniettare input nel terminale del processo padre. **Status Alpine:** CVE mai patchato dal 2016 su nessuna branch. **Accettato:** Docker blocca `TIOCSTI` tramite il suo seccomp profile di default (attivo sin da Docker 1.10), neutralizzando l'exploit a livello runtime senza alcuna modifica al container.
+---
 
-- **CVE-2026-23865** (`freetype 2.14.1-r0`): integer overflow in `tt_var_load_item_variation_store` che consente un'operazione di lettura out-of-bounds durante il parsing di tabelle HVAR/VVAR/MVAR in font OpenType variabili. CVSS 5.3 Medium. **Status Alpine:** nessuna patch disponibile su nessuna branch (edge inclusa rimane su 2.14.1-r0/r1) — `apk upgrade` non risolve il finding. **Accettato:** Spring Boot non elabora font; FreeType è una dipendenza di sistema transitiva mai invocata nel path operativo dell'applicazione. La superficie di attacco è zero.
+#### [`deploy.yml`](../../.github/workflows/deploy.yml#L4)
 
-L'unica alternativa alla risk acceptance sarebbe sostituire l'immagine base con una distroless o scratch, eliminando fisicamente i package incriminati. Questa scelta introdurrebbe complessità di build sproporzionata rispetto al rischio effettivo, che è zero in tutti i casi per le ragioni sopra indicate.
+Si attiva tramite `workflow_run` al completamento con successo di CI. Build immagine di produzione con Docker BuildKit, push su Docker Hub con due tag: `latest` e SHA commit (`taekwondodev/dietiestate25-backend:<sha>`). Il tag SHA garantisce tracciabilità e rollback deterministico a qualsiasi build precedente. Richiede `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` nei secret del repository.
+
+**Output:** immagine su [Docker Hub](https://hub.docker.com/r/taekwondodev/dietiestate25-backend).
+
+---
 
 #### [`dependabot.yml`](../../.github/dependabot.yml#L4)
 
-Configura Dependabot per il monitoraggio automatico delle dipendenze su tre ecosistemi:
+Monitoraggio automatico su tre ecosistemi: **Maven** ([`pom.xml`](../../backend/pom.xml#L1)), **Docker** (immagini base), **GitHub Actions** (versioni delle action). PR aperte il primo di ogni mese; PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule. Ogni PR passa attraverso l'intera pipeline CI prima del merge.
 
-- **Maven** — controlla [`pom.xml`](../../backend/pom.xml#L1) per aggiornamenti alle dipendenze Java/Spring Boot.
-- **Docker** — controlla le base image in [`Dockerfile`](../../backend/Dockerfile#L2) e [`Dockerfile.test`](../../backend/Dockerfile.test#L3) per nuove versioni.
-- **GitHub Actions** — controlla le versioni delle action usate nei workflow (es. `actions/checkout`, `actions/cache`).
+> **Nota secrets:** GitHub tratta i workflow Dependabot come fork — i repository secrets sono inaccessibili. `GITGUARDIAN_API_KEY`, `SNYK_TOKEN`, `SONAR_TOKEN`, `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` devono essere configurati anche in Settings → Security → Secrets → **Dependabot**.
 
-Il primo di ogni mese Dependabot apre automaticamente PR separate per ogni aggiornamento disponibile. Le PR passano attraverso l'intera pipeline CI ([`ci.yml`](../../.github/workflows/ci.yml#L3)) prima del merge, garantendo che nessun aggiornamento rompa la build. Dependabot gestisce anche gli **aggiornamenti di sicurezza** in modo autonomo, aprendo PR urgenti in caso di vulnerabilità note indipendentemente dallo schedule mensile.
-
-**Secrets:** GitHub tratta i workflow triggherati da Dependabot come fork — i repository secrets sono inaccessibili. I secret `GITGUARDIAN_API_KEY`, `SNYK_TOKEN`, `SONAR_TOKEN`, `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` devono essere configurati anche nella sezione dedicata Settings → Security → Secrets and variables → **Dependabot**, separata da quella di Actions.
-
-**Output:** PR automatiche su GitHub, ciascuna associata a un diff di versione e ai risultati CI prima del merge. Le PR aperte e mergeate da Dependabot sul branch `security` sono state:
+**Finding: 9 PR automatiche mergeate.**
 
 | PR | Ecosistema | Aggiornamento |
 |----|------------|---------------|
 | [#3](https://github.com/taekwondodev/DietiEstate25Backend/pull/3) | GitHub Actions | `actions/download-artifact` 7 → 8 |
-| [#4](https://github.com/taekwondodev/DietiEstate25Backend/pull/4) | Maven | `org.jacoco:jacoco-maven-plugin` 0.8.12 → 0.8.14 |
-| [#5](https://github.com/taekwondodev/DietiEstate25Backend/pull/5) | Maven | `org.springframework.security:spring-security-oauth2-jose` → 7.0.4 |
+| [#4](https://github.com/taekwondodev/DietiEstate25Backend/pull/4) | Maven | `jacoco-maven-plugin` 0.8.12 → 0.8.14 |
+| [#5](https://github.com/taekwondodev/DietiEstate25Backend/pull/5) | Maven | `spring-security-oauth2-jose` → 7.0.4 |
 | [#6](https://github.com/taekwondodev/DietiEstate25Backend/pull/6) | Docker | `maven` → `3.9.13-eclipse-temurin-25` (Dockerfile.test) |
-| [#7](https://github.com/taekwondodev/DietiEstate25Backend/pull/7) | Maven | `org.springframework.boot:spring-boot-starter-parent` 3.4.1 → 4.0.5 |
-| [#8](https://github.com/taekwondodev/DietiEstate25Backend/pull/8) | Docker | `eclipse-temurin` 21-jre-jammy → 25-jre-jammy (Dockerfile) |
+| [#7](https://github.com/taekwondodev/DietiEstate25Backend/pull/7) | Maven | `spring-boot-starter-parent` 3.4.1 → 4.0.5 |
+| [#8](https://github.com/taekwondodev/DietiEstate25Backend/pull/8) | Docker | `eclipse-temurin` 21-jre-jammy → 25-jre-jammy |
 | [#16](https://github.com/taekwondodev/DietiEstate25Backend/pull/16) | GitHub Actions | `aquasecurity/trivy-action` 0.35.0 → 0.36.0 |
 | [#17](https://github.com/taekwondodev/DietiEstate25Backend/pull/17) | GitHub Actions | `docker/login-action` 3 → 4 |
-| [#18](https://github.com/taekwondodev/DietiEstate25Backend/pull/18) | Docker | `maven` 3.9.13-eclipse-temurin-25 → 3.9.14-eclipse-temurin-25 (Dockerfile.test) |
+| [#18](https://github.com/taekwondodev/DietiEstate25Backend/pull/18) | Docker | `maven` 3.9.13 → 3.9.14-eclipse-temurin-25 (Dockerfile.test) |
