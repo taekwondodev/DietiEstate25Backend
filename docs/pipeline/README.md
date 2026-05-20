@@ -13,7 +13,7 @@ Pipeline CI su due livelli: containerizzazione Docker per ambienti riproducibili
 | [Snyk](#snykyml) | SCA + license compliance | 3 batch CVE — corretti | Pass |
 | [OWASP ZAP](#zapyml) | DAST | 1 corretto, 1 soppresso | Pass |
 | [Trivy](#trivyyml) | Container security | CVE HIGH su package Alpine OS layer — corretti | Pass |
-| [Docker Scout](#docker-scout) | Post-deploy CVE | 3 Medium — accettati (no fix disponibile) | Pass |
+| [Docker Scout](#deployyml) | Post-deploy CVE | 3 Medium — accettati (no fix disponibile) | Pass |
 | [Dependabot](#dependabotyml) | Deps aggiornamento | 9 PR automatiche mergeate | Merged |
 
 ---
@@ -52,10 +52,10 @@ push / pull_request
         ├── 2. test    → build + test + JaCoCo (dopo secrets)             │
         ├── 3. sast    → SonarCloud        ┐                              │
         ├── 4. semgrep → Semgrep           ┤ (dopo test, in parallelo)    │
-        ├── 5. sca     → Snyk             ┘                              │
-        ├── 6. dast    → OWASP ZAP   ┐ (dopo sast+semgrep+sca)           │
-        └── 7. trivy   → image scan  ┘ (in parallelo)                    ▼
-                                                               Deploy → Docker Hub
+        ├── 5. sca     → Snyk              ┘                              │
+        ├── 6. dast    → OWASP ZAP   ┐ (dopo sast+semgrep+sca)            │
+        └── 7. trivy   → image scan  ┘ (in parallelo)                     ▼
+                                                                   Deploy → Docker Hub
 ```
 
 Il deploy parte solo se **tutti** gli step CI completano con successo.
@@ -160,7 +160,7 @@ Finding pubblicati come **GitHub Issue** dedicate: [ZAP Baseline](https://github
 | ID | Finding | Severità | Azione |
 |----|---------|----------|--------|
 | `40042` | Spring Actuator Health esposto su porta applicativa | Medium | **Corretto** |
-| `10049` | Non-Storable Content (`Cache-Control: no-store`) | Info | **Soppresso** — comportamento corretto per API stateless |
+| `10049` | Non-Storable Content (`Cache-Control: no-store`) | Info | **Soppresso** — comportamento corretto per API stateless ([`.zap/rules.tsv:1`](../../.zap/rules.tsv#L1)) |
 
 **Fix `40042`:**
 
@@ -186,27 +186,21 @@ Image scan sulla superficie OS dell'immagine di produzione ([`Dockerfile`](../..
 
 ---
 
-#### Docker Scout
-
-Analisi continua post-deploy sull'immagine `taekwondodev/dietiestate25-backend` su Docker Hub, complementare a Trivy.
-
-**Finding: 3 Medium accettati (nessun fix disponibile su Alpine).**
-
-| CVE | Package | Motivo accettazione |
-|-----|---------|---------------------|
-| CVE-2025-60876 | `busybox 1.37.0-r30` | Nessun fix disponibile su Alpine |
-| CVE-2016-2781 | `coreutils 9.8-r1` | Nessun fix disponibile su Alpine |
-| CVE-2026-23865 | `freetype 2.14.1-r0` | Nessun fix disponibile su Alpine |
-
-Alternativa: sostituire immagine base con distroless/scratch. Complessità di build sproporzionata rispetto al rischio effettivo.
-
----
-
 #### [`deploy.yml`](../../.github/workflows/deploy.yml#L4)
 
 Si attiva tramite `workflow_run` al completamento con successo di CI. Build immagine di produzione con Docker BuildKit, push su Docker Hub con due tag: `latest` e SHA commit (`taekwondodev/dietiestate25-backend:<sha>`). Il tag SHA garantisce tracciabilità e rollback deterministico a qualsiasi build precedente. Richiede `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` nei secret del repository.
 
 **Output:** immagine su [Docker Hub](https://hub.docker.com/r/taekwondodev/dietiestate25-backend).
+
+**Docker Scout** — analisi continua post-deploy sull'immagine pubblicata, complementare a Trivy. **Finding: 3 Medium accettati (nessun fix disponibile su Alpine).**
+
+| CVE | Package | Motivo accettazione |
+|-----|---------|---------------------|
+| [CVE-2025-60876](https://scout.docker.com/vulnerabilities/id/CVE-2025-60876) | `busybox 1.37.0-r30` | Nessun fix disponibile su Alpine |
+| [CVE-2016-2781](https://scout.docker.com/vulnerabilities/id/CVE-2016-2781) | `coreutils 9.8-r1` | Nessun fix disponibile su Alpine |
+| [CVE-2026-23865](https://scout.docker.com/vulnerabilities/id/CVE-2026-23865) | `freetype 2.14.1-r0` | Nessun fix disponibile su Alpine |
+
+Alternativa: sostituire immagine base con distroless/scratch. Complessità di build sproporzionata rispetto al rischio effettivo.
 
 ---
 
