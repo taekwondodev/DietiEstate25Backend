@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("UtenteAgenzia Boundary Tests - Immobile Creation Permission")
+@DisplayName("UtenteAgenzia Boundary Tests - Immobile Creation Permission - WSTG-AUTHZ-03")
 class UtenteAgenziaBoundaryTests extends BaseMvcTest {
 
     @MockitoBean

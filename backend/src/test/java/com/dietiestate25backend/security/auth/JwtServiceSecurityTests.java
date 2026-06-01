@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("JwtService Security Tests - Token Validation & Integrity")
+@DisplayName("JwtService Security Tests - Token Validation & Integrity - WSTG-AUTHN-04")
 class JwtServiceSecurityTests {
 
     @Mock

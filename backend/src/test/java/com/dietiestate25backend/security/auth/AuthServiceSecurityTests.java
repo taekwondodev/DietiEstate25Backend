@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthService Security Tests - Password Hashing & Validation")
+@DisplayName("AuthService Security Tests - Password Hashing & Validation - WSTG-CRYP-04")
 class AuthServiceSecurityTests {
 
     @Mock

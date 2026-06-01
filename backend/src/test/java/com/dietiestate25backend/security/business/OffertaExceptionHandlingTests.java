@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
  * - Un utente tenta di accedere a offerta inesistente
  * - Le guardie di sicurezza vengono applicate nell'ordine corretto
  */
-@DisplayName("Offerta Exception Handling Tests - Business Logic Security")
+@DisplayName("Offerta Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class OffertaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

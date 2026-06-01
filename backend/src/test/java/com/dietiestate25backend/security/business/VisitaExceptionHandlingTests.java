@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
  * - Una visita inesistente viene richiesta
  * - Le guardie di sicurezza vengono applicate nell'ordine corretto
  */
-@DisplayName("Visita Exception Handling Tests - Business Logic Security")
+@DisplayName("Visita Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class VisitaExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

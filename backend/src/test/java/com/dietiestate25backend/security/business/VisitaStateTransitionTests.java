@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
  *   Qualsiasi → stesso stato  ✗
  *   CONFERMATA/RIFIUTATA → qualsiasi stato ✗ (terminali)
  */
-@DisplayName("Visita State Transition Tests - Business Logic Security")
+@DisplayName("Visita State Transition Tests - Business Logic Security - WSTG-BUSL-07")
 class VisitaStateTransitionTests extends BaseIntegrationTest {
 
     @Autowired

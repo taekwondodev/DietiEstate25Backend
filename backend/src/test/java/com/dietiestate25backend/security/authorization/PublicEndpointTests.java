@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Public Endpoint Tests - Access Control")
+@DisplayName("Public Endpoint Tests - Access Control - WSTG-CONF-05")
 class PublicEndpointTests extends BaseMvcTest {
 
     @MockitoBean

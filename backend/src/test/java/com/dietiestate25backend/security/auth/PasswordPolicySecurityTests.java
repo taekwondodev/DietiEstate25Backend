@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Password Policy Security Tests - OWASP WSTG-AUTHN")
+@DisplayName("Password Policy Security Tests - WSTG-AUTHN-07")
 class PasswordPolicySecurityTests {
 
     @Mock
@@ -39,8 +39,8 @@ class PasswordPolicySecurityTests {
     private static final String HASHED_PASSWORD = "$2a$10$dXJ3SW6G7P50eS3B6skPfOWOZ4e8qRCEIvhDL3mVtILw3/LwDFfBm";
 
     // ============================================================================
-    // OWASP WSTG-AUTHN-03: Password Policy Tests
-    // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/03-Testing_for_Weak_Password_Policy
+    // OWASP WSTG-AUTHN-07: Password Policy Tests
+    // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/07-Testing_for_Weak_Password_Policy
     // ============================================================================
 
     // -------- Minimum Length Tests (OWASP: min 8 characters) --------

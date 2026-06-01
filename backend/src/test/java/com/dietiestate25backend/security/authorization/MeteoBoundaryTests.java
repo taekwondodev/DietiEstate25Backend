@@ -11,7 +11,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Meteo Boundary Tests - POST /meteo Access Control")
+@DisplayName("Meteo Boundary Tests - POST /meteo Access Control - WSTG-AUTHZ-03")
 class MeteoBoundaryTests extends BaseMvcTest {
 
     @MockitoBean

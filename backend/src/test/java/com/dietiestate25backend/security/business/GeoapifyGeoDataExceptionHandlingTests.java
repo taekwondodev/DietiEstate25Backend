@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
  * Verifica che il DAO lanci eccezioni appropriate quando chiama API esterne
  * senza leakare informazioni sulla struttura della richiesta o errori di rete.
  */
-@DisplayName("Geoapify GeoData Exception Handling Tests - Business Logic Security")
+@DisplayName("Geoapify GeoData Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class GeoapifyGeoDataExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

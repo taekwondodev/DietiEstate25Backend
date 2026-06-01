@@ -15,7 +15,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Transactional
-@DisplayName("UtentePostgres DAO Security Tests - WSTG-INPV-05, WSTG-CRYP-04")
+@DisplayName("UtentePostgres DAO Security Tests - WSTG-INPV-05, WSTG-AUTHZ-02, WSTG-BUSL-07, WSTG-CRYP-04, WSTG-ERRH-01")
 class UtentePostgresDaoSecurityTests extends BaseIntegrationTest {
 
     @Autowired

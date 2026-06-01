@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Visita Boundary Tests - Role Access Control")
+@DisplayName("Visita Boundary Tests - Role Access Control - WSTG-AUTHZ-03")
 class VisitaBoundaryTests extends BaseMvcTest {
 
     @MockitoBean

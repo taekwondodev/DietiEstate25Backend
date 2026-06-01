@@ -40,10 +40,10 @@ import static org.mockito.Mockito.when;
  * WSTG-INPV-01: Identity field tampering (null/blank UID guards, invalid status strings)
  * WSTG-INPV-05: SQL injection in stato field caught at enum parse layer
  * WSTG-BUSL-07: State machine bypass (invalid transitions: RIFIUTATA→ACCETTATA, ACCETTATA→RIFIUTATA)
- * WSTG-ATHZ-02: Horizontal privilege escalation (cliente updates another client's offer)
+ * WSTG-AUTHZ-02: Horizontal privilege escalation (cliente updates another client's offer)
  * WSTG-ERRH-01: DAO failure wrapping without information leakage
  */
-@DisplayName("OffertaService Input Validation Security Tests - WSTG-INPV-01, WSTG-INPV-05, WSTG-BUSL-07, WSTG-ATHZ-02, WSTG-ERRH-01")
+@DisplayName("OffertaService Input Validation Security Tests - WSTG-INPV-01, WSTG-INPV-05, WSTG-BUSL-07, WSTG-AUTHZ-02, WSTG-ERRH-01")
 class OffertaServiceInputValidationTests extends BaseIntegrationTest {
 
     @Autowired
@@ -214,13 +214,13 @@ class OffertaServiceInputValidationTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-ATHZ-02: Horizontal privilege escalation
+    // OWASP WSTG-AUTHZ-02: Horizontal privilege escalation
     // Un cliente non deve poter modificare l'offerta di un altro cliente
     // passando il proprio UID ma un idOfferta appartenente ad altri.
     // ============================================================================
 
     @Test
-    @DisplayName("aggiornaStatoOfferta - cliente updating another client's offer must be rejected as UNAUTHORIZED (WSTG-ATHZ-02)")
+    @DisplayName("aggiornaStatoOfferta - cliente updating another client's offer must be rejected as UNAUTHORIZED (WSTG-AUTHZ-02)")
     void testAggiornaStatoOfferta_ClienteUpdatesOtherClientOffer_ShouldThrowUnauthorized() {
         mockJwtUser("attacker-uid", "Cliente");
         Immobile immobile = buildTestImmobile("agente-uid");

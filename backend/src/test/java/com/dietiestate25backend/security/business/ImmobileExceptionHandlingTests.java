@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
  * Verifica che il service lanci eccezioni appropriate senza leakare
  * informazioni sensibili tramite stack trace o messaggi dettagliati.
  */
-@DisplayName("Immobile Exception Handling Tests - Business Logic Security")
+@DisplayName("Immobile Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class ImmobileExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

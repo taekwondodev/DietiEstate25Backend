@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Malformed Payload Tests - Request Integrity")
+@DisplayName("Malformed Payload Tests - Request Integrity - WSTG-INPV-05, WSTG-INPV-10")
 class MalformedPayloadTests extends BaseMvcTest {
 
     @Test

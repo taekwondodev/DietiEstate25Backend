@@ -20,7 +20,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Transactional
-@DisplayName("VisitaPostgres DAO Security Tests - WSTG-INPV-05, WSTG-ATHZ-02, WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01")
+@DisplayName("VisitaPostgres DAO Security Tests - WSTG-INPV-05, WSTG-AUTHZ-02, WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01")
 class VisitaPostgresDaoSecurityTests extends BaseIntegrationTest {
 
     @Autowired
@@ -55,7 +55,7 @@ class VisitaPostgresDaoSecurityTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-ATHZ-02: Testing for Bypassing Authorization Schema (Data Isolation)
+    // OWASP WSTG-AUTHZ-02: Testing for Bypassing Authorization Schema (Data Isolation)
     // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/02-Testing_for_Bypassing_Authorization_Schema
     // ============================================================================
 

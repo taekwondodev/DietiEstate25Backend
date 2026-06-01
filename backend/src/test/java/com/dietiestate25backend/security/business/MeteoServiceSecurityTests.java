@@ -135,7 +135,7 @@ class MeteoServiceSecurityTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Latitude - very long string (DoS/buffer probe) must be rejected as INVALID_COORDINATES (WSTG-INPV-13)")
+    @DisplayName("Latitude - very long string (DoS/buffer probe) must be rejected as INVALID_COORDINATES (WSTG-BUSL-07)")
     void testOttieniPrevisioni_LongStringInLatitude_ShouldThrowBadRequest() {
         String datePassingCheck = LocalDate.now().plusDays(3).toString();
         String longPayload = "A".repeat(10000);

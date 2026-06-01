@@ -16,7 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Transactional
-@DisplayName("OffertaPostgres DAO Security Tests - WSTG-INPV-05, WSTG-ATHZ-02, WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01")
+@DisplayName("OffertaPostgres DAO Security Tests - WSTG-INPV-05, WSTG-AUTHZ-02, WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01")
 class OffertaPostgresDaoSecurityTests extends BaseIntegrationTest {
 
     @Autowired
@@ -51,7 +51,7 @@ class OffertaPostgresDaoSecurityTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-ATHZ-02: Testing for Bypassing Authorization Schema (Data Isolation)
+    // OWASP WSTG-AUTHZ-02: Testing for Bypassing Authorization Schema (Data Isolation)
     // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/02-Testing_for_Bypassing_Authorization_Schema
     // ============================================================================
 
@@ -136,13 +136,13 @@ class OffertaPostgresDaoSecurityTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-ATHZ-02: getOffertaById must return exactly the requested offer
+    // OWASP WSTG-AUTHZ-02: getOffertaById must return exactly the requested offer
     // Verifica che la query WHERE o.idOfferta = ? non possa essere aggirata per
     // restituire offerte di altri utenti tramite manipolazione dell'ID.
     // ============================================================================
 
     @Test
-    @DisplayName("getOffertaById - valid ID must return only the requested offer, not others (WSTG-ATHZ-02)")
+    @DisplayName("getOffertaById - valid ID must return only the requested offer, not others (WSTG-AUTHZ-02)")
     void testGetOffertaById_ValidId_ShouldReturnOnlyRequestedOffer() {
         Offerta result = offertaDao.getOffertaById(1);
 

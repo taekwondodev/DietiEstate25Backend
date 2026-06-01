@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Brute Force & Account Lockout Tests - OWASP WSTG-AUTHN-02")
+@DisplayName("Brute Force & Account Lockout Tests - WSTG-AUTHN-03")
 class BruteForceAndAccountLockoutTests {
 
     @Mock
@@ -50,8 +50,8 @@ class BruteForceAndAccountLockoutTests {
     private Utente testUser;
 
     // ============================================================================
-    // OWASP WSTG-AUTHN-02: Testing for Weak Lock Out Mechanism
-    // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/02-Testing_for_Weak_lock_out_mechanism
+    // OWASP WSTG-AUTHN-03: Testing for Weak Lock Out Mechanism
+    // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/03-Testing_for_Weak_lock_out_mechanism
     // ============================================================================
 
     @BeforeEach

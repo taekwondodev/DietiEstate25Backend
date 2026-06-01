@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
  * Verifica che il service non leaki informazioni sul token (scaduto, malformato, ecc.)
  * Tutte le eccezioni di validazione devono ritornare lo stesso messaggio generico.
  */
-@DisplayName("JwtService Exception Handling Tests - Business Logic Security")
+@DisplayName("JwtService Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class JwtServiceExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

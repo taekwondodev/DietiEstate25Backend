@@ -10,7 +10,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Immobile Ownership Tests - Data Isolation")
+@DisplayName("Immobile Ownership Tests - Data Isolation - WSTG-AUTHZ-02")
 class ImmobileOwnershipTests extends BaseMvcTest {
 
     @MockitoBean

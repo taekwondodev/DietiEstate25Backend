@@ -196,13 +196,13 @@ class OpenMeteoExceptionHandlingTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-INPV-11: Type confusion — risposta API con tipo errato
+    // OWASP WSTG-ERRH-01: Type confusion — risposta API con tipo errato
     // Un'API esterna compromessa potrebbe restituire un tipo diverso da Map per `daily`.
     // Il ClassCastException deve essere wrappato senza rivelare dettagli di tipo.
     // ============================================================================
 
     @Test
-    @DisplayName("Open Meteo daily is wrong type (String) - SHOULD wrap ClassCastException (WSTG-INPV-11)")
+    @DisplayName("Open Meteo daily is wrong type (String) - SHOULD wrap ClassCastException (WSTG-ERRH-01)")
     @WithMockUser(username = "user1", roles = "Cliente")
     void testOttieniPrevisioni_DailyIsWrongType_ShouldWrapGeneric() {
         Map<String, Object> response = new HashMap<>();

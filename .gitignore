@@ -43,3 +43,4 @@ k8s/backend/secret.yaml
 
 ### Claude Code ###
 .claude/settings.local.json
+.claude/HANDOFF.md

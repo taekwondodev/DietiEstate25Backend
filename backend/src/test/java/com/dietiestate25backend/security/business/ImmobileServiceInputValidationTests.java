@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
  * WSTG-BUSL-07: Testing for Circumventing Workflows (boundary bypass su prezzi, dimensioni, paginazione)
  * WSTG-ERRH-01: Testing for Improper Error Handling (DAO failures wrapped correttamente)
  */
-@DisplayName("ImmobileService Input Validation Security Tests - WSTG-INPV-01, WSTG-BUSL-07, WSTG-ERRH-01")
+@DisplayName("ImmobileService Input Validation Security Tests - WSTG-INPV-01, WSTG-INPV-05, WSTG-BUSL-07, WSTG-ERRH-01")
 class ImmobileServiceInputValidationTests extends BaseIntegrationTest {
 
     @Autowired

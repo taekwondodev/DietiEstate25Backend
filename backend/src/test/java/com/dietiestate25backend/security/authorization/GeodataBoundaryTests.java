@@ -15,7 +15,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Geodata Boundary Tests - POST /geodata Access Control")
+@DisplayName("Geodata Boundary Tests - POST /geodata Access Control - WSTG-AUTHZ-03")
 class GeodataBoundaryTests extends BaseMvcTest {
 
     @MockitoBean

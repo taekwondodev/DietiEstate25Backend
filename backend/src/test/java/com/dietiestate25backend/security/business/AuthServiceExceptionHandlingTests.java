@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
  * Verifica che il service non leaki informazioni sul fatto che un email esista
  * durante login o registrazione. Tutte le eccezioni devono essere generiche.
  */
-@DisplayName("AuthService Exception Handling Tests - Business Logic Security")
+@DisplayName("AuthService Exception Handling Tests - Business Logic Security - WSTG-ERRH-01")
 class AuthServiceExceptionHandlingTests extends BaseIntegrationTest {
 
     @Autowired

@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Transactional
-@DisplayName("UtenteAgenziaPostgres DAO Security Tests - WSTG-INPV-05, WSTG-ATHZ-02")
+@DisplayName("UtenteAgenziaPostgres DAO Security Tests - WSTG-INPV-01, WSTG-INPV-05, WSTG-AUTHZ-02, WSTG-BUSL-07, WSTG-ERRH-01")
 class UtenteAgenziaPostgresDaoSecurityTests extends BaseIntegrationTest {
 
     @Autowired
@@ -49,7 +49,7 @@ class UtenteAgenziaPostgresDaoSecurityTests extends BaseIntegrationTest {
     }
 
     // ============================================================================
-    // OWASP WSTG-ATHZ-02: Testing for Bypassing Authorization Schema
+    // OWASP WSTG-AUTHZ-02: Testing for Bypassing Authorization Schema
     // Reference: https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/02-Testing_for_Bypassing_Authorization_Schema
     // ============================================================================
 

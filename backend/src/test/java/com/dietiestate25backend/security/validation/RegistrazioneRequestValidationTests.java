@@ -11,7 +11,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("RegistrazioneRequest Validation Tests - Input Security")
+@DisplayName("RegistrazioneRequest Validation Tests - Input Security - WSTG-INPV-01, WSTG-INPV-05")
 class RegistrazioneRequestValidationTests extends BaseMvcTest {
 
     @MockitoBean
