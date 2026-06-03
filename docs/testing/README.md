@@ -9,9 +9,9 @@ La strategia segue e copre quattro aree:
 | Input Validation & Boundary Testing | 38 |
 | Authorization & Access Control | 90 |
 | Data Protection | 42 |
-| Business Logic Security | 124 |
+| Business Logic Security | 130 |
 | DAO Integration Security | 48 |
-| **TOTALE** | **342** |
+| **TOTALE** | **348** |
 
 ---
 
@@ -223,10 +223,8 @@ I test di questa sezione verificano **ogni cella** della [Matrice di Accesso (En
 | Da \ A | IN_SOSPESO | ACCETTATA/CONFERMATA | RIFIUTATA |
 |--------|:---------:|:--------------------:|:---------:|
 | **IN_SOSPESO** | ✗ | ✓ | ✓ |
-| **ACCETTATA/CONFERMATA** | — | ✗ | ✗ |
-| **RIFIUTATA** | — | ✗ | — |
-
-> `—` = non coperto da test (la guardia `isTransazioneValida` rifiuta qualsiasi transizione da stato terminale; le celle rappresentative sono sufficienti a verificarne il comportamento).
+| **ACCETTATA/CONFERMATA** | ✗ | ✗ | ✗ |
+| **RIFIUTATA** | ✗ | ✗ | ✗ |
 
 **Outcome:** `OffertaService.isTransazioneValida()` · `VisitaService.isTransizioneValidaVisita()`
 

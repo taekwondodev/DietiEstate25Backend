@@ -174,4 +174,58 @@ class VisitaStateTransitionTests extends BaseIntegrationTest {
 
         assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
     }
+
+    @Test
+    @DisplayName("CONFERMATA → IN_SOSPESO - SHOULD be rejected (terminal state)")
+    void testConfermata_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(7, "Via Bologna", "agente1");
+        Visita visitaConfermata = new Visita(7, Date.valueOf("2026-04-16"), Time.valueOf("10:00:00"),
+                StatoVisita.CONFERMATA, "client1", immobile);
+
+        when(visitaDao.getVisitaById(7)).thenReturn(visitaConfermata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(7, "In Sospeso"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
+    }
+
+    @Test
+    @DisplayName("RIFIUTATA → IN_SOSPESO - SHOULD be rejected (terminal state)")
+    void testRifiutata_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(8, "Via Palermo", "agente1");
+        Visita visitaRifiutata = new Visita(8, Date.valueOf("2026-04-17"), Time.valueOf("11:00:00"),
+                StatoVisita.RIFIUTATA, "client1", immobile);
+
+        when(visitaDao.getVisitaById(8)).thenReturn(visitaRifiutata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(8, "In Sospeso"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
+    }
+
+    @Test
+    @DisplayName("RIFIUTATA → RIFIUTATA - SHOULD be rejected (same state)")
+    void testRifiutata_ToRifiutata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(9, "Via Catania", "agente1");
+        Visita visitaRifiutata = new Visita(9, Date.valueOf("2026-04-18"), Time.valueOf("12:00:00"),
+                StatoVisita.RIFIUTATA, "client1", immobile);
+
+        when(visitaDao.getVisitaById(9)).thenReturn(visitaRifiutata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> visitaService.aggiornaStatoVisita(new AggiornaVisitaRequest(9, "Rifiutata"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_STATUS;
+    }
 }

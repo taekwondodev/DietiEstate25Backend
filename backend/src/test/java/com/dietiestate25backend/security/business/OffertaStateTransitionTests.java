@@ -165,4 +165,55 @@ class OffertaStateTransitionTests extends BaseIntegrationTest {
 
         assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
     }
+
+    @Test
+    @DisplayName("ACCETTATA → IN_SOSPESO - SHOULD be rejected (terminal state)")
+    void testAccettata_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(7, "Via Bologna", "agente1");
+        Offerta offertaAccettata = new Offerta(7, 110000.0, StatoOfferta.ACCETTATA, "client1", immobile);
+
+        when(offertaDao.getOffertaById(7)).thenReturn(offertaAccettata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(7, "In Sospeso"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
+    }
+
+    @Test
+    @DisplayName("RIFIUTATA → IN_SOSPESO - SHOULD be rejected (terminal state)")
+    void testRifiutata_ToInSospeso_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(8, "Via Palermo", "agente1");
+        Offerta offertaRifiutata = new Offerta(8, 120000.0, StatoOfferta.RIFIUTATA, "client1", immobile);
+
+        when(offertaDao.getOffertaById(8)).thenReturn(offertaRifiutata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(8, "In Sospeso"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
+    }
+
+    @Test
+    @DisplayName("RIFIUTATA → RIFIUTATA - SHOULD be rejected (same state)")
+    void testRifiutata_ToRifiutata_ShouldBeInvalid() {
+        mockJwtUser("agente1", "AgenteImmobiliare");
+        Immobile immobile = buildTestImmobile(9, "Via Catania", "agente1");
+        Offerta offertaRifiutata = new Offerta(9, 130000.0, StatoOfferta.RIFIUTATA, "client1", immobile);
+
+        when(offertaDao.getOffertaById(9)).thenReturn(offertaRifiutata);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> offertaService.aggiornaStatoOfferta(new AggiornaOffertaRequest(9, "Rifiutata"), "agente1")
+        );
+
+        assert exception.getErrorCode() == ErrorCode.INVALID_OFFERTA_STATUS;
+    }
 }

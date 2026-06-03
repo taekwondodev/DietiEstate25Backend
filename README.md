@@ -159,7 +159,7 @@ Autenticazione migrata da AWS Cognito a Spring Security in-house: JWT emessi e v
 
 ## Testing
 
-344 test di sicurezza organizzati in cinque aree: input validation, authorization & access control, data protection, business logic e DAO integration. Strategia basata su OWASP Testing Guide.
+348 test di sicurezza organizzati in cinque aree: input validation, authorization & access control, data protection, business logic e DAO integration. Strategia basata su OWASP Testing Guide.
 
 → [docs/testing/README.md](docs/testing/README.md)
 

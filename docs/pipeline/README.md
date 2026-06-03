@@ -14,7 +14,7 @@ Pipeline CI su due livelli: containerizzazione Docker per ambienti riproducibili
 | [OWASP ZAP](#zapyml) | DAST | 1 corretto, 1 soppresso | Pass |
 | [Trivy](#trivyyml) | Container security | CVE HIGH su package Alpine OS layer — corretti | Pass |
 | [Docker Scout](#deployyml) | Post-deploy CVE | 3 Medium — accettati (no fix disponibile) | Pass |
-| [Dependabot](#dependabotyml) | Deps aggiornamento | 9 PR automatiche mergeate | Merged |
+| [Dependabot](#dependabotyml) | Deps aggiornamento | 11 PR automatiche mergeate | Merged |
 
 ---
 
@@ -26,7 +26,7 @@ Il progetto usa due Dockerfile distinti con scopi e profili di sicurezza diversi
 
 Build **multi-stage** ([L2–L16](../../backend/Dockerfile#L2)):
 
-- **Stage build:** `maven:3.9.13-eclipse-temurin-25` — compila e pacchettizza
+- **Stage build:** `maven:3.9.15-eclipse-temurin-26` — compila e pacchettizza
 - **Stage runtime:** `eclipse-temurin:25-jre-alpine` — copia solo il JAR; Maven, JDK, sorgenti e dipendenze di build esclusi dall'immagine finale
 - **Alpine + solo JRE** ([L16](../../backend/Dockerfile#L16)): superficie OS minima, nessun `javac`/`jshell`/strumenti di debug
 - **`apk upgrade --no-cache`** ([L20–21](../../backend/Dockerfile#L20)): patcha CVE OS a ogni build; `ARG BUILD_WEEK` invalida il layer settimanalmente in CI (senza: Docker riutilizza cache → upgrade no-op)
@@ -35,7 +35,7 @@ Build **multi-stage** ([L2–L16](../../backend/Dockerfile#L2)):
 
 #### [`Dockerfile.test`](../../backend/Dockerfile.test#L3) — test
 
-Single-stage su `maven:3.9.13-eclipse-temurin-25`: esegue `mvn clean test` e termina. Ciclo di vita effimero — mai pubblicata su registry esterno; restrizioni di produzione non applicabili.
+Single-stage su `maven:3.9.15-eclipse-temurin-26`: esegue `mvn clean test` e termina. Ciclo di vita effimero — mai pubblicata su registry esterno; restrizioni di produzione non applicabili.
 
 ---
 
@@ -82,7 +82,7 @@ Ogni soppressione documentata con giustificazione nel file di configurazione.
 
 Build immagine di test con Docker BuildKit (cache layer su [`pom.xml`](../../backend/pom.xml#L1) + [`Dockerfile.test`](../../backend/Dockerfile.test#L3)), esecuzione via `docker compose up`, estrazione report JaCoCo con `docker compose cp`. Artifact `jacoco.xml` passato a `sonar.yml` nella stessa run (retention 1 giorno).
 
-Esegue 344 security test distribuiti su 5 aree OWASP WSTG — finding e bug corretti in [docs/testing/](../testing/README.md).
+Esegue 348 security test distribuiti su 5 aree OWASP WSTG — finding e bug corretti in [docs/testing/](../testing/README.md).
 
 **Output:** [artifact `jacoco.xml`](https://github.com/taekwondodev/DietiEstate25Backend/actions/workflows/ci.yml) passato a `sonar.yml` (scade dopo 1 giorno).
 
@@ -223,3 +223,5 @@ Monitoraggio automatico su tre ecosistemi: **Maven** ([`pom.xml`](../../backend/
 | [#16](https://github.com/taekwondodev/DietiEstate25Backend/pull/16) | GitHub Actions | `aquasecurity/trivy-action` 0.35.0 → 0.36.0 |
 | [#17](https://github.com/taekwondodev/DietiEstate25Backend/pull/17) | GitHub Actions | `docker/login-action` 3 → 4 |
 | [#18](https://github.com/taekwondodev/DietiEstate25Backend/pull/18) | Docker | `maven` 3.9.13 → 3.9.14-eclipse-temurin-25 (Dockerfile.test) |
+| [#19](https://github.com/taekwondodev/DietiEstate25Backend/pull/19) | GitHub Actions | `docker/setup-qemu-action` 3 → 4 |
+| [#20](https://github.com/taekwondodev/DietiEstate25Backend/pull/20) | Docker | `maven` 3.9.14-eclipse-temurin-25 → 3.9.15-eclipse-temurin-26 (Dockerfile, Dockerfile.test) |
